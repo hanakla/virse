@@ -3,7 +3,7 @@ import Head from "next/head";
 import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
 import { rgba } from "polished";
-import { useReluctStage } from "./stage";
+import { useVirseStage } from "./stage";
 import {
   RiArrowLeftSFill,
   RiCameraSwitchFill,
@@ -17,7 +17,7 @@ const Home: NextPage = () => {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const [sidebarRef, sidebarBBox] = useMeasure();
 
-  const { setCamMode, setBackgroundColor } = useReluctStage(canvas);
+  const { setCamMode, setBackgroundColor } = useVirseStage(canvas);
   const [state, setState] = useObjectState({
     sidebar: true,
   });

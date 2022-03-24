@@ -7,7 +7,7 @@ import { GridHelper, WebGLRenderer } from "three";
 
 type CamModes = "perspective" | "orthographic";
 
-export const useReluctStage = (canvas: RefObject<HTMLCanvasElement | null>) => {
+export const useVirseStage = (canvas: RefObject<HTMLCanvasElement | null>) => {
   const vrm = useRef<VRM | null>(null);
   const renderer = useRef<WebGLRenderer | null>(null);
   const camera = useRef<
