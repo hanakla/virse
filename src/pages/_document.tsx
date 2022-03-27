@@ -1,5 +1,6 @@
 // import React from "react";
 import type {} from "styled-components/cssprop";
+
 import Document, { DocumentContext } from "next/document";
 import { ServerStyleSheet } from "styled-components";
 

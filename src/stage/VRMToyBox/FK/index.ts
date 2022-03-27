@@ -1,34 +1,61 @@
-import { VRMSchema } from "@pixiv/three-vrm";
+import { VRM, VRMSchema } from "@pixiv/three-vrm";
+import mitt from "mitt";
 import * as THREE from "three";
+import { Mesh, MeshBasicMaterial } from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 import { mergeBufferGeometries } from "three/examples/jsm/utils/BufferGeometryUtils";
 
-const defaultColor = 0x00ffff;
-const defaultEmissive = 0x000aa0;
-const activeEmissive = 0xffff00;
+const defaultColor = 0x5e31c3;
+const activeColor = 0x8c58ff;
+// const activeEmissive = 0xffffff;
 
 export class VRMFKManager {
-  #boneUiObjects = [];
-  #vrm;
-  #canvas;
+  #boneUiObjects: Mesh[] = [];
+  #vrm: VRM;
+  #canvas: HTMLCanvasElement;
   #camera;
-  #intersectedBone;
-  #rotateController;
+  #intersectedBone: Mesh | null = null;
+  #rotateController: TransformControls = null!;
+  #orbitControls: { get current(): OrbitControls };
 
-  constructor(vrm, canvas, camera, private orbitControls) {
+  #isFocused = false;
+  #isMouseMoved = false;
+  #enabled = true;
+
+  public readonly events = mitt<{ focusChange: boolean }>();
+
+  constructor(
+    vrm,
+    canvas,
+    camera,
+    orbitControls: { get current(): OrbitControls }
+  ) {
     this.#vrm = vrm;
     this.#canvas = canvas;
     this.#camera = camera;
+    this.#orbitControls = orbitControls;
     this.#createBoneHelper(vrm);
     this.#createRotateController();
     this.#registerUiEvent();
+  }
+
+  public get enabled() {
+    return this.#enabled;
+  }
+
+  public set enabled(v: boolean) {
+    this.#enabled = v;
+    this.#boneUiObjects.map((o) => {
+      o.visible = v;
+    });
   }
 
   // ボーンを表現するUIのジオメトリを作成
   #createBoneGeometry = () => {
     const topH = 0.8;
     const bottomH = 1 - topH;
-    const w = 0.15;
+    const w = 0.08;
     const segument = 3;
     // 先端方向
     const top = new THREE.ConeGeometry(w, topH, segument, 1, true);
@@ -52,13 +79,14 @@ export class VRMFKManager {
     const geometry = this.#createBoneGeometry();
 
     Object.values(VRMSchema.HumanoidBoneName).forEach((boneName) => {
-      const material = new THREE.MeshLambertMaterial({
+      const material = new THREE.MeshBasicMaterial({
         color: defaultColor,
         depthTest: false,
         depthWrite: false,
         transparent: true,
+        opacity: 0.5,
       });
-      material.emissive.setHex(defaultEmissive);
+      // material.emissive.setHex(defaultEmissive);
 
       // Root-> hipsはスキップする
       if (boneName == "hips") return;
@@ -100,22 +128,27 @@ export class VRMFKManager {
     this.#vrm.scene.add(this.#rotateController);
 
     this.#rotateController.addEventListener("dragging-changed", (event) => {
-      this.orbitControls.enabled = !event.value;
+      this.#orbitControls.current.enabled = !event.value;
     });
   };
 
   // マウスレイキャスト
   #registerUiEvent = () => {
     this.#canvas.addEventListener("mousedown", this.#handleMouseDown);
-    this.#canvas.addEventListener("contextmenu", this.#handleUnselectBone);
+    this.#canvas.addEventListener("pointermove", this.#handlePointerMove);
+    this.#canvas.addEventListener("pointerup", this.#handlePointerUp);
+    this.#canvas.addEventListener("dblclick", this.#unselectBoneUi);
   };
 
-  #handleMouseDown = (event) => {
+  #handleMouseDown = (event: MouseEvent) => {
+    if (!this.#enabled) return;
+
     // console.log("mousemove");
     const element = event.currentTarget;
     // canvas要素上のXY座標
     const x = event.clientX - element.offsetLeft;
     const y = event.clientY - element.offsetTop;
+
     // canvas要素の幅・高さ
     const w = element.offsetWidth;
     const h = element.offsetHeight;
@@ -131,33 +164,64 @@ export class VRMFKManager {
     const intersects = raycaster.intersectObjects(this.#boneUiObjects);
     if (intersects.length > 0) {
       if (this.#intersectedBone != intersects[0].object) {
-        this.#handleSelectBoneUi(intersects[0].object);
+        this.#selectBoneUi(intersects[0].object);
       }
     }
   };
 
-  #handleSelectBoneUi = (intersect) => {
+  #handlePointerMove = () => {
+    this.#isMouseMoved = true;
+  };
+
+  #handlePointerUp = () => {
+    if (this.#isMouseMoved) {
+      this.#isMouseMoved = false;
+      return;
+    }
+
+    this.#unselectBoneUi();
+  };
+
+  #selectBoneUi = (intersect) => {
     if (this.#intersectedBone) {
-      this.#intersectedBone.material.emissive.setHex(defaultEmissive);
+      (this.#intersectedBone.material as MeshBasicMaterial).color.setHex(
+        activeColor
+      );
     }
 
     this.#intersectedBone = intersect;
-    this.#intersectedBone.material.emissive.setHex(activeEmissive);
+    (this.#intersectedBone!.material as MeshBasicMaterial).color.setHex(
+      activeColor
+    );
 
     // this.#rotateController.setSize(intersect.scale.x * 2);
     this.#rotateController.attach(intersect.parent);
+    this.#isFocused = true;
+    this.#boneUiObjects.forEach((o) => (o.visible = false));
+    this.events.emit("focusChange", this.#isFocused);
   };
 
-  #handleUnselectBone = () => {
+  #unselectBoneUi = () => {
     if (this.#intersectedBone) {
-      this.#intersectedBone.material.emissive.setHex(defaultEmissive);
+      (this.#intersectedBone.material as MeshBasicMaterial).color.setHex(
+        activeColor
+      );
+      this.#boneUiObjects.forEach((o) => (o.visible = true));
       this.#rotateController.detach();
 
       this.#intersectedBone = null;
+      this.#isFocused = false;
+      this.events.emit("focusChange", this.#isFocused);
     }
   };
 
   unselect = () => {
-    this.#handleUnselectBone();
+    this.#unselectBoneUi();
   };
+
+  public dispose() {
+    this.#canvas.removeEventListener("mousedown", this.#handleMouseDown);
+    this.#canvas.removeEventListener("dblclick", this.#unselectBoneUi);
+    this.#canvas.removeEventListener("contextmenu", this.#unselectBoneUi);
+  }
 }

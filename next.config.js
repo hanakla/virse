@@ -1,4 +1,20 @@
+const withTM = require("next-transpile-modules")(["kalidokit"]);
+
 /** @type {import('next').NextConfig} */
-module.exports = {
-  reactStrictMode: true,
+const config = {
+  experimental: {
+    asyncWebAssembly: true,
+  },
+  webpack(config) {
+    config.module.rules.push({
+      test: /.wasm$/,
+      type: "asset/resource",
+    });
+
+    // (config.experiments ??= {}).syncWebAssembly = true;
+
+    return config;
+  },
 };
+
+module.exports = withTM(config);

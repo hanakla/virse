@@ -1,19 +1,32 @@
 import { RefObject, useEffect, useMemo, useRef } from "react";
 import { useObjectState } from "@hanakla/arma";
 import { VirseStage, CamModes } from "./VirseStage";
+import { useUpdate } from "react-use";
+import { Color } from "three";
 
 export const useVirseStage = (canvas: RefObject<HTMLCanvasElement | null>) => {
+  const rerender = useUpdate();
   const stage = useRef<VirseStage | null>(null);
-  const [state, setState] = useObjectState<{ camMode: CamModes }>({
-    camMode: "perspective",
-  });
 
   useEffect(() => {
+    const { current } = stage;
+    if (!current) return;
+
+    const onUpdated = () => {
+      console.log("updated");
+      rerender();
+    };
+
+    current.events.on("updated", onUpdated);
+    return () => current.events.off("updated", onUpdated);
+  }, [stage.current]);
+
+  useEffect(() => {
+    // return;
     const s =
       ((window as any)._stage =
       stage.current =
         new VirseStage(canvas.current!));
-    s.loadVRM("");
 
     let animId = 0;
     animId = requestAnimationFrame(function update() {
@@ -21,39 +34,52 @@ export const useVirseStage = (canvas: RefObject<HTMLCanvasElement | null>) => {
       requestAnimationFrame(update);
     });
 
-    window.addEventListener("resize", s.onResize, { passive: true });
-
     return () => {
-      window.removeEventListener("resize", s.onResize);
       cancelAnimationFrame(animId);
       s.dispose();
+      stage.current = null;
     };
   }, []);
 
   return useMemo(
     () => ({
-      camMode: state.camMode,
+      stage: stage.current!,
+      get camMode() {
+        return stage.current?.camMode;
+      },
       setCamMode: (mode?: CamModes) => {
-        setState({
-          camMode:
-            mode == null
-              ? state.camMode === "perspective"
-                ? "orthographic"
-                : "perspective"
-              : mode,
-        });
+        const nextMode =
+          mode ?? stage.current?.camMode === "perspective"
+            ? "orthographic"
+            : "perspective";
+
+        stage.current!.setCamMode(nextMode);
       },
       setDisplayBones: (visible: boolean) =>
-        stage.current?.setDisplayBones(visible),
+        stage.current!.setDisplayBones(visible),
       setControlMode: (mode: string) => stage.current?.setControlMode(mode),
-      setBackgroundColor: (color: string) => {
-        stage.current?.renderer.setClearColor(color);
+      setBackgroundColor: ({
+        r,
+        g,
+        b,
+        a,
+      }: {
+        r: number;
+        g: number;
+        b: number;
+        a: number;
+      }) => {
+        console.log({ r, g, b, a });
+        stage.current!.renderer.setClearColor(
+          new Color(r / 255, g / 255, b / 255)
+        );
+        stage.current!.renderer.setClearAlpha(a);
       },
       get vrms() {
-        return stage.current!.vrms;
+        return stage.current?.vrms || {};
       },
     }),
-    [state, stage.current]
+    [stage.current]
   );
 };
 
