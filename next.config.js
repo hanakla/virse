@@ -5,6 +5,9 @@ const config = {
   experimental: {
     asyncWebAssembly: true,
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   webpack(config) {
     config.module.rules.push({
       test: /.wasm$/,
