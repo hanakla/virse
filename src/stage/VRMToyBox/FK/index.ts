@@ -1,7 +1,7 @@
 import { VRM, VRMSchema } from "@pixiv/three-vrm";
 import mitt from "mitt";
 import * as THREE from "three";
-import { Mesh, MeshBasicMaterial } from "three";
+import { Bone, Mesh, MeshBasicMaterial } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 import { mergeBufferGeometries } from "three/examples/jsm/utils/BufferGeometryUtils";
@@ -77,8 +77,55 @@ export class VRMFKManager {
   // 全身のボーンを可視化するUI
   #createBoneHelper = (vrm) => {
     const geometry = this.#createBoneGeometry();
+    const bones: Bone[] = [];
+    this.#vrm.scene.traverse((object) => {
+      if (!object.isBone) return;
+      bones.push(object);
+    });
 
-    Object.values(VRMSchema.HumanoidBoneName).forEach((boneName) => {
+    // console.log(bones);
+
+    // Object.values(VRMSchema.HumanoidBoneName).forEach((boneName) => {
+    //   const material = new THREE.MeshBasicMaterial({
+    //     color: defaultColor,
+    //     depthTest: false,
+    //     depthWrite: false,
+    //     transparent: true,
+    //     opacity: 0.5,
+    //   });
+    //   // material.emissive.setHex(defaultEmissive);
+
+    //   // Root-> hipsはスキップする
+    //   if (boneName == "hips") return;
+
+    //   // 接続先関節
+    //   const childNode = vrm.humanoid.getBoneNode(boneName);
+    //   if (!childNode) return;
+    //   const chiledWorldPos = childNode.getWorldPosition(new THREE.Vector3());
+
+    //   // 親関節（対象とする関節）
+    //   const parentNode = childNode.parent;
+    //   if (!parentNode) return;
+    //   const parentWorldPos = parentNode.getWorldPosition(new THREE.Vector3());
+
+    //   // ボーン状のギズモのメッシュ
+    //   const boneUI = new THREE.Mesh(geometry, material);
+
+    //   // 関節位置に移動
+    //   boneUI.position.copy(parentWorldPos);
+
+    //   // 接続関節方向を向かせる
+    //   boneUI.lookAt(chiledWorldPos);
+
+    //   // 最後にスケールを変更する
+    //   const len = chiledWorldPos.sub(parentWorldPos).length();
+    //   boneUI.scale.copy(new THREE.Vector3(len, len, len));
+
+    //   parentNode.attach(boneUI);
+    //   this.#boneUiObjects.push(boneUI);
+    // });
+
+    bones.forEach((bone) => {
       const material = new THREE.MeshBasicMaterial({
         color: defaultColor,
         depthTest: false,
@@ -86,28 +133,17 @@ export class VRMFKManager {
         transparent: true,
         opacity: 0.5,
       });
-      // material.emissive.setHex(defaultEmissive);
 
-      // Root-> hipsはスキップする
-      if (boneName == "hips") return;
-
-      // 接続先関節
-      const childNode = vrm.humanoid.getBoneNode(boneName);
+      const childNode = bone;
       if (!childNode) return;
       const chiledWorldPos = childNode.getWorldPosition(new THREE.Vector3());
 
-      // 親関節（対象とする関節）
-      const parentNode = childNode.parent;
+      const parentNode = bone.parent;
       if (!parentNode) return;
       const parentWorldPos = parentNode.getWorldPosition(new THREE.Vector3());
 
-      // ボーン状のギズモのメッシュ
       const boneUI = new THREE.Mesh(geometry, material);
-
-      // 関節位置に移動
       boneUI.position.copy(parentWorldPos);
-
-      // 接続関節方向を向かせる
       boneUI.lookAt(chiledWorldPos);
 
       // 最後にスケールを変更する

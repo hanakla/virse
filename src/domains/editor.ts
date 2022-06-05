@@ -175,21 +175,17 @@ type VirseDBModelIndex = { hash: string; name: string; version: string };
 const connectIdb = async () => {
   const db = await openDB<VirseDBSchema>("virse", 2, {
     upgrade(db, old, next) {
-      if (old === 0) {
-        db.createObjectStore(STORE_NAME, { autoIncrement: true });
-      }
+      db.createObjectStore(STORE_NAME, { autoIncrement: true });
 
-      if (old === 1) {
-        db.createObjectStore("modelIndex", {
-          autoIncrement: false,
-          keyPath: "hash",
-        });
+      db.createObjectStore("modelIndex", {
+        autoIncrement: false,
+        keyPath: "hash",
+      });
 
-        db.createObjectStore("modelFile", {
-          autoIncrement: false,
-          keyPath: "hash",
-        });
-      }
+      db.createObjectStore("modelFile", {
+        autoIncrement: false,
+        keyPath: "hash",
+      });
     },
   });
 

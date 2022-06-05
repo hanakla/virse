@@ -354,7 +354,7 @@ export class VirseStage {
     // Update model to render physics
     Object.values(this.vrms).map((model) => {
       model.ui.update();
-      model.vrm.update(this.clock.getDelta());
+      // model.vrm.update(this.clock.getDelta());
       model.avatar.update(); //this.clock.getDelta());
     });
 
