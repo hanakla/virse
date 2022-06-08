@@ -16,7 +16,7 @@ export class VRMFKManager {
   #canvas: HTMLCanvasElement;
   #camera;
   #intersectedBone: Mesh | null = null;
-  #rotateController: TransformControls = null!;
+  rotateController: TransformControls = null!;
   #orbitControls: { get current(): OrbitControls };
 
   #isFocused = false;
@@ -46,6 +46,12 @@ export class VRMFKManager {
 
   public set enabled(v: boolean) {
     this.#enabled = v;
+    this.#boneUiObjects.map((o) => {
+      o.visible = v;
+    });
+  }
+
+  public set displayBones(v: boolean) {
     this.#boneUiObjects.map((o) => {
       o.visible = v;
     });
@@ -126,6 +132,8 @@ export class VRMFKManager {
     // });
 
     bones.forEach((bone) => {
+      bone.matrixAutoUpdate = true;
+
       const material = new THREE.MeshBasicMaterial({
         color: defaultColor,
         depthTest: false,
@@ -157,14 +165,18 @@ export class VRMFKManager {
 
   // 回転用のコントローラー
   #createRotateController = () => {
-    this.#rotateController = new TransformControls(this.#camera, this.#canvas);
-    this.#rotateController.setMode("rotate");
-    this.#rotateController.setSpace("local");
-    this.#rotateController.setSize(0.5);
-    this.#vrm.scene.add(this.#rotateController);
+    this.rotateController = new TransformControls(this.#camera, this.#canvas);
+    this.rotateController.setMode("rotate");
+    this.rotateController.setSpace("local");
+    this.rotateController.setSize(0.5);
+    this.#vrm.scene.add(this.rotateController);
 
-    this.#rotateController.addEventListener("dragging-changed", (event) => {
+    this.rotateController.addEventListener("dragging-changed", (event) => {
       this.#orbitControls.current.enabled = !event.value;
+
+      this.#boneUiObjects.forEach((obj) => {
+        obj.visible = !event.value;
+      });
     });
   };
 
@@ -180,7 +192,7 @@ export class VRMFKManager {
     if (!this.#enabled) return;
 
     // console.log("mousemove");
-    const element = event.currentTarget;
+    const element = event.currentTarget!;
     // canvas要素上のXY座標
     const x = event.clientX - element.offsetLeft;
     const y = event.clientY - element.offsetTop;
@@ -198,7 +210,8 @@ export class VRMFKManager {
     raycaster.setFromCamera(mouse, this.#camera);
 
     const intersects = raycaster.intersectObjects(this.#boneUiObjects);
-    if (intersects.length > 0) {
+
+    if (intersects.length > 0 && !this.rotateController.dragging) {
       if (this.#intersectedBone != intersects[0].object) {
         this.#selectBoneUi(intersects[0].object);
       }
@@ -231,7 +244,9 @@ export class VRMFKManager {
     );
 
     // this.#rotateController.setSize(intersect.scale.x * 2);
-    this.#rotateController.attach(intersect.parent);
+
+    window.v$0 = intersect.parent;
+    this.rotateController.attach(intersect.parent);
     this.#isFocused = true;
     this.#boneUiObjects.forEach((o) => (o.visible = false));
     this.events.emit("focusChange", this.#isFocused);
@@ -243,7 +258,7 @@ export class VRMFKManager {
         activeColor
       );
       this.#boneUiObjects.forEach((o) => (o.visible = true));
-      this.#rotateController.detach();
+      this.rotateController.detach();
 
       this.#intersectedBone = null;
       this.#isFocused = false;
@@ -254,6 +269,14 @@ export class VRMFKManager {
   unselect = () => {
     this.#unselectBoneUi();
   };
+
+  public selectBone(bone: Bone) {
+    window.v$0 = bone;
+    this.rotateController.attach(bone);
+    this.#isFocused = true;
+    this.#boneUiObjects.forEach((o) => (o.visible = false));
+    this.events.emit("focusChange", this.#isFocused);
+  }
 
   public dispose() {
     this.#canvas.removeEventListener("mousedown", this.#handleMouseDown);

@@ -9,8 +9,10 @@ import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader";
 // import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import {
+  Bone,
   GridHelper,
   Object3D,
+  OrthographicCamera,
   PerspectiveCamera,
   SkeletonHelper,
   WebGLRenderer,
@@ -42,7 +44,11 @@ export class VirseStage {
   public visibleBones = true;
   public events = mitt<{ updated: void }>();
   private objects: Object3D[] = [];
-  private passes: { render: RenderPass; distortion: Pass };
+  private passes: {
+    render: RenderPass;
+    fxaa: ShaderPass;
+    distortion: ShaderPass;
+  };
   #size: { width: number; height: number };
 
   public vrms: {
@@ -64,7 +70,8 @@ export class VirseStage {
       alpha: true,
       antialias: true,
       preserveDrawingBuffer: true,
-      // premultipliedAlpha: true,
+      premultipliedAlpha: true,
+      stencil: true,
       canvas,
     }));
     r.setClearColor("#ffffff");
@@ -83,8 +90,8 @@ export class VirseStage {
     const pCam = (this.pCam = new THREE.PerspectiveCamera(
       10,
       window.innerWidth / window.innerHeight,
-      0.1,
-      1000
+      1,
+      10000
     ));
     pCam.position.set(0.0, 1.4, 0.7);
     this.activeCamera = pCam;
@@ -94,10 +101,10 @@ export class VirseStage {
       window.innerWidth / 2,
       window.innerHeight / 2,
       window.innerHeight / -2,
-      0.01,
-      2000
+      1,
+      10000
     );
-    this.oCam.position.set(0.0, 1.4, 0.7);
+    this.oCam.position.set(0.0, 1.4, 0);
     this.oCam.zoom = 200;
 
     // controls
@@ -138,7 +145,7 @@ export class VirseStage {
     effectComposer.addPass(dist);
     dist.renderToScreen = true;
 
-    this.passes = { render: renderPass, distortion: dist };
+    this.passes = { render: renderPass, fxaa, distortion: dist };
 
     {
       const horizontalFOV = 120;
@@ -155,6 +162,20 @@ export class VirseStage {
 
     // Main Render Loop
     this.clock = new THREE.Clock();
+
+    // window
+    window.v$setBone = (bone: Bone) => {
+      Object.values(this.vrms).filter((vrm) => {
+        let hasBone = false;
+        vrm.vrm.scene.traverse((o) => {
+          hasBone = hasBone || o === bone;
+        });
+
+        if (hasBone) {
+          vrm.ui.selectBone(bone);
+        }
+      });
+    };
   }
 
   public dispose() {
@@ -165,12 +186,32 @@ export class VirseStage {
     this.renderer.dispose();
   }
 
-  public setCamMode(mode: CamModes) {
+  public setCamMode(
+    mode: CamModes,
+    opt: {
+      fov?: number;
+      zoom?: number;
+      position?: [number, number, number];
+      target?: [number, number, number];
+      rotation?: [number, number, number];
+      quaternion?: [number, number, number, number];
+    } = {}
+  ) {
     this.orbitControls.dispose();
 
-    this.activeCamera = mode === "perspective" ? this.pCam : this.oCam;
-    this.activeCamera.position.set(0.0, 1.4, 0.7);
-    this.activeCamera.updateProjectionMatrix();
+    const cam = (this.activeCamera =
+      mode === "perspective" ? this.pCam : this.oCam);
+    // this.activeCamera.position.set(0.0, 1.4, 0.7);
+    if (cam instanceof PerspectiveCamera && opt.fov != null) cam.fov = opt.fov;
+    if (cam instanceof OrthographicCamera && opt.zoom != null)
+      cam.zoom = opt.zoom;
+    if (opt.position != null) cam.position.fromArray(opt.position);
+    if (opt.rotation != null) cam.rotation.fromArray(opt.rotation);
+    if (opt.quaternion != null) cam.quaternion.fromArray(opt.quaternion);
+    if (opt.target != null) this.orbitControls.target.fromArray(opt.target);
+
+    cam.updateMatrix();
+    cam.updateProjectionMatrix();
 
     // const vec = new THREE.Vector3();
 
@@ -180,7 +221,7 @@ export class VirseStage {
 
     // this.activeCamera.lookAt(vec);
 
-    this.orbitControls = new OrbitControls(this.activeCamera, this.canvas);
+    this.orbitControls = new OrbitControls(cam, this.canvas);
     this.orbitControls.screenSpacePanning = true;
     this.orbitControls.target.set(0.0, 1.4, 0.0);
     this.orbitControls.update();
@@ -188,6 +229,16 @@ export class VirseStage {
     this.passes.render.camera = this.activeCamera;
 
     this.events.emit("updated");
+  }
+
+  public get camFov() {
+    return this.pCam.fov;
+  }
+
+  public set camFov(fov: number) {
+    this.pCam.fov = fov;
+    this.pCam.updateProjectionMatrix();
+    this.orbitControls.update();
   }
 
   public get camMode(): CamModes {
@@ -199,6 +250,16 @@ export class VirseStage {
   public setControlMode(mode: string) {
     Object.values(this.vrms).map((o) => {
       o.ui.ikControlMode(mode);
+    });
+  }
+
+  public get boneControlMode() {
+    return Object.values(this.vrms)[0].ui.fkControlMode;
+  }
+
+  public set boneControlMode(mode: string) {
+    Object.values(this.vrms).map((o) => {
+      o.ui.fkControlMode = mode as any;
     });
   }
 
@@ -222,6 +283,10 @@ export class VirseStage {
     this.oCam.updateProjectionMatrix();
 
     this.renderer.setSize(w, h, false);
+    this.passes.fxaa.material.uniforms["resolution"].value.x =
+      1 / (w * window.devicePixelRatio);
+    this.passes.fxaa.material.uniforms["resolution"].value.y =
+      1 / (h * window.devicePixelRatio);
     this.passes.render.setSize(w, h);
     this.composer.setSize(w, h);
 
@@ -267,6 +332,24 @@ export class VirseStage {
     };
 
     this.events.emit("updated");
+  }
+
+  public resetCamera() {
+    this.pCam.position.set(0.0, 1.4, 0.7);
+    this.pCam.rotation.set(0, 0, 0, "XYZ");
+    this.pCam.position.set(0.0, 1.4, 0.7);
+    this.pCam.zoom = 1;
+
+    this.oCam.position.set(0.0, 1.4, 0);
+    this.oCam.rotation.set(0, 0, 0, "XYZ");
+    this.oCam.position.set(0.0, 1.4, 0);
+    this.oCam.zoom = 200;
+
+    this.pCam.updateProjectionMatrix();
+    this.oCam.updateProjectionMatrix();
+
+    this.orbitControls.target.set(0.0, 1.4, 0.0);
+    this.orbitControls.update();
   }
 
   private async gltfTargets(avatar: Avatar) {

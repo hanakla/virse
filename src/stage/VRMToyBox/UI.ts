@@ -1,7 +1,7 @@
 import { VertexLayout } from "@gltf-transform/core";
 import { VRMSchema } from "@pixiv/three-vrm";
 import * as THREE from "three";
-import { Object3D } from "three";
+import { Bone, Object3D } from "three";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 import { hasOwn } from "../../utils/lang";
 import { VirseStage } from "../VirseStage";
@@ -24,6 +24,7 @@ export class UI {
       c.addEventListener("dragging-changed", (event) => {
         avatar.needIKSolve = ik && !!event.value;
         this.viewer.orbitControls.enabled = !event.value;
+        this.fkManager.displayBones = !event.value;
         this.#focusedTo = event.value ? "ik" : null;
       });
       return c;
@@ -100,6 +101,23 @@ export class UI {
     });
   }
 
+  // public setBoneVisibility(visible: boolean) {
+  //   this.#displayBones = visible;
+  //   this.#needUpdate = true;
+  // }
+
+  public set fkControlMode(mode: "translate" | "rotate" | "scale") {
+    this.fkManager.rotateController.setMode(mode);
+  }
+
+  public get fkControlMode() {
+    return this.fkManager.rotateController.mode;
+  }
+
+  public selectBone(bone: Bone) {
+    this.fkManager.selectBone(bone);
+  }
+
   public update() {
     if (!this.#needUpdate) {
       if (this.#displayBones === this.viewer.visibleBones) return;
@@ -114,6 +132,7 @@ export class UI {
           (this.#focusedTo === "ik" || this.#focusedTo === null);
 
         o.visible = enable;
+        o.enabled = enable;
         if (hasOwn(o, "enabled")) o.enabled = enable;
       });
 

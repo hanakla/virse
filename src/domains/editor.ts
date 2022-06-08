@@ -1,7 +1,7 @@
 import { minOps } from "@fleur/fleur";
 import { DBSchema, openDB } from "idb";
 import blobToHash from "blob-to-hash";
-import { VRM, VRMSchema } from "@pixiv/three-vrm";
+import { VRM, VRMPose, VRMSchema } from "@pixiv/three-vrm";
 import { WebIO } from "@gltf-transform/core";
 
 type State = {
@@ -22,6 +22,7 @@ export type VirsePose = {
   camera: any;
   blendShapeProxies: any;
   morphs: any;
+  vrmPose: VRMPose;
   bones: any;
 };
 

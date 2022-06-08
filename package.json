@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@fleur/fleur": "^3.1.0-beta.7",
+    "@fleur/mordred": "^0.1.0-pre.3",
     "@fleur/next": "^1.0.0",
     "@fleur/react": "^5.0.2",
     "@gltf-transform/core": "^2.0.5",
@@ -21,6 +22,7 @@
     "@react-hook/mouse-position": "^4.1.3",
     "blob-to-hash": "^0.0.1",
     "core-js": "^3.21.1",
+    "escape-string-regexp": "^5.0.0",
     "idb": "^7.0.1",
     "kalidokit": "^1.1.5",
     "mitt": "^3.0.0",

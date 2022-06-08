@@ -1,5 +1,5 @@
 import type { NextPage } from "next";
-import { CSSProperties, MouseEvent, useRef, useState } from "react";
+import { CSSProperties, MouseEvent, useMemo, useRef, useState } from "react";
 import { rgba } from "polished";
 import { useVirseStage } from "../stage";
 import {
@@ -18,7 +18,7 @@ import useMeasure from "react-use-measure";
 import { letDownload, styleWhen, useObjectState } from "@hanakla/arma";
 import styled, { css } from "styled-components";
 import { useFunc, useMousetrap, useStoreState } from "../utils/hooks";
-import { Bone, MathUtils } from "three";
+import { Bone, MathUtils, Quaternion, Vector3 } from "three";
 import { useEffect } from "react";
 import useMouse from "@react-hook/mouse-position";
 import { VRMSchema } from "@pixiv/three-vrm";
@@ -50,6 +50,8 @@ import "react-contexify/dist/ReactContexify.css";
 import { List, ListItem } from "../components/List";
 import { Recorder } from "../stage/Recorder";
 import { ChromePicker, ColorChangeHandler } from "react-color";
+import { Mordred, MordredRoot, openModal } from "@fleur/mordred";
+import { SelectBones } from "../modals/SelectBones";
 
 const Home: NextPage = () => {
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -65,18 +67,24 @@ const Home: NextPage = () => {
   const stage = useVirseStage(canvas);
   const [rightTab, setRightTab] = useState<"expr" | "poses">("expr");
   const [state, setState] = useObjectState({
+    poseId: null as number | null,
     poseName: "",
     rotation: false,
     syncEyes: true,
     eyeLeft: { x: 0, y: 0 },
     eyeRight: { x: 0, y: 0 },
     size: { width: 1000, height: 1000 },
+    fov: 10,
     showColorPane: false,
     tmpCam: null as any,
     color: {
       hex: "#fff",
       rgb: { r: 255, g: 255, b: 255 },
       alpha: 0,
+    },
+    handMix: {
+      right: 0,
+      left: 0,
     },
   });
 
@@ -153,54 +161,60 @@ const Home: NextPage = () => {
     vrm.scene.traverse((o) => {
       if ((o as any).isBone) bones.push(o as Bone);
     });
+    const vrmPose = vrm.humanoid!.getPose();
+
+    const original = state.poseId
+      ? poses.find((p) => p.id === state.poseId!)
+      : null;
 
     const pose: UnsavedVirsePose = {
       name: state.poseName,
       canvas: state.size,
       camera: {
         mode: stage.stage.camMode,
+        fov: stage.stage.camFov,
+        zoom: stage.stage.activeCamera.zoom,
         position: stage.stage.activeCamera.position.toArray(),
-        rotation: stage.stage.activeCamera.rotation.toArray(),
+        target: stage.stage.orbitControls.target.toArray(),
         quaternion: stage.stage.activeCamera.quaternion.toArray(),
       },
       blendShapeProxies: vrm.blendShapeProxy?.expressions.reduce((a, name) => {
         a[name] = vrm.blendShapeProxy?.getValue(name)!;
         return a;
       }, Object.create(null)),
-      morphs: Object.entries(proxy).reduce((a, [k, proxy]) => {
-        a[k] = { value: proxy.value };
-        return a;
-      }, Object.create(null)),
-      bones: bones.reduce((a, b) => {
-        a[b.name] = {
-          position: b.position.toArray([]),
-          rotation: b.rotation.toArray([]),
-          quaternion: b.quaternion.toArray([]),
-        };
-        return a;
-      }, Object.create(null)),
+      morphs: {
+        ...original?.morphs,
+        ...Object.entries(proxy).reduce((a, [k, proxy]) => {
+          a[k] = { value: proxy.value };
+          return a;
+        }, Object.create(null)),
+      },
+      vrmPose,
+      bones: {
+        ...original?.bones,
+        ...bones.reduce((a, b) => {
+          a[b.name] = {
+            position: b.position.toArray([]),
+            rotation: b.rotation.toArray([]),
+            quaternion: b.quaternion.toArray([]),
+          };
+          return a;
+        }, Object.create(null)),
+      },
     };
 
     executeOperation(editorOps.savePose, pose);
   });
 
   const handleClickResetPose = useFunc(() => {
-    const { vrm } = Object.values(stage.vrms)[0];
-    if (!vrm) return;
+    const avatar = Object.values(stage.vrms)[0];
+    if (!avatar) return;
 
-    vrm.humanoid
-      ?.getBoneNode(VRMSchema.HumanoidBoneName.RightEye)
-      ?.rotation.set(0, 0, 0);
+    avatar.avatar.resetPose();
+    stage.stage.resetCamera();
 
-    vrm.humanoid
-      ?.getBoneNode(VRMSchema.HumanoidBoneName.LeftEye)
-      ?.rotation.set(0, 0, 0);
-
-    vrm.scene.traverse((o) => {
-      if (!(o as any).isBone) return;
-
-      o.rotation.set(0, 0, 0);
-      o.quaternion.set(0, 0, 0, 0);
+    setState({
+      poseId: null,
     });
   });
 
@@ -263,31 +277,38 @@ const Home: NextPage = () => {
       }
     );
 
-    Object.entries(pose.bones).map(([name, bone]: [string, any]) => {
-      const o = vrm.scene.getObjectByName(name)!;
-      if (!o) return;
+    if (pose.vrmPose) {
+      vrm.humanoid!.setPose(pose.vrmPose);
+    } else {
+      Object.entries(pose.bones).map(([name, bone]: [string, any]) => {
+        const o = vrm.scene.getObjectByName(name)!;
+        if (!o) return;
 
-      o.position.set(...(bone.position as any));
-      o.rotation.set(...(bone.rotation as any));
-      o.quaternion.set(...(bone.quaternion as any));
-    });
+        o.position.set(...(bone.position as any));
+        o.rotation.set(...(bone.rotation as any));
+        o.quaternion.set(...(bone.quaternion as any));
+      });
+    }
 
-    setState({ poseName: pose.name });
+    setState({ poseId, poseName: pose.name });
   });
 
-  const handleClickLoadPoseScene = useFunc((params: ItemParams) => {
+  const handleClickLoadScene = useFunc((params: ItemParams) => {
     const poseId = +params.props.poseId;
     const pose = poses.find((p) => p.id === poseId);
 
     const { vrm, proxy } = Object.values(stage.vrms)[0];
     if (!vrm || !pose) return;
 
-    stage.stage.setCamMode(pose.camera.mode);
+    stage.stage.setCamMode(pose.camera.mode, {
+      fov: pose.camera.fov,
+      zoom: pose.camera.zoom,
+      position: pose.camera.position,
+      rotation: pose.camera.rotation,
+      quaternion: pose.camera.quaternion,
+      target: pose.camera.target,
+    });
     stage.stage.setSize(pose.canvas.width, pose.canvas.height);
-    stage.stage.activeCamera.position.set(...pose.camera.position);
-    stage.stage.activeCamera.rotation.set(...pose.camera.rotation);
-    stage.stage.activeCamera.quaternion.set(...pose.camera.quaternion);
-    stage.stage.orbitControls.update();
 
     Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
       if (proxy[k]) proxy[k].value = value;
@@ -299,30 +320,67 @@ const Home: NextPage = () => {
       }
     );
 
-    Object.entries(pose.bones).map(([name, bone]: [string, any]) => {
+    // Object.entries(pose.bones).map(([name, bone]: [string, any]) => {
+    //   const o = vrm.scene.getObjectByName(name)!;
+    //   if (!o) return;
+
+    //   o.position.set(...(bone.position as any));
+    //   o.rotation.set(...(bone.rotation as any));
+    //   o.quaternion.set(...(bone.quaternion as any));
+    // });
+
+    setState({
+      poseId: poseId!,
+      poseName: pose.name,
+      size: { width: pose.canvas.width, height: pose.canvas.height },
+    });
+  });
+
+  const handleClickLoadBones = useFunc(async (params: ItemParams) => {
+    const poseId = +params.props.poseId;
+    const pose = poses.find((p) => p.id === poseId);
+
+    const { vrm, proxy } = Object.values(stage.vrms)[0];
+    if (!vrm || !pose) return;
+
+    const boneNames = Object.keys(pose.bones);
+    const bones = await openModal(SelectBones, {
+      boneNames,
+      clickBackdropToClose: true,
+    });
+    if (!bones) return;
+
+    bones.map((name) => {
+      const bone = pose.bones[name];
       const o = vrm.scene.getObjectByName(name)!;
       if (!o) return;
 
       o.position.set(...(bone.position as any));
-      o.rotation.set(...(bone.rotation as any));
       o.quaternion.set(...(bone.quaternion as any));
     });
 
     setState({ poseName: pose.name });
   });
 
-  const handleClickLoadPoseCamera = useFunc((params: ItemParams) => {
+  const handleClickLoadCamera = useFunc((params: ItemParams) => {
     const poseId = +params.props.poseId;
     const pose = poses.find((p) => p.id === poseId);
 
     if (!pose) return;
 
-    stage.stage.setCamMode(pose.camera.mode);
-    stage.stage.setSize(pose.canvas.width, pose.canvas.height);
-    stage.stage.activeCamera.position.set(...pose.camera.position);
-    stage.stage.activeCamera.rotation.set(...pose.camera.rotation);
-    stage.stage.activeCamera.quaternion.set(...pose.camera.quaternion);
-    stage.stage.orbitControls.update();
+    stage.stage.setCamMode(pose.camera.mode, {
+      fov: pose.camera.fov,
+      zoom: pose.camera.zoom,
+      position: pose.camera.position,
+      rotation: pose.camera.rotation,
+      quaternion: pose.camera.quaternion,
+      target: pose.camera.target,
+    });
+    // stage.stage.setSize(pose.canvas.width, pose.canvas.height);
+
+    setState({
+      size: { width: pose.canvas.width, height: pose.canvas.height },
+    });
   });
 
   const handleClickRemovePose = useFunc((params: ItemParams) => {
@@ -362,6 +420,39 @@ const Home: NextPage = () => {
     }
   );
 
+  const handleChangeHandMix = useFunc((_, v) => {
+    const { vrm } = Object.values(stage.vrms)[0];
+    if (!vrm) return;
+
+    vrm.humanoid!.setPose({
+      [VRMSchema.HumanoidBoneName.RightThumbProximal]: {
+        rotation: new Quaternion()
+          .setFromAxisAngle(new Vector3(0, 0, 0.2), Math.PI / 2)
+          .toArray(),
+      },
+      [VRMSchema.HumanoidBoneName.RightThumbIntermediate]: {
+        rotation: new Quaternion()
+          .setFromAxisAngle(new Vector3(0, 0, 0.2), Math.PI / 2)
+          .toArray(),
+      },
+      [VRMSchema.HumanoidBoneName.RightIndexProximal]: {
+        rotation: new Quaternion()
+          .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
+          .toArray(),
+      },
+      [VRMSchema.HumanoidBoneName.RightIndexIntermediate]: {
+        rotation: new Quaternion()
+          .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
+          .toArray(),
+      },
+      [VRMSchema.HumanoidBoneName.RightIndexDistal]: {
+        rotation: new Quaternion()
+          .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
+          .toArray(),
+      },
+    });
+  });
+
   /////
   ///// Keyboard shortcust
   /////
@@ -378,6 +469,15 @@ const Home: NextPage = () => {
     if (mode !== EditorMode.photo) return;
 
     handleClickDisplayBones();
+  });
+
+  useMousetrap("/", () => {
+    if (mode !== EditorMode.photo) return;
+
+    const modes = ["translate", "rotate", "scale"];
+    const current = stage.stage.boneControlMode;
+    stage.stage.boneControlMode =
+      modes[(modes.indexOf(current) + 1) % modes.length];
   });
 
   useMousetrap("tab", (e) => {
@@ -401,8 +501,8 @@ const Home: NextPage = () => {
     const prev = state.tmpCam;
     const current = {
       mode: stage.stage.camMode,
+      target: stage.stage.orbitControls.target.toArray(),
       position: stage.stage.activeCamera.position.toArray(),
-      rotation: stage.stage.activeCamera.rotation.toArray(),
       quaternion: stage.stage.activeCamera.quaternion.toArray(),
     };
 
@@ -412,11 +512,7 @@ const Home: NextPage = () => {
 
     if (!prev) return;
 
-    stage.stage.setCamMode(prev.mode);
-    stage.stage.activeCamera.position.set(...prev.position);
-    stage.stage.activeCamera.rotation.set(...prev.rotation);
-    stage.stage.activeCamera.quaternion.set(...prev.quaternion);
-    stage.stage.orbitControls.update();
+    stage.stage.setCamMode(prev.mode, prev);
   });
 
   useMousetrap("shift+c", () => {
@@ -459,7 +555,7 @@ const Home: NextPage = () => {
   useEffect(() => {
     const onResize = () => {
       if (mode === EditorMode.photo) {
-        stage.stage?.setSize(state.size.x, window.innerHeight);
+        stage.stage?.setSize(state.size.width, window.innerHeight);
       } else {
         stage.stage?.setSize(window.innerWidth, window.innerHeight);
       }
@@ -550,6 +646,8 @@ const Home: NextPage = () => {
     }
   }, [state.syncEyes, padRMouse.clientX, padRMouse.clientY, padRMouse.isDown]);
 
+  useMemo(() => !Mordred.instance && Mordred.init(), []);
+
   const model = stage.stage ? Object.values(stage.stage.vrms)[0] : null;
   const cameraMenu = (
     <MenuItem
@@ -586,9 +684,10 @@ const Home: NextPage = () => {
             `}
             type="number"
             size="min"
-            defaultValue={10}
+            value={state.fov}
             onChange={({ currentTarget }) => {
-              stage.stage.pCam.fov = currentTarget.valueAsNumber;
+              stage.stage.camFov = currentTarget.valueAsNumber;
+              setState({ fov: currentTarget.valueAsNumber });
               stage.stage.pCam.updateProjectionMatrix();
             }}
           />
@@ -846,6 +945,27 @@ const Home: NextPage = () => {
                       }}
                     />
                   </div>
+                  <Button
+                    css={`
+                      margin-top: 8px;
+                    `}
+                    size="min"
+                    onClick={() => {
+                      setState({
+                        size: {
+                          width: window.innerWidth,
+                          height: window.innerHeight,
+                        },
+                      });
+
+                      stage.stage.setSize(
+                        window.innerWidth,
+                        window.innerHeight
+                      );
+                    }}
+                  >
+                    画面サイズにリセット
+                  </Button>
                 </InputSection>
 
                 <List
@@ -1111,6 +1231,7 @@ const Home: NextPage = () => {
                         name={name}
                         min={0}
                         max={2.5}
+                        value={proxy.value}
                         onChange={(v) => {
                           proxy.value = v;
                         }}
@@ -1128,6 +1249,23 @@ const Home: NextPage = () => {
                 `}
                 style={rightTab === "poses" ? {} : hiddenStyle}
               >
+                <h3>右手</h3>
+
+                <div>
+                  <Slider
+                    min={0}
+                    max={1}
+                    value={state.handMix.right}
+                    onChange={(v) => {
+                      handleChangeHandMix("right", v);
+                      setState({ handMix: { right: v } });
+                    }}
+                    step={0.01}
+                  />
+                </div>
+
+                <h3>左手</h3>
+
                 <List
                   css={`
                     flex: 1;
@@ -1265,9 +1403,12 @@ const Home: NextPage = () => {
           margin: auto;
           vertical-align: bottom;
           box-shadow: 0 0 5px ${rgba("#aaaa", 0.4)};
+          user-select: none;
         `}
         ref={canvas}
       />
+
+      <MordredRoot>{(children) => <>{children.children}</>}</MordredRoot>
 
       <ContextMenu
         css={`
@@ -1279,11 +1420,15 @@ const Home: NextPage = () => {
       >
         <ContextItem onClick={handleClickLoadPoseOnly}>読み込む</ContextItem>
         <Separator />
-        <ContextItem onClick={handleClickLoadPoseCamera}>
+        <ContextItem onClick={handleClickLoadCamera}>
           カメラを読み込む
         </ContextItem>
-        <ContextItem onClick={handleClickLoadPoseScene}>
+        <ContextItem onClick={handleClickLoadScene}>
           シーンを読み込む
+        </ContextItem>
+
+        <ContextItem onClick={handleClickLoadBones}>
+          ボーンを読み込む
         </ContextItem>
         <Separator />
         <ContextItem onClick={handleClickRemovePose}>削除</ContextItem>
@@ -1342,14 +1487,18 @@ const Slider = ({
   name,
   min,
   max,
+  step = 0.01,
+  value,
   onChange,
 }: {
   name: string;
   min: number;
   max: number;
+  step?: number;
+  value: number;
   onChange: (v: number) => void;
 }) => {
-  const [state, setValue] = useState(0);
+  // const [state, setValue] = useState(0);
 
   return (
     <div
@@ -1374,11 +1523,11 @@ const Slider = ({
         `}
         min={min}
         max={max}
-        step={0.01}
+        step={step}
         type="range"
-        value={state}
+        value={value}
         onChange={(e) => {
-          setValue(e.currentTarget.valueAsNumber);
+          // setValue(e.currentTarget.valueAsNumber);
           onChange(e.currentTarget.valueAsNumber);
         }}
       />
