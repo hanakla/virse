@@ -3,6 +3,7 @@ import { DBSchema, openDB } from "idb";
 import blobToHash from "blob-to-hash";
 import { VRM, VRMPose, VRMSchema } from "@pixiv/three-vrm";
 import { WebIO } from "@gltf-transform/core";
+import { nanoid } from "nanoid";
 
 type State = {
   mode: EditorMode;
@@ -16,7 +17,8 @@ type State = {
 };
 
 export type VirsePose = {
-  id: number;
+  id: string;
+  uid: string;
   name: string;
   canvas: any;
   camera: any;
@@ -24,9 +26,10 @@ export type VirsePose = {
   morphs: any;
   vrmPose: VRMPose;
   bones: any;
+  createdAt: Date;
 };
 
-export type UnsavedVirsePose = Omit<VirsePose, "id">;
+export type UnsavedVirsePose = Omit<VirsePose, "id" | "uid" | "updatedAt">;
 
 export enum EditorMode {
   photo = "photo",
@@ -125,15 +128,48 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       const keys = await db.getAllKeys(STORE_NAME);
 
       const withIdPoses: VirsePose[] = poses.map((pose, idx) =>
-        Object.assign(pose, { id: keys[idx] })
+        Object.assign(pose, { id: pose.uid ?? idx })
       );
 
-      // console.log("loaded", withIdPoses);
-      x.commit({ poses: withIdPoses });
+      x.commit({
+        poses: withIdPoses.sort((a, b) =>
+          // prettier-ignore
+          a.name === b.name ?
+            a.createdAt && b.createdAt ? +a.createdAt - +b.createdAt
+            : a.id - b.id
+          : a.name > b.name ? 1
+          : -1
+        ),
+      });
     },
-    async deletePose(x, id: number) {
+    async installPoseSet(
+      x,
+      poseSet: VirsePose[],
+      { clear }: { clear: boolean }
+    ) {
       const db = await connectIdb();
       x.finally(() => db.close());
+
+      console.log(poseSet)
+
+      if (clear) {
+        db.clear("poses");
+      }
+
+      for (const pose of poseSet) {
+        await db.add("poses", pose);
+      }
+
+      await x.executeOperation(editorOps.loadPoses);
+    },
+    async deletePose(x, uid: string) {
+      const db = await connectIdb();
+      x.finally(() => db.close());
+
+      console.log(uid);
+
+      const id = await db.getKeyFromIndex("poses", "uid", uid);
+      if (!id) return;
 
       await db.delete(STORE_NAME, id);
       db.close();
@@ -145,7 +181,7 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       x.finally(() => db.close());
 
       const store = db.transaction(STORE_NAME, "readwrite");
-      await store.store.add(pose);
+      await store.store.add({ ...pose, uid: nanoid(), createdAt: new Date() });
       await store.done;
       db.close();
 
@@ -157,7 +193,10 @@ export const [EditorStore, editorOps] = minOps("Editor", {
 interface VirseDBSchema extends DBSchema {
   [STORE_NAME]: {
     key: number;
-    value: UnsavedVirsePose;
+    value: UnsavedVirsePose & { uid: string; createdAt: Date };
+    indexes: {
+      uid: string;
+    };
   };
   modelIndex: {
     key: string;
@@ -174,19 +213,27 @@ interface VirseDBSchema extends DBSchema {
 type VirseDBModelIndex = { hash: string; name: string; version: string };
 
 const connectIdb = async () => {
-  const db = await openDB<VirseDBSchema>("virse", 2, {
-    upgrade(db, old, next) {
-      db.createObjectStore(STORE_NAME, { autoIncrement: true });
+  const db = await openDB<VirseDBSchema>("virse", 3, {
+    upgrade(db, old, next, transaction) {
+      if (old < 2) {
+        db.createObjectStore(STORE_NAME, { autoIncrement: true });
 
-      db.createObjectStore("modelIndex", {
-        autoIncrement: false,
-        keyPath: "hash",
-      });
+        db.createObjectStore("modelIndex", {
+          autoIncrement: false,
+          keyPath: "hash",
+        });
 
-      db.createObjectStore("modelFile", {
-        autoIncrement: false,
-        keyPath: "hash",
-      });
+        db.createObjectStore("modelFile", {
+          autoIncrement: false,
+          keyPath: "hash",
+        });
+      }
+
+      if (old <= 3) {
+        transaction
+          .objectStore("poses")
+          .createIndex("uid", "uid", { unique: true });
+      }
     },
   });
 

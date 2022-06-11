@@ -23,6 +23,8 @@ export class VRMFKManager {
   #isMouseMoved = false;
   #enabled = true;
 
+  public currentBone: Bone | null = null;
+
   public readonly events = mitt<{ focusChange: boolean }>();
 
   constructor(
@@ -246,6 +248,7 @@ export class VRMFKManager {
     // this.#rotateController.setSize(intersect.scale.x * 2);
 
     window.v$0 = intersect.parent;
+    this.currentBone = intersect.parent;
     this.rotateController.attach(intersect.parent);
     this.#isFocused = true;
     this.#boneUiObjects.forEach((o) => (o.visible = false));
@@ -272,6 +275,7 @@ export class VRMFKManager {
 
   public selectBone(bone: Bone) {
     window.v$0 = bone;
+    this.currentBone = bone;
     this.rotateController.attach(bone);
     this.#isFocused = true;
     this.#boneUiObjects.forEach((o) => (o.visible = false));

@@ -106,6 +106,14 @@ export class UI {
   //   this.#needUpdate = true;
   // }
 
+  public get currentBone(): Bone {
+    return this.fkManager.currentBone;
+  }
+
+  public set currentBone(bone: Bone) {
+    this.fkManager.selectBone(bone);
+  }
+
   public set fkControlMode(mode: "translate" | "rotate" | "scale") {
     this.fkManager.rotateController.setMode(mode);
   }
@@ -133,7 +141,8 @@ export class UI {
 
         o.visible = enable;
         o.enabled = enable;
-        if (hasOwn(o, "enabled")) o.enabled = enable;
+        // Reset dragging object when clicking the bone of over controll
+        if (!enable) o.axis = null;
       });
 
       this.fkManager.enabled =

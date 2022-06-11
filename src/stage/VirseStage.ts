@@ -18,7 +18,7 @@ import {
   WebGLRenderer,
 } from "three";
 import { nanoid } from "nanoid";
-import { setupIKController, UI } from "./VRMToyBox/UI";
+import { UI } from "./VRMToyBox/UI";
 import { Avatar } from "./VRMToyBox/Avatar";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass";
 import { getDistortionShaderDefinition } from "./effects/distortion";
@@ -208,7 +208,6 @@ export class VirseStage {
     if (opt.position != null) cam.position.fromArray(opt.position);
     if (opt.rotation != null) cam.rotation.fromArray(opt.rotation);
     if (opt.quaternion != null) cam.quaternion.fromArray(opt.quaternion);
-    if (opt.target != null) this.orbitControls.target.fromArray(opt.target);
 
     cam.updateMatrix();
     cam.updateProjectionMatrix();
@@ -223,7 +222,7 @@ export class VirseStage {
 
     this.orbitControls = new OrbitControls(cam, this.canvas);
     this.orbitControls.screenSpacePanning = true;
-    this.orbitControls.target.set(0.0, 1.4, 0.0);
+    this.orbitControls.target.fromArray(opt.target ?? [0.0, 1.4, 0.0]);
     this.orbitControls.update();
 
     this.passes.render.camera = this.activeCamera;

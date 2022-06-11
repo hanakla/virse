@@ -1,5 +1,12 @@
 import type { NextPage } from "next";
-import { CSSProperties, MouseEvent, useMemo, useRef, useState } from "react";
+import {
+  CSSProperties,
+  MouseEvent,
+  ReactNode,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { rgba } from "polished";
 import { useVirseStage } from "../stage";
 import {
@@ -7,6 +14,7 @@ import {
   RiBodyScanLine,
   RiCamera2Line,
   RiCameraSwitchFill,
+  RiEyeLine,
   RiFlashlightFill,
   RiLiveLine,
   RiMagicFill,
@@ -52,6 +60,8 @@ import { Recorder } from "../stage/Recorder";
 import { ChromePicker, ColorChangeHandler } from "react-color";
 import { Mordred, MordredRoot, openModal } from "@fleur/mordred";
 import { SelectBones } from "../modals/SelectBones";
+import { SelectPose } from "../modals/SelectPose";
+import { nanoid } from "nanoid";
 
 const Home: NextPage = () => {
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -164,7 +174,7 @@ const Home: NextPage = () => {
     const vrmPose = vrm.humanoid!.getPose();
 
     const original = state.poseId
-      ? poses.find((p) => p.id === state.poseId!)
+      ? poses.find((p) => p.uid === state.poseId!)
       : null;
 
     const pose: UnsavedVirsePose = {
@@ -176,6 +186,7 @@ const Home: NextPage = () => {
         zoom: stage.stage.activeCamera.zoom,
         position: stage.stage.activeCamera.position.toArray(),
         target: stage.stage.orbitControls.target.toArray(),
+        rotation: stage.stage.activeCamera.rotation.toArray(),
         quaternion: stage.stage.activeCamera.quaternion.toArray(),
       },
       blendShapeProxies: vrm.blendShapeProxy?.expressions.reduce((a, name) => {
@@ -215,6 +226,7 @@ const Home: NextPage = () => {
 
     setState({
       poseId: null,
+      poseName: "",
     });
   });
 
@@ -239,7 +251,7 @@ const Home: NextPage = () => {
   /////
   //// Pose UI Event Handlers
   /////
-  const handleDblClickPose = useFunc((e: MouseEvent<HTMLLiElement>) => {
+  const handleDblClickPose = useFunc((e: MouseEvent<HTMLLIElement>) => {
     handleClickLoadPoseOnly({
       event: e,
       triggerEvent: e.nativeEvent,
@@ -249,8 +261,19 @@ const Home: NextPage = () => {
     });
   });
 
-  const handlePoseContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
+  const handleSceneContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
     const poseId = parseInt(e.currentTarget.dataset.poseId!);
+
+    showContextMenu(e, {
+      id: "scene",
+      props: {
+        poseId,
+      },
+    });
+  });
+
+  const handlePoseContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
+    const poseId = e.currentTarget.dataset.poseId!;
 
     showContextMenu(e, {
       id: "posemenu",
@@ -261,8 +284,9 @@ const Home: NextPage = () => {
   });
 
   const handleClickLoadPoseOnly = useFunc((params: ItemParams) => {
-    const poseId = +params.props.poseId;
-    const pose = poses.find((p) => p.id === poseId);
+    const poseId = params.props.poseId;
+    const pose = poses.find((p) => p.uid === poseId);
+    console.log(poses, pose);
 
     const { vrm, proxy } = Object.values(stage.vrms)[0];
     if (!vrm || !pose) return;
@@ -277,25 +301,14 @@ const Home: NextPage = () => {
       }
     );
 
-    if (pose.vrmPose) {
-      vrm.humanoid!.setPose(pose.vrmPose);
-    } else {
-      Object.entries(pose.bones).map(([name, bone]: [string, any]) => {
-        const o = vrm.scene.getObjectByName(name)!;
-        if (!o) return;
-
-        o.position.set(...(bone.position as any));
-        o.rotation.set(...(bone.rotation as any));
-        o.quaternion.set(...(bone.quaternion as any));
-      });
-    }
+    vrm.humanoid!.setPose(pose.vrmPose);
 
     setState({ poseId, poseName: pose.name });
   });
 
   const handleClickLoadScene = useFunc((params: ItemParams) => {
-    const poseId = +params.props.poseId;
-    const pose = poses.find((p) => p.id === poseId);
+    const poseId = params.props.poseId;
+    const pose = poses.find((p) => p.uid === poseId);
 
     const { vrm, proxy } = Object.values(stage.vrms)[0];
     if (!vrm || !pose) return;
@@ -305,20 +318,20 @@ const Home: NextPage = () => {
       zoom: pose.camera.zoom,
       position: pose.camera.position,
       rotation: pose.camera.rotation,
-      quaternion: pose.camera.quaternion,
+      // quaternion: pose.camera.quaternion,
       target: pose.camera.target,
     });
     stage.stage.setSize(pose.canvas.width, pose.canvas.height);
 
-    Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-      if (proxy[k]) proxy[k].value = value;
-    });
+    // Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
+    //   if (proxy[k]) proxy[k].value = value;
+    // });
 
-    Object.entries(pose.blendShapeProxies).map(
-      ([name, value]: [string, number]) => {
-        vrm.blendShapeProxy?.setValue(name, value);
-      }
-    );
+    // Object.entries(pose.blendShapeProxies).map(
+    //   ([name, value]: [string, number]) => {
+    //     vrm.blendShapeProxy?.setValue(name, value);
+    //   }
+    // );
 
     // Object.entries(pose.bones).map(([name, bone]: [string, any]) => {
     //   const o = vrm.scene.getObjectByName(name)!;
@@ -336,9 +349,45 @@ const Home: NextPage = () => {
     });
   });
 
+  const handleClickLoadSceneAll = useFunc((params: ItemParams) => {
+    const poseId = params.props.poseId;
+    const pose = poses.find((p) => p.uid === poseId);
+
+    const { vrm, proxy } = Object.values(stage.vrms)[0];
+    if (!vrm || !pose) return;
+
+    stage.stage.setCamMode(pose.camera.mode, {
+      fov: pose.camera.fov,
+      zoom: pose.camera.zoom,
+      position: pose.camera.position,
+      rotation: pose.camera.rotation,
+      // quaternion: pose.camera.quaternion,
+      target: pose.camera.target,
+    });
+    stage.stage.setSize(pose.canvas.width, pose.canvas.height);
+
+    Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
+      if (proxy[k]) proxy[k].value = value;
+    });
+
+    Object.entries(pose.blendShapeProxies).map(
+      ([name, value]: [string, number]) => {
+        vrm.blendShapeProxy?.setValue(name, value);
+      }
+    );
+
+    vrm.humanoid!.setPose(pose.vrmPose);
+
+    setState({
+      poseId: poseId!,
+      poseName: pose.name,
+      size: { width: pose.canvas.width, height: pose.canvas.height },
+    });
+  });
+
   const handleClickLoadBones = useFunc(async (params: ItemParams) => {
-    const poseId = +params.props.poseId;
-    const pose = poses.find((p) => p.id === poseId);
+    const poseId = params.props.poseId;
+    const pose = poses.find((p) => p.uid === poseId);
 
     const { vrm, proxy } = Object.values(stage.vrms)[0];
     if (!vrm || !pose) return;
@@ -358,13 +407,65 @@ const Home: NextPage = () => {
       o.position.set(...(bone.position as any));
       o.quaternion.set(...(bone.quaternion as any));
     });
+  });
 
-    setState({ poseName: pose.name });
+  const handleClickLoadShapes = useFunc(async (params: ItemParams) => {
+    const poseId = params.props.poseId;
+    const pose = poses.find((p) => p.uid === poseId);
+
+    const { vrm, proxy } = Object.values(stage.vrms)[0];
+    if (!vrm || !pose) return;
+
+    Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
+      if (proxy[k]) proxy[k].value = value;
+    });
+
+    Object.entries(pose.blendShapeProxies).map(
+      ([name, value]: [string, number]) => {
+        vrm.blendShapeProxy?.setValue(name, value);
+      }
+    );
+  });
+
+  const handleClickDownloadPose = useFunc((params: ItemParams) => {
+    const poseId = params.props.poseId;
+    const pose = poses.find((p) => p.uid === poseId);
+    if (!pose) return;
+
+    const json = new Blob([JSON.stringify(pose, null, "  ")], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(json);
+
+    letDownload(url, `pose-${pose.name}.json`);
+  });
+
+  const handleClickDownloadPoseSet = useFunc((params: ItemParams) => {
+    const json = new Blob(
+      [
+        JSON.stringify(
+          {
+            poseset: (poses ?? []).map(({ ...pose }) => {
+              pose.uid ??= nanoid();
+              return pose;
+            }),
+          },
+          null,
+          "  "
+        ),
+      ],
+      {
+        type: "application/json",
+      }
+    );
+    const url = URL.createObjectURL(json);
+
+    letDownload(url, `poseset.json`);
   });
 
   const handleClickLoadCamera = useFunc((params: ItemParams) => {
-    const poseId = +params.props.poseId;
-    const pose = poses.find((p) => p.id === poseId);
+    const poseId = params.props.poseId;
+    const pose = poses.find((p) => p.uid === poseId);
 
     if (!pose) return;
 
@@ -373,7 +474,7 @@ const Home: NextPage = () => {
       zoom: pose.camera.zoom,
       position: pose.camera.position,
       rotation: pose.camera.rotation,
-      quaternion: pose.camera.quaternion,
+      // quaternion: pose.camera.quaternion,
       target: pose.camera.target,
     });
     // stage.stage.setSize(pose.canvas.width, pose.canvas.height);
@@ -471,6 +572,23 @@ const Home: NextPage = () => {
     handleClickDisplayBones();
   });
 
+  useMousetrap("'", () => {
+    const vrm = Object.values(stage.vrms)[0];
+    const bone = vrm?.ui.currentBone;
+    if (!bone) return;
+
+    const child = bone.children.filter((o) => o.isBone);
+    if (child.length === 1) vrm.ui.currentBone = child[0];
+  });
+
+  useMousetrap(";", () => {
+    const vrm = Object.values(stage.vrms)[0];
+    const bone = vrm?.ui.currentBone;
+    if (!bone || !bone.parent?.isBone) return;
+
+    vrm.ui.currentBone = bone.parent;
+  });
+
   useMousetrap("/", () => {
     if (mode !== EditorMode.photo) return;
 
@@ -528,8 +646,23 @@ const Home: NextPage = () => {
     onFiles: async ([file]) => {
       const url = URL.createObjectURL(file);
 
-      executeOperation(editorOps.addVrm, file);
-      stage.stage.loadVRM(url);
+      if (file.name.endsWith(".vrm")) {
+        executeOperation(editorOps.addVrm, file);
+        stage.stage.loadVRM(url);
+      } else if (file.name.endsWith(".json")) {
+        const json = JSON.parse(await file.text());
+
+        if (json.poseset) {
+          const result = await openModal(SelectPose, { poses: json.poseset });
+          if (!result) return;
+
+          executeOperation(editorOps.installPoseSet, result.poses, {
+            clear: result.clearPoseSet,
+          });
+        } else {
+          executeOperation(editorOps.savePose, json);
+        }
+      }
     },
   });
 
@@ -1035,7 +1168,9 @@ const Home: NextPage = () => {
                   transform: menuOpened ? "translateX(0)" : "translateX(-100%)",
                 }}
                 onClick={() => {
+                  console.time("capture");
                   canvas.current?.toBlob((blob) => {
+                    console.timeEnd("capture");
                     const url = URL.createObjectURL(blob!);
                     letDownload(url, "Untitled.png");
                   }, "image/png");
@@ -1177,6 +1312,7 @@ const Home: NextPage = () => {
                   css={`
                     flex: 1;
                     overflow: auto;
+                    user-select: none;
                   `}
                 >
                   <ExprHead>
@@ -1195,12 +1331,14 @@ const Home: NextPage = () => {
                       リセット
                     </Button>
                   </ExprHead>
+
                   {model?.vrm.blendShapeProxy?.expressions.map((name) => (
                     <Slider
                       key={name}
-                      name={name}
+                      label={<>{name}</>}
                       min={0}
                       max={1}
+                      value={model.vrm.blendShapeProxy?.getValue(name) ?? 0}
                       onChange={(v) =>
                         model.vrm.blendShapeProxy?.setValue(name, v)
                       }
@@ -1228,8 +1366,15 @@ const Home: NextPage = () => {
                     Object.entries(model?.proxy).map(([name, proxy]) => (
                       <Slider
                         key={name}
-                        name={name}
-                        min={0}
+                        label={
+                          // prettier-ignore
+                          name.match(/eye/i) ? <>👀 {name}</>
+                          : name.match(/mth/i) ? <>💋 {name}</>
+                          : name.match(/ha_/i) ? <>🦷 {name}</>
+                          : name.match(/brw/i) ? <>⏜ {name}</>
+                          : <>❓ {name}</>
+                        }
+                        min={-2.5}
                         max={2.5}
                         value={proxy.value}
                         onChange={(v) => {
@@ -1269,6 +1414,7 @@ const Home: NextPage = () => {
                 <List
                   css={`
                     flex: 1;
+                    max-height: 70vh;
                     overflow: auto;
                   `}
                 >
@@ -1277,7 +1423,7 @@ const Home: NextPage = () => {
                       key={idx}
                       onDoubleClick={handleDblClickPose}
                       onContextMenu={handlePoseContextMenu}
-                      data-pose-id={pose.id}
+                      data-pose-id={pose.uid}
                       tabIndex={-1}
                     >
                       <div>{pose.name}</div>
@@ -1406,6 +1552,7 @@ const Home: NextPage = () => {
           user-select: none;
         `}
         ref={canvas}
+        onContextMenu={handleSceneContextMenu}
       />
 
       <MordredRoot>{(children) => <>{children.children}</>}</MordredRoot>
@@ -1418,21 +1565,47 @@ const Home: NextPage = () => {
         id="posemenu"
         animation={false}
       >
-        <ContextItem onClick={handleClickLoadPoseOnly}>読み込む</ContextItem>
-        <Separator />
+        <ContextItem onClick={handleClickLoadSceneAll}>
+          すべて読み込む
+        </ContextItem>
         <ContextItem onClick={handleClickLoadCamera}>
           カメラを読み込む
         </ContextItem>
         <ContextItem onClick={handleClickLoadScene}>
           シーンを読み込む
         </ContextItem>
-
         <ContextItem onClick={handleClickLoadBones}>
           ボーンを読み込む
         </ContextItem>
+        <ContextItem onClick={handleClickLoadShapes}>
+          表情を読み込む
+        </ContextItem>
+
         <Separator />
+
+        <ContextItem onClick={handleClickDownloadPose}>
+          ダウンロード
+        </ContextItem>
+
+        <ContextItem onClick={handleClickDownloadPoseSet}>
+          ポーズセットを書き出す
+        </ContextItem>
+
+        <Separator />
+
         <ContextItem onClick={handleClickRemovePose}>削除</ContextItem>
       </ContextMenu>
+
+      {/* <ContextMenu
+        css={`
+          padding: 4px;
+          font-size: 12px;
+        `}
+        id="scenemenu"
+        animation={false}
+      >
+        <ContextItem onClick={handleClickResetRotation}>回転をリセット</ContextItem>
+      </ContextMenu> */}
 
       <ContextMenu
         css={`
@@ -1484,14 +1657,14 @@ const MenuItem = styled.div`
 `;
 
 const Slider = ({
-  name,
+  label,
   min,
   max,
   step = 0.01,
   value,
   onChange,
 }: {
-  name: string;
+  label: ReactNode;
   min: number;
   max: number;
   step?: number;
@@ -1510,12 +1683,35 @@ const Slider = ({
     >
       <div
         css={`
+          display: flex;
           margin-bottom: 8px;
           font-size: 14px;
         `}
       >
-        {name}
+        <div
+          css={`
+            flex: 1;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          `}
+        >
+          {label}
+        </div>
+
+        <Button
+          css={`
+            margin-left: auto;
+            flex: 0;
+            line-height: 1;
+          `}
+          kind="default"
+          size="min"
+          onClick={() => onChange(0)}
+        >
+          <RiRefreshLine />
+        </Button>
       </div>
+
       <RangeInput
         css={`
           display: block;
