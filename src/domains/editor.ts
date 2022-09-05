@@ -22,8 +22,8 @@ export type VirsePose = {
   name: string;
   canvas: any;
   camera: any;
-  blendShapeProxies: any;
-  morphs: any;
+  blendShapeProxies: Record<string, any>;
+  morphs: Record<string, any>;
   vrmPose: VRMPose;
   bones: any;
   createdAt: Date;
