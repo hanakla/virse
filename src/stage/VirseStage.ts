@@ -399,15 +399,15 @@ export class VirseStage {
               value: {
                 enumerable: true,
                 set(v: number) {
-                  proxy[targetName]._value = v;
-                  proxy[targetName].binds.forEach((bind) => {
+                  proxy[this.name]._value = v;
+                  proxy[this.name].binds.forEach((bind) => {
                     bind.primitives.forEach((prim: any) => {
                       prim.morphTargetInfluences[bind.morphTargetIndex] = v;
                     });
                   });
                 },
                 get(): number {
-                  return proxy[targetName]._value;
+                  return proxy[this.name]._value;
                 },
               },
             }
