@@ -1172,7 +1172,12 @@ const Home: NextPage = () => {
                   canvas.current?.toBlob((blob) => {
                     console.timeEnd("capture");
                     const url = URL.createObjectURL(blob!);
-                    letDownload(url, "Untitled.png");
+                    letDownload(
+                      url,
+                      `${
+                        state.poseName !== "" ? state.poseName : "Untitled"
+                      }.png`
+                    );
                   }, "image/png");
                 }}
               >
