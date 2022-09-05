@@ -25,7 +25,10 @@ export class VRMFKManager {
 
   public currentBone: Bone | null = null;
 
-  public readonly events = mitt<{ focusChange: boolean }>();
+  public readonly events = mitt<{
+    focusChange: boolean;
+    boneChange: Bone | null;
+  }>();
 
   constructor(
     vrm,
@@ -253,6 +256,7 @@ export class VRMFKManager {
     this.#isFocused = true;
     this.#boneUiObjects.forEach((o) => (o.visible = false));
     this.events.emit("focusChange", this.#isFocused);
+    this.events.emit("boneChange", this.currentBone);
   };
 
   #unselectBoneUi = () => {
@@ -266,6 +270,7 @@ export class VRMFKManager {
       this.#intersectedBone = null;
       this.#isFocused = false;
       this.events.emit("focusChange", this.#isFocused);
+      this.events.emit("boneChange", null);
     }
   };
 

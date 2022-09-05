@@ -15,6 +15,7 @@ export class UI {
   #displayBones = false;
   #focusedTo: "ik" | "fk" | null = null;
   #needUpdate = false;
+  #activeBoneName: string | null = null;
 
   constructor(private viewer: VirseStage, private avatar: Avatar) {
     const createControl = (attach: Object3D, ik: boolean = true) => {
@@ -76,6 +77,9 @@ export class UI {
       );
 
       this.fkManager.events.on("focusChange", this.#handleFkFocusChange);
+      this.fkManager.events.on("boneChange", (bone) => {
+        this.#activeBoneName = bone?.name ?? null;
+      });
     }
 
     // {
@@ -105,6 +109,10 @@ export class UI {
   //   this.#displayBones = visible;
   //   this.#needUpdate = true;
   // }
+
+  public get activeBoneName(): string | null {
+    return this.#activeBoneName;
+  }
 
   public get currentBone(): Bone {
     return this.fkManager.currentBone;

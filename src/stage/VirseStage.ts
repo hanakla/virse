@@ -262,6 +262,10 @@ export class VirseStage {
     });
   }
 
+  public get activeModel() {
+    return Object.values(this.vrms)[0];
+  }
+
   public setDisplayBones(visible: boolean) {
     this.visibleBones = visible;
     this.objects.forEach((o) => (o.visible = visible));

@@ -261,7 +261,7 @@ const Home: NextPage = () => {
     });
   });
 
-  const handleSceneContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
+  const handleSceneContextMenu = useFunc((e: MouseEvent<HTMLCanvasElement>) => {
     const poseId = parseInt(e.currentTarget.dataset.poseId!);
 
     showContextMenu(e, {
@@ -846,6 +846,7 @@ const Home: NextPage = () => {
       <div
         css={`
           position: absolute;
+          z-index: 1;
           display: flex;
           flex-flow: column;
           width: 100%;
@@ -957,6 +958,23 @@ const Home: NextPage = () => {
                 padding-top: 8px;
               `}
             >
+              {mode === EditorMode.photo &&
+                stage.stage?.activeModel?.ui.activeBoneName && (
+                  <span
+                    css={`
+                      position: absolute;
+                      right: -48px;
+                      top: 16px;
+                      padding: 4px;
+                      background-color: rgb(255 255 255 / 68%);
+                      font-weight: bold;
+                      transform: translateX(100%);
+                    `}
+                  >
+                    {stage.stage.activeModel?.ui.activeBoneName}
+                  </span>
+                )}
+
               <MenuItem
                 css={`
                   position: relative;
