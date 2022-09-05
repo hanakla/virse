@@ -5,6 +5,9 @@ const config = {
   experimental: {
     asyncWebAssembly: true,
   },
+  compiler: {
+    styledComponents: true,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
