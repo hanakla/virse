@@ -62,6 +62,7 @@ import { Mordred, MordredRoot, openModal } from "@fleur/mordred";
 import { SelectBones } from "../modals/SelectBones";
 import { SelectPose } from "../modals/SelectPose";
 import { nanoid } from "nanoid";
+import { SelectExpressions } from "../modals/SelectExpressions";
 
 const Home: NextPage = () => {
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -416,12 +417,25 @@ const Home: NextPage = () => {
     const { vrm, proxy } = Object.values(stage.vrms)[0];
     if (!vrm || !pose) return;
 
+    const poseNames = [
+      ...Object.keys(pose.blendShapeProxies),
+      ...Object.keys(pose.morphs),
+    ];
+
+    const morphs = await openModal(SelectExpressions, {
+      expressionNames: poseNames,
+      clickBackdropToClose: true,
+    });
+    if (!morphs) return;
+
     Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
+      if (!morphs.includes(k)) return;
       if (proxy[k]) proxy[k].value = value;
     });
 
     Object.entries(pose.blendShapeProxies).map(
       ([name, value]: [string, number]) => {
+        if (!morphs.includes(name)) return;
         vrm.blendShapeProxy?.setValue(name, value);
       }
     );
