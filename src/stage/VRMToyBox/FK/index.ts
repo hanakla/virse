@@ -285,6 +285,7 @@ export class VRMFKManager {
     this.#isFocused = true;
     this.#boneUiObjects.forEach((o) => (o.visible = false));
     this.events.emit("focusChange", this.#isFocused);
+    this.events.emit("boneChange", bone);
   }
 
   public dispose() {
