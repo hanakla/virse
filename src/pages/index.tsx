@@ -983,6 +983,8 @@ const Home: NextPage = () => {
                       background-color: rgb(255 255 255 / 68%);
                       font-weight: bold;
                       transform: translateX(100%);
+                      cursor: default;
+                      user-select: none;
                     `}
                   >
                     {stage.stage.activeModel?.ui.activeBoneName}
