@@ -1704,120 +1704,118 @@ const MenuItem = styled.div`
   }
 `;
 
-const Slider = memo(
-  ({
-    label,
-    title,
-    min,
-    max,
-    step = 0.01,
-    value,
-    onChange,
-  }: {
-    label: ReactNode;
-    title: string;
-    min: number;
-    max: number;
-    step?: number;
-    value: number;
-    onChange: (v: number) => void;
-  }) => {
-    const [bufferedValue, setValue] = useBufferedState(value);
-    console.log({ value });
+const Slider = memo(function Slider({
+  label,
+  title,
+  min,
+  max,
+  step = 0.01,
+  value,
+  onChange,
+}: {
+  label: ReactNode;
+  title: string;
+  min: number;
+  max: number;
+  step?: number;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const [bufferedValue, setValue] = useBufferedState(value);
+  console.log({ value });
 
-    return (
+  return (
+    <div
+      css={`
+        & + & {
+          margin-top: 12px;
+        }
+      `}
+    >
       <div
         css={`
-          & + & {
-            margin-top: 12px;
-          }
+          display: flex;
+          margin-bottom: 8px;
+          font-size: 14px;
         `}
+        title={title}
       >
         <div
           css={`
-            display: flex;
-            margin-bottom: 8px;
-            font-size: 14px;
+            flex: 1;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
           `}
-          title={title}
         >
-          <div
-            css={`
-              flex: 1;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-              overflow: hidden;
-            `}
-          >
-            {label}
-          </div>
-
-          <Input
-            css={`
-              width: 4em;
-              margin-right: 4px;
-              padding: 2px;
-
-              &::-webkit-inner-spin-button {
-                display: none;
-              }
-            `}
-            type="number"
-            size="min"
-            step={step}
-            value={bufferedValue}
-            onChange={(e) => {
-              const val = e.currentTarget.valueAsNumber;
-              if (Number.isNaN(val)) return;
-              setValue(val);
-            }}
-            onKeyDown={(e) => {
-              const val = e.currentTarget.valueAsNumber;
-              if (Number.isNaN(val)) return;
-              console.log(e.key === "Enter");
-              if (e.key === "Enter") onChange(val);
-            }}
-            onFocus={(e) => {
-              e.currentTarget.select();
-            }}
-            onBlur={(e) => {
-              onChange(e.currentTarget.valueAsNumber);
-            }}
-          />
-
-          <Button
-            css={`
-              margin-left: auto;
-              flex: 0;
-              line-height: 1;
-            `}
-            kind="default"
-            size="min"
-            onClick={() => onChange(0)}
-          >
-            <RiRefreshLine />
-          </Button>
+          {label}
         </div>
 
-        <RangeInput
+        <Input
           css={`
-            display: block;
-            width: 100%;
+            width: 4em;
+            margin-right: 4px;
+            padding: 2px;
+
+            &::-webkit-inner-spin-button {
+              display: none;
+            }
           `}
-          min={min}
-          max={max}
+          type="number"
+          size="min"
           step={step}
-          type="range"
-          value={value}
+          value={bufferedValue}
           onChange={(e) => {
-            // setValue(e.currentTarget.valueAsNumber);
+            const val = e.currentTarget.valueAsNumber;
+            if (Number.isNaN(val)) return;
+            setValue(val);
+          }}
+          onKeyDown={(e) => {
+            const val = e.currentTarget.valueAsNumber;
+            if (Number.isNaN(val)) return;
+            console.log(e.key === "Enter");
+            if (e.key === "Enter") onChange(val);
+          }}
+          onFocus={(e) => {
+            e.currentTarget.select();
+          }}
+          onBlur={(e) => {
             onChange(e.currentTarget.valueAsNumber);
           }}
         />
+
+        <Button
+          css={`
+            margin-left: auto;
+            flex: 0;
+            line-height: 1;
+          `}
+          kind="default"
+          size="min"
+          onClick={() => onChange(0)}
+        >
+          <RiRefreshLine />
+        </Button>
       </div>
-    );
-  }
-);
+
+      <RangeInput
+        css={`
+          display: block;
+          width: 100%;
+        `}
+        min={min}
+        max={max}
+        step={step}
+        type="range"
+        value={value}
+        onChange={(e) => {
+          // setValue(e.currentTarget.valueAsNumber);
+          onChange(e.currentTarget.valueAsNumber);
+        }}
+      />
+    </div>
+  );
+});
 
 const RangeInput = styled.input`
   display: block;
