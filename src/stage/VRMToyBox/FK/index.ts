@@ -244,19 +244,12 @@ export class VRMFKManager {
     }
 
     this.#intersectedBone = intersect;
+
+    window.v$0 = intersect.parent;
+    this.selectBone(intersect.parent);
     (this.#intersectedBone!.material as MeshBasicMaterial).color.setHex(
       activeColor
     );
-
-    // this.#rotateController.setSize(intersect.scale.x * 2);
-
-    window.v$0 = intersect.parent;
-    this.currentBone = intersect.parent;
-    this.rotateController.attach(intersect.parent);
-    this.#isFocused = true;
-    this.#boneUiObjects.forEach((o) => (o.visible = false));
-    this.events.emit("focusChange", this.#isFocused);
-    this.events.emit("boneChange", this.currentBone);
   };
 
   #unselectBoneUi = () => {
@@ -280,10 +273,16 @@ export class VRMFKManager {
 
   public selectBone(bone: Bone) {
     window.v$0 = bone;
+
     this.currentBone = bone;
     this.rotateController.attach(bone);
     this.#isFocused = true;
-    this.#boneUiObjects.forEach((o) => (o.visible = false));
+
+    this.#boneUiObjects.forEach((o) => {
+      o.visible = false;
+      (o.material as MeshBasicMaterial).color.setHex(defaultColor);
+    });
+
     this.events.emit("focusChange", this.#isFocused);
     this.events.emit("boneChange", bone);
   }
