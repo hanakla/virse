@@ -150,7 +150,7 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       const db = await connectIdb();
       x.finally(() => db.close());
 
-      console.log(poseSet)
+      console.log(poseSet);
 
       if (clear) {
         db.clear("poses");

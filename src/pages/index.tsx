@@ -293,7 +293,6 @@ const Home: NextPage = () => {
   const handleClickLoadPoseOnly = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
     const pose = poses.find((p) => p.uid === poseId);
-    console.log(poses, pose);
 
     const { vrm, proxy } = Object.values(stage.vrms)[0];
     if (!vrm || !pose) return;
@@ -1722,7 +1721,6 @@ const Slider = memo(function Slider({
   onChange: (v: number) => void;
 }) {
   const [bufferedValue, setValue] = useBufferedState(value);
-  console.log({ value });
 
   return (
     <div
@@ -1773,7 +1771,6 @@ const Slider = memo(function Slider({
           onKeyDown={(e) => {
             const val = e.currentTarget.valueAsNumber;
             if (Number.isNaN(val)) return;
-            console.log(e.key === "Enter");
             if (e.key === "Enter") onChange(val);
           }}
           onFocus={(e) => {
