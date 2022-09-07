@@ -70,7 +70,11 @@ import { SelectPose } from "../modals/SelectPose";
 import { nanoid } from "nanoid";
 import { SelectExpressions } from "../modals/SelectExpressions";
 
-const Home: NextPage = () => {
+const replaceVRoidShapeNamePrefix = (name: string) => {
+  return name.replace(/^Fcl_/g, "");
+};
+
+export default function Home() {
   const rerender = useUpdate();
 
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -1438,13 +1442,13 @@ const Home: NextPage = () => {
                           key={name}
                           label={
                             // prettier-ignore
-                            name.match(/eye/i) ? <>👀 {name}</>
-                          : name.match(/mth/i) ? <>💋 {name}</>
-                          : name.match(/ha_/i) ? <>🦷 {name}</>
-                          : name.match(/brw/i) ? <>⏜ {name}</>
-                          : <>❓ {name}</>
+                            name.match(/eye/i) ? <>👀 {replaceVRoidShapeNamePrefix(name)}</>
+                          : name.match(/mth/i) ? <>💋 {replaceVRoidShapeNamePrefix(name)}</>
+                          : name.match(/ha_/i) ? <>🦷 {replaceVRoidShapeNamePrefix(name)}</>
+                          : name.match(/brw/i) ? <>⏜ {replaceVRoidShapeNamePrefix(name)}</>
+                          : <>❓ {replaceVRoidShapeNamePrefix(name)}</>
                           }
-                          title={name}
+                          title={replaceVRoidShapeNamePrefix(name)}
                           min={-2.5}
                           max={2.5}
                           value={proxy.value}
@@ -1693,9 +1697,7 @@ const Home: NextPage = () => {
       </ContextMenu>
     </div>
   );
-};
-
-export default Home;
+}
 
 const menuIconCss = css`
   font-size: 28px;
@@ -1761,9 +1763,15 @@ const Slider = memo(function Slider({
         <div
           css={`
             flex: 1;
-            text-overflow: ellipsis;
+            /* text-overflow: ellipsis; */
             white-space: nowrap;
-            overflow: hidden;
+            overflow: auto;
+            font-weight: bold;
+
+            &::-webkit-scrollbar {
+              width: 0;
+              height: 0;
+            }
           `}
         >
           {label}
@@ -1818,7 +1826,8 @@ const Slider = memo(function Slider({
       <RangeInput
         css={`
           display: block;
-          width: 100%;
+          width: calc(100% - 8px);
+          margin-left: 8px;
         `}
         min={min}
         max={max}
@@ -1926,7 +1935,7 @@ const Tab = styled.div.withConfig<{ active: boolean }>({
 const ExprHead = styled.div`
   display: flex;
   align-items: center;
-  margin: 16px 0 8px;
+  margin: 16px 0 16px;
   font-size: 14px;
   font-weight: bold;
 `;
