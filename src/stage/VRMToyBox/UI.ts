@@ -1,5 +1,6 @@
 import { VertexLayout } from "@gltf-transform/core";
 import { VRMSchema } from "@pixiv/three-vrm";
+import mitt from "mitt";
 import * as THREE from "three";
 import { Bone, Object3D } from "three";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
@@ -11,6 +12,7 @@ import { VRMFKManager } from "./FK";
 export class UI {
   private controllers: TransformControls[] = [];
   private fkManager: VRMFKManager;
+  public readonly events = mitt<{ boneChanged: Bone | null }>();
 
   #displayBones = false;
   #focusedTo: "ik" | "fk" | null = null;
@@ -79,6 +81,7 @@ export class UI {
       this.fkManager.events.on("focusChange", this.#handleFkFocusChange);
       this.fkManager.events.on("boneChange", (bone) => {
         this.#activeBoneName = bone?.name ?? null;
+        this.events.emit("boneChanged", bone);
       });
     }
 

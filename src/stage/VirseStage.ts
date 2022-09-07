@@ -42,7 +42,7 @@ export class VirseStage {
 
   public enableEffect = false;
   public visibleBones = true;
-  public events = mitt<{ updated: void }>();
+  public events = mitt<{ updated: void; boneChanged: Bone | null }>();
   private objects: Object3D[] = [];
   private passes: {
     render: RenderPass;
@@ -325,6 +325,7 @@ export class VirseStage {
     });
 
     const ui = new UI(this, avatar);
+    ui.events.on("boneChanged", (b) => this.events.emit("boneChanged", b));
 
     this.scene.add(vrm.scene);
     this.vrms[nanoid()] = {

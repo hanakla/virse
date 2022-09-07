@@ -50,7 +50,7 @@ import { Input } from "../components/Input";
 import { transitionCss } from "../styles/mixins";
 import { Sidebar } from "../components/Sidebar";
 import { InputSection } from "../components/InputSection";
-import { useClickAway, useDrop, useMount } from "react-use";
+import { useClickAway, useDrop, useMount, useUpdate } from "react-use";
 import Head from "next/head";
 import {
   Menu as ContextMenu,
@@ -71,6 +71,8 @@ import { nanoid } from "nanoid";
 import { SelectExpressions } from "../modals/SelectExpressions";
 
 const Home: NextPage = () => {
+  const rerender = useUpdate();
+
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const [sidebarRef, sidebarBBox] = useMeasure();
   const padLRef = useRef<HTMLDivElement>(null);
@@ -693,6 +695,14 @@ const Home: NextPage = () => {
 
   useEffect(() => {
     if (!stage.stage) return;
+    stage.stage.events.on("boneChanged", rerender);
+    return () => {
+      stage.stage.events.off("boneChanged", rerender);
+    };
+  }, [stage.stage]);
+
+  useEffect(() => {
+    if (!stage.stage) return;
 
     executeOperation(
       editorOps.loadVrmBin,
@@ -1176,7 +1186,7 @@ const Home: NextPage = () => {
               right: 0;
               display: flex;
               flex-flow: column;
-              width: 200px;
+              width: 240px;
               height: 100%;
               ${styleWhen(mode === EditorMode.photo)`
                 pointer-events: all;
@@ -1376,19 +1386,27 @@ const Home: NextPage = () => {
                     </Button>
                   </ExprHead>
 
-                  {model?.vrm.blendShapeProxy?.expressions.map((name) => (
-                    <Slider
-                      key={name}
-                      label={<>{name}</>}
-                      title={name}
-                      min={0}
-                      max={1}
-                      value={model.vrm.blendShapeProxy?.getValue(name) ?? 0}
-                      onChange={(v) =>
-                        model.vrm.blendShapeProxy?.setValue(name, v)
-                      }
-                    />
-                  ))}
+                  <div
+                    css={`
+                      display: flex;
+                      flex-flow: column;
+                      gap: 6px;
+                    `}
+                  >
+                    {model?.vrm.blendShapeProxy?.expressions.map((name) => (
+                      <Slider
+                        key={name}
+                        label={<>{name}</>}
+                        title={name}
+                        min={0}
+                        max={1}
+                        value={model.vrm.blendShapeProxy?.getValue(name) ?? 0}
+                        onChange={(v) =>
+                          model.vrm.blendShapeProxy?.setValue(name, v)
+                        }
+                      />
+                    ))}
+                  </div>
 
                   <ExprHead>
                     カスタム表情
@@ -1407,27 +1425,35 @@ const Home: NextPage = () => {
                     </Button>
                   </ExprHead>
 
-                  {model?.proxy &&
-                    Object.entries(model?.proxy).map(([name, proxy]) => (
-                      <Slider
-                        key={name}
-                        label={
-                          // prettier-ignore
-                          name.match(/eye/i) ? <>👀 {name}</>
+                  <div
+                    css={`
+                      display: flex;
+                      flex-flow: column;
+                      gap: 6px;
+                    `}
+                  >
+                    {model?.proxy &&
+                      Object.entries(model?.proxy).map(([name, proxy]) => (
+                        <Slider
+                          key={name}
+                          label={
+                            // prettier-ignore
+                            name.match(/eye/i) ? <>👀 {name}</>
                           : name.match(/mth/i) ? <>💋 {name}</>
                           : name.match(/ha_/i) ? <>🦷 {name}</>
                           : name.match(/brw/i) ? <>⏜ {name}</>
                           : <>❓ {name}</>
-                        }
-                        title={name}
-                        min={-2.5}
-                        max={2.5}
-                        value={proxy.value}
-                        onChange={(v) => {
-                          proxy.value = v;
-                        }}
-                      />
-                    ))}
+                          }
+                          title={name}
+                          min={-2.5}
+                          max={2.5}
+                          value={proxy.value}
+                          onChange={(v) => {
+                            proxy.value = v;
+                          }}
+                        />
+                      ))}
+                  </div>
                 </div>
               </div>
 
@@ -1723,13 +1749,7 @@ const Slider = memo(function Slider({
   const [bufferedValue, setValue] = useBufferedState(value);
 
   return (
-    <div
-      css={`
-        & + & {
-          margin-top: 12px;
-        }
-      `}
-    >
+    <div>
       <div
         css={`
           display: flex;
@@ -1752,7 +1772,7 @@ const Slider = memo(function Slider({
         <Input
           css={`
             width: 4em;
-            margin-right: 4px;
+            margin: 0 4px;
             padding: 2px;
 
             &::-webkit-inner-spin-button {
@@ -1804,9 +1824,9 @@ const Slider = memo(function Slider({
         max={max}
         step={step}
         type="range"
-        value={value}
+        value={bufferedValue}
         onChange={(e) => {
-          // setValue(e.currentTarget.valueAsNumber);
+          setValue(e.currentTarget.valueAsNumber);
           onChange(e.currentTarget.valueAsNumber);
         }}
       />
@@ -1818,7 +1838,7 @@ const RangeInput = styled.input`
   display: block;
   width: 100%;
   height: 2px;
-  margin: 0;
+  margin: 8px 0;
 
   appearance: none;
   --webkit-touch-callout: none;
