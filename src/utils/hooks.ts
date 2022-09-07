@@ -2,7 +2,15 @@ import { StoreClass } from "@fleur/fleur";
 import { ExtractStateOfStoreClass } from "@fleur/fleur/dist/Store";
 import { useStore } from "@fleur/react";
 import mousetrap from "mousetrap";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { shallowEquals } from "./object";
 
 export const useFunc = <T extends (...args: any[]) => any>(fn: T): T => {
   const ref = useRef<T | null>(null);
@@ -22,6 +30,35 @@ export const useStoreState = <T>(
 
     return selector(getter);
   });
+};
+
+export const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+/** useState, but update state on original value changed */
+export const useBufferedState = <T, S = T>(
+  original: T | (() => T),
+  transform?: (value: T) => S
+): [S, (value: S | ((prevState: S) => S)) => S] => {
+  const originalValue =
+    typeof original === "function" ? (original as any)() : original;
+  const [state, setState] = useState<S | T>(
+    () => transform?.(originalValue) ?? originalValue
+  );
+  const prevOriginal = useRef(originalValue);
+
+  useIsomorphicLayoutEffect(() => {
+    if (
+      prevOriginal.current === originalValue ||
+      shallowEquals(prevOriginal.current, originalValue)
+    )
+      return;
+
+    prevOriginal.current = originalValue;
+    setState(transform?.(originalValue) ?? originalValue);
+  }, [originalValue]);
+
+  return [state as T, setState] as any;
 };
 
 export const useMousetrap = (

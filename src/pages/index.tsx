@@ -1,6 +1,7 @@
 import type { NextPage } from "next";
 import {
   CSSProperties,
+  memo,
   MouseEvent,
   ReactNode,
   useMemo,
@@ -25,7 +26,12 @@ import {
 import useMeasure from "react-use-measure";
 import { letDownload, styleWhen, useObjectState } from "@hanakla/arma";
 import styled, { css } from "styled-components";
-import { useFunc, useMousetrap, useStoreState } from "../utils/hooks";
+import {
+  useBufferedState,
+  useFunc,
+  useMousetrap,
+  useStoreState,
+} from "../utils/hooks";
 import { Bone, MathUtils, Quaternion, Vector3 } from "three";
 import { useEffect } from "react";
 import useMouse from "@react-hook/mouse-position";
@@ -1171,7 +1177,7 @@ const Home: NextPage = () => {
               right: 0;
               display: flex;
               flex-flow: column;
-              width: 172px;
+              width: 200px;
               height: 100%;
               ${styleWhen(mode === EditorMode.photo)`
                 pointer-events: all;
@@ -1375,6 +1381,7 @@ const Home: NextPage = () => {
                     <Slider
                       key={name}
                       label={<>{name}</>}
+                      title={name}
                       min={0}
                       max={1}
                       value={model.vrm.blendShapeProxy?.getValue(name) ?? 0}
@@ -1413,6 +1420,7 @@ const Home: NextPage = () => {
                           : name.match(/brw/i) ? <>⏜ {name}</>
                           : <>❓ {name}</>
                         }
+                        title={name}
                         min={-2.5}
                         max={2.5}
                         value={proxy.value}
@@ -1437,6 +1445,7 @@ const Home: NextPage = () => {
 
                 <div>
                   <Slider
+                    title={"右手"}
                     min={0}
                     max={1}
                     value={state.handMix.right}
@@ -1695,80 +1704,120 @@ const MenuItem = styled.div`
   }
 `;
 
-const Slider = ({
-  label,
-  min,
-  max,
-  step = 0.01,
-  value,
-  onChange,
-}: {
-  label: ReactNode;
-  min: number;
-  max: number;
-  step?: number;
-  value: number;
-  onChange: (v: number) => void;
-}) => {
-  // const [state, setValue] = useState(0);
+const Slider = memo(
+  ({
+    label,
+    title,
+    min,
+    max,
+    step = 0.01,
+    value,
+    onChange,
+  }: {
+    label: ReactNode;
+    title: string;
+    min: number;
+    max: number;
+    step?: number;
+    value: number;
+    onChange: (v: number) => void;
+  }) => {
+    const [bufferedValue, setValue] = useBufferedState(value);
+    console.log({ value });
 
-  return (
-    <div
-      css={`
-        & + & {
-          margin-top: 12px;
-        }
-      `}
-    >
+    return (
       <div
         css={`
-          display: flex;
-          margin-bottom: 8px;
-          font-size: 14px;
+          & + & {
+            margin-top: 12px;
+          }
         `}
       >
         <div
           css={`
-            flex: 1;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 14px;
           `}
+          title={title}
         >
-          {label}
+          <div
+            css={`
+              flex: 1;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              overflow: hidden;
+            `}
+          >
+            {label}
+          </div>
+
+          <Input
+            css={`
+              width: 4em;
+              margin-right: 4px;
+              padding: 2px;
+
+              &::-webkit-inner-spin-button {
+                display: none;
+              }
+            `}
+            type="number"
+            size="min"
+            step={step}
+            value={bufferedValue}
+            onChange={(e) => {
+              const val = e.currentTarget.valueAsNumber;
+              if (Number.isNaN(val)) return;
+              setValue(val);
+            }}
+            onKeyDown={(e) => {
+              const val = e.currentTarget.valueAsNumber;
+              if (Number.isNaN(val)) return;
+              console.log(e.key === "Enter");
+              if (e.key === "Enter") onChange(val);
+            }}
+            onFocus={(e) => {
+              e.currentTarget.select();
+            }}
+            onBlur={(e) => {
+              onChange(e.currentTarget.valueAsNumber);
+            }}
+          />
+
+          <Button
+            css={`
+              margin-left: auto;
+              flex: 0;
+              line-height: 1;
+            `}
+            kind="default"
+            size="min"
+            onClick={() => onChange(0)}
+          >
+            <RiRefreshLine />
+          </Button>
         </div>
 
-        <Button
+        <RangeInput
           css={`
-            margin-left: auto;
-            flex: 0;
-            line-height: 1;
+            display: block;
+            width: 100%;
           `}
-          kind="default"
-          size="min"
-          onClick={() => onChange(0)}
-        >
-          <RiRefreshLine />
-        </Button>
+          min={min}
+          max={max}
+          step={step}
+          type="range"
+          value={value}
+          onChange={(e) => {
+            // setValue(e.currentTarget.valueAsNumber);
+            onChange(e.currentTarget.valueAsNumber);
+          }}
+        />
       </div>
-
-      <RangeInput
-        css={`
-          display: block;
-          width: 100%;
-        `}
-        min={min}
-        max={max}
-        step={step}
-        type="range"
-        value={value}
-        onChange={(e) => {
-          // setValue(e.currentTarget.valueAsNumber);
-          onChange(e.currentTarget.valueAsNumber);
-        }}
-      />
-    </div>
-  );
-};
+    );
+  }
+);
 
 const RangeInput = styled.input`
   display: block;
