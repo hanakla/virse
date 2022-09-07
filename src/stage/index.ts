@@ -31,7 +31,7 @@ export const useVirseStage = (canvas: RefObject<HTMLCanvasElement | null>) => {
     let animId = 0;
     animId = requestAnimationFrame(function update() {
       s.render();
-      requestAnimationFrame(update);
+      animId = requestAnimationFrame(update);
     });
 
     return () => {
