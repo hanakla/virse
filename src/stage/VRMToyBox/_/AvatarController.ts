@@ -1,46 +1,69 @@
 import { VertexLayout } from "@gltf-transform/core";
-import { VRMSchema } from "@pixiv/three-vrm";
+import { VRMHumanBoneName } from "@pixiv/three-vrm";
 import mitt from "mitt";
 import * as THREE from "three";
 import { Bone, Object3D } from "three";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
+import { Emitter } from "../../lib/Emitter";
 import { hasOwn } from "../../utils/lang";
 import { VirseStage } from "../VirseStage";
 import { Avatar } from "./Avatar";
 import { VRMFKManager } from "./FK";
+import { VrmIK } from "./IK";
+import { v1IKConfig } from "./IK/v1IkConfig";
 
-export class UI {
+type Events = {
+  boneChanged: Bone | null;
+  ikDragChange: { dragging: boolean };
+};
+
+export class AvatarController {
   private controllers: TransformControls[] = [];
   private fkManager: VRMFKManager;
-  public readonly events = mitt<{ boneChanged: Bone | null }>();
+  private vrmIK: VrmIK;
+  public readonly events = mitt<Events>();
 
   #displayBones = false;
   #focusedTo: "ik" | "fk" | null = null;
   #needUpdate = false;
+  #needIKSolve = false;
   #activeBoneName: string | null = null;
 
-  constructor(private viewer: VirseStage, private avatar: Avatar) {
+  constructor(
+    private avatar: Avatar,
+    camera: THREE.Camera,
+    canvas: HTMLCanvasElement
+  ) {
+    if (avatar.vrm.meta?.metaVersion === "0") {
+      this.vrmIK = new VrmIK(avatar.vrm);
+    } else {
+      this.vrmIK = new VrmIK(avatar.vrm, v1IKConfig);
+    }
+
     const createControl = (attach: Object3D, ik: boolean = true) => {
-      const c = new TransformControls(viewer.activeCamera, viewer.canvas);
+      const c = new TransformControls(camera, canvas);
+
       c.size = 0.8;
       c.attach(attach);
       c.addEventListener("dragging-changed", (event) => {
-        avatar.needIKSolve = ik && !!event.value;
-        this.viewer.orbitControls.enabled = !event.value;
+        this.#needIKSolve = ik && !!event.value;
+
+        this.events.emit("ikDragChange", { dragging: !!event.value });
+        // this.viewer.orbitControls.enabled = !event.value;
         this.fkManager.displayBones = !event.value;
         this.#focusedTo = event.value ? "ik" : null;
       });
       return c;
     };
 
-    avatar.vrmIK.ikChains.forEach((chain) => {
+    this.vrmIK.ikChains.forEach((chain) => {
       const transCtrl = createControl(chain.goal, true);
       avatar.vrm.scene.add(transCtrl);
       this.controllers.push(transCtrl);
     });
 
     {
-      [VRMSchema.HumanoidBoneName.Hips].forEach((name) => {
+      [VRMHumanBoneName.Hips].forEach((name) => {
         const obj = avatar.vrm.humanoid?.getBoneNode(name)!;
 
         const transCtrl = createControl(obj, true);
@@ -50,9 +73,7 @@ export class UI {
     }
 
     {
-      const obj = avatar.vrm.humanoid?.getBoneNode(
-        VRMSchema.HumanoidBoneName.Hips
-      )!;
+      const obj = avatar.vrm.humanoid?.getBoneNode(VRMHumanBoneName.Hips)!;
 
       const ctrl = createControl(obj, false);
       ctrl.applyMatrix4(
@@ -67,16 +88,7 @@ export class UI {
     }
 
     {
-      this.fkManager = new VRMFKManager(
-        avatar.vrm,
-        viewer.canvas,
-        viewer.activeCamera,
-        {
-          get current() {
-            return viewer.orbitControls;
-          },
-        }
-      );
+      this.fkManager = new VRMFKManager(avatar.vrm, canvas, camera);
 
       this.fkManager.events.on("focusChange", this.#handleFkFocusChange);
       this.fkManager.events.on("boneChange", (bone) => {
@@ -108,10 +120,18 @@ export class UI {
     });
   }
 
-  // public setBoneVisibility(visible: boolean) {
-  //   this.#displayBones = visible;
-  //   this.#needUpdate = true;
-  // }
+  public setBoneVisibility(visible: boolean) {
+    this.#displayBones = visible;
+    this.#needUpdate = true;
+  }
+
+  public get boneVisibility() {
+    return this.#displayBones;
+  }
+
+  public set boneVisibility(visible: boolean) {
+    this.#displayBones = visible;
+  }
 
   public get activeBoneName(): string | null {
     return this.#activeBoneName;
@@ -139,12 +159,19 @@ export class UI {
 
   public update() {
     if (!this.#needUpdate) {
-      if (this.#displayBones === this.viewer.visibleBones) return;
+      // if (this.#displayBones === this.viewer.visibleBones) return;
+    }
+
+    if (this.#needIKSolve) {
+      this.vrmIK.solve(); // IKを解決
+    } else {
+      // IK操作時以外は手先に追従させる
+      this.vrmIK.ikChains.forEach((chain) => {
+        chain.effector.getWorldPosition(chain.goal.position);
+      });
     }
 
     {
-      this.#displayBones = this.viewer.visibleBones;
-
       this.controllers.map((o) => {
         const enable =
           this.#displayBones &&

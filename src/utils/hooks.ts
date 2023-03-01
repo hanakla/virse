@@ -3,6 +3,7 @@ import { ExtractStateOfStoreClass } from "@fleur/fleur/dist/Store";
 import { useStore } from "@fleur/react";
 import mousetrap from "mousetrap";
 import {
+  MutableRefObject,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -11,6 +12,7 @@ import {
   useState,
 } from "react";
 import { shallowEquals } from "./object";
+import useEvent from "react-use-event-hook";
 
 export const useFunc = <T extends (...args: any[]) => any>(fn: T): T => {
   const ref = useRef<T | null>(null);
@@ -63,23 +65,35 @@ export const useBufferedState = <T, S = T>(
 
 export const useMousetrap = (
   handlerKey: string,
-  handlerCallback: () => void,
+  handlerCallback: (e: mousetrap.ExtendedKeyboardEvent, combo: string) => void,
   evtType = undefined
 ) => {
-  let actionRef = useRef<(() => void) | null>(null);
-  actionRef.current = handlerCallback;
+  const handler = useEvent(handlerCallback);
 
   useEffect(() => {
-    mousetrap.bind(
-      handlerKey,
-      (evt, combo) => {
-        typeof actionRef.current === "function" &&
-          actionRef.current(evt, combo);
-      },
-      evtType
-    );
+    mousetrap.bind(handlerKey, handler, evtType);
     return () => {
       mousetrap.unbind(handlerKey);
     };
-  }, [handlerKey]);
+  }, [handler, handlerKey]);
+};
+
+export const useLocalMousetrap = (
+  ref: MutableRefObject<HTMLElement>,
+  handlerKey: string,
+  handlerCallback: (e: mousetrap.ExtendedKeyboardEvent, combo: string) => void,
+  evtType = undefined
+) => {
+  const handler = useEvent(handlerCallback);
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const trap = mousetrap(ref.current);
+    trap.bind(handlerKey, handler, evtType);
+
+    return () => {
+      trap.reset();
+    };
+  }, [handlerKey, handler]);
 };

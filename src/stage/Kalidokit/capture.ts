@@ -138,7 +138,7 @@ export class KalidokitCapture {
     this.rigRotation("Neck", riggedFace.head, 0.7);
 
     // Blendshapes and Preset Name Schema
-    const Blendshape = this.vrm.blendShapeProxy!;
+    const Blendshape = this.vrm.expressionManager!;
     const PresetName = VRMSchema.BlendShapePresetName;
 
     // Simple example without winking. Interpolate based on old blendshape, then stabilize blink with `Kalidokit` helper function.

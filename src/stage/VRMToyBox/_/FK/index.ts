@@ -1,4 +1,4 @@
-import { VRM, VRMSchema } from "@pixiv/three-vrm";
+import { VRM } from "@pixiv/three-vrm";
 import mitt from "mitt";
 import * as THREE from "three";
 import { Bone, Mesh, MeshBasicMaterial } from "three";
@@ -10,6 +10,12 @@ const defaultColor = 0x5e31c3;
 const activeColor = 0x8c58ff;
 // const activeEmissive = 0xffffff;
 
+type Events = {
+  focusChange: boolean;
+  boneChange: Bone | null;
+  fkRotaterDragingChanged: { dragging: boolean };
+};
+
 export class VRMFKManager {
   #boneUiObjects: Mesh[] = [];
   #vrm: VRM;
@@ -17,7 +23,7 @@ export class VRMFKManager {
   #camera;
   #intersectedBone: Mesh | null = null;
   rotateController: TransformControls = null!;
-  #orbitControls: { get current(): OrbitControls };
+  // #orbitControls: { get current(): OrbitControls };
 
   #isFocused = false;
   #isMouseMoved = false;
@@ -25,21 +31,18 @@ export class VRMFKManager {
 
   public currentBone: Bone | null = null;
 
-  public readonly events = mitt<{
-    focusChange: boolean;
-    boneChange: Bone | null;
-  }>();
+  public readonly events = mitt<Events>();
 
   constructor(
-    vrm,
+    vrm: VRM,
     canvas,
-    camera,
-    orbitControls: { get current(): OrbitControls }
+    camera
+    // orbitControls: { get current(): OrbitControls }
   ) {
     this.#vrm = vrm;
     this.#canvas = canvas;
     this.#camera = camera;
-    this.#orbitControls = orbitControls;
+    // this.#orbitControls = orbitControls;
     this.#createBoneHelper(vrm);
     this.#createRotateController();
     this.#registerUiEvent();
@@ -177,7 +180,9 @@ export class VRMFKManager {
     this.#vrm.scene.add(this.rotateController);
 
     this.rotateController.addEventListener("dragging-changed", (event) => {
-      this.#orbitControls.current.enabled = !event.value;
+      // this.#orbitControls.current.enabled = !event.value;
+
+      this.events.emit("fkRotaterDragingChanged", { dragging: !!event.value });
 
       this.#boneUiObjects.forEach((obj) => {
         obj.visible = !event.value;

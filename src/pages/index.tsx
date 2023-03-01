@@ -35,7 +35,7 @@ import {
 import { Bone, MathUtils, Quaternion, Vector3 } from "three";
 import { useEffect } from "react";
 import useMouse from "@react-hook/mouse-position";
-import { VRMSchema } from "@pixiv/three-vrm";
+import { VRMHumanBoneName } from "@pixiv/three-vrm";
 import { useFleurContext, useStore } from "@fleur/react";
 import {
   EditorMode,
@@ -88,6 +88,7 @@ export default function Home() {
   const { show: showContextMenu, hideAll } = useContextMenu({});
 
   const stage = useVirseStage(canvas);
+
   const [rightTab, setRightTab] = useState<"expr" | "poses">("expr");
   const [state, setState] = useObjectState({
     poseId: null as number | null,
@@ -150,7 +151,7 @@ export default function Home() {
   });
 
   const handleClickDisplayBones = useFunc(() => {
-    stage.setDisplayBones(!photoModeState.visibleBones);
+    stage!.setShowBones(!photoModeState.visibleBones);
 
     executeOperation(editorOps.setPhotoModeState, {
       ...photoModeState,
@@ -161,13 +162,13 @@ export default function Home() {
   const handleClickTransform = useFunc(() => {
     setState((s) => {
       s.rotation = !s.rotation;
-      stage.setControlMode(!s.rotation ? "rotate" : "translate");
+      stage!.setControlMode(!s.rotation ? "rotate" : "translate");
     });
   });
 
   const handleClickMotionCapture = useFunc(() => {
     const { avatar } = Object.values(stage.vrms)[0];
-    console.log(stage.vrms);
+
     if (!avatar) return;
 
     if (avatar.kalidokit.isCaptureRunnging) {
@@ -194,13 +195,13 @@ export default function Home() {
       name: state.poseName,
       canvas: state.size,
       camera: {
-        mode: stage.stage.camMode,
-        fov: stage.stage.camFov,
-        zoom: stage.stage.activeCamera.zoom,
-        position: stage.stage.activeCamera.position.toArray(),
-        target: stage.stage.orbitControls.target.toArray(),
-        rotation: stage.stage.activeCamera.rotation.toArray(),
-        quaternion: stage.stage.activeCamera.quaternion.toArray(),
+        mode: stage.camMode,
+        fov: stage.camFov,
+        zoom: stage.activeCamera.zoom,
+        position: stage.activeCamera.position.toArray(),
+        target: stage.orbitControls.target.toArray(),
+        rotation: stage.activeCamera.rotation.toArray(),
+        quaternion: stage.activeCamera.quaternion.toArray(),
       },
       blendShapeProxies: vrm.blendShapeProxy?.expressions.reduce((a, name) => {
         a[name] = vrm.blendShapeProxy?.getValue(name)!;
@@ -235,7 +236,7 @@ export default function Home() {
     if (!avatar) return;
 
     avatar.avatar.resetPose();
-    stage.stage.resetCamera();
+    stage.resetCamera();
 
     setState({
       poseId: null,
@@ -247,16 +248,16 @@ export default function Home() {
     const { vrm } = Object.values(stage.vrms)[0];
     if (!vrm) return;
 
-    vrm.blendShapeProxy?.expressions.forEach((name) => {
-      vrm.blendShapeProxy?.setValue(name, 0);
+    Object.keys(vrm.expressionManager?.expressionMap ?? {}).forEach((name) => {
+      vrm.expressionManager?.setValue(name, 0);
     });
   });
 
   const handleClickResetUnsafeMorphs = useFunc(() => {
-    const { vrm, proxy } = Object.values(stage.vrms)[0];
-    if (!vrm) return;
+    const { avatar } = Object.values(stage.vrms)[0];
+    if (!avatar.blendshapes) return;
 
-    Object.entries(proxy).forEach(([name, proxy]) => {
+    Object.entries(avatar.blendshapes).forEach(([name, proxy]) => {
       proxy.value = 0;
     });
   });
@@ -300,20 +301,20 @@ export default function Home() {
     const poseId = params.props.poseId;
     const pose = poses.find((p) => p.uid === poseId);
 
-    const { vrm, proxy } = Object.values(stage.vrms)[0];
-    if (!vrm || !pose) return;
+    const { avatar } = Object.values(stage.vrms)[0];
+    if (!avatar || !pose) return;
 
     Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-      if (proxy[k]) proxy[k].value = value;
+      if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
     });
 
     Object.entries(pose.blendShapeProxies).map(
       ([name, value]: [string, number]) => {
-        vrm.blendShapeProxy?.setValue(name, value);
+        avatar.vrm.expressionManager?.setValue(name, value);
       }
     );
 
-    vrm.humanoid!.setPose(pose.vrmPose);
+    avatar.vrm.humanoid!.setNormalizedPose(pose.vrmPose);
 
     setState({ poseId, poseName: pose.name });
   });
@@ -322,10 +323,10 @@ export default function Home() {
     const poseId = params.props.poseId;
     const pose = poses.find((p) => p.uid === poseId);
 
-    const { vrm, proxy } = Object.values(stage.vrms)[0];
-    if (!vrm || !pose) return;
+    const { avatar } = Object.values(stage.vrms)[0];
+    if (!avatar.vrm || !pose) return;
 
-    stage.stage.setCamMode(pose.camera.mode, {
+    stage.setCamMode(pose.camera.mode, {
       fov: pose.camera.fov,
       zoom: pose.camera.zoom,
       position: pose.camera.position,
@@ -333,7 +334,7 @@ export default function Home() {
       // quaternion: pose.camera.quaternion,
       target: pose.camera.target,
     });
-    stage.stage.setSize(pose.canvas.width, pose.canvas.height);
+    stage.setSize(pose.canvas.width, pose.canvas.height);
 
     // Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
     //   if (proxy[k]) proxy[k].value = value;
@@ -365,10 +366,10 @@ export default function Home() {
     const poseId = params.props.poseId;
     const pose = poses.find((p) => p.uid === poseId);
 
-    const { vrm, proxy } = Object.values(stage.vrms)[0];
-    if (!vrm || !pose) return;
+    const { avatar } = Object.values(stage.vrms)[0];
+    if (!avatar.vrm || !pose) return;
 
-    stage.stage.setCamMode(pose.camera.mode, {
+    stage.setCamMode(pose.camera.mode, {
       fov: pose.camera.fov,
       zoom: pose.camera.zoom,
       position: pose.camera.position,
@@ -376,19 +377,20 @@ export default function Home() {
       // quaternion: pose.camera.quaternion,
       target: pose.camera.target,
     });
-    stage.stage.setSize(pose.canvas.width, pose.canvas.height);
+    stage.setSize(pose.canvas.width, pose.canvas.height);
 
     Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-      if (proxy[k]) proxy[k].value = value;
+      if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
     });
 
     Object.entries(pose.blendShapeProxies).map(
       ([name, value]: [string, number]) => {
-        vrm.blendShapeProxy?.setValue(name, value);
+        avatar.vrm.expressionManager?.setValue(name, value);
       }
     );
 
-    vrm.humanoid!.setPose(pose.vrmPose);
+    console.log(avatar.vrm, pose);
+    avatar.vrm.humanoid!.setNormalizedPose(pose.vrmPose);
 
     setState({
       poseId: poseId!,
@@ -401,8 +403,8 @@ export default function Home() {
     const poseId = params.props.poseId;
     const pose = poses.find((p) => p.uid === poseId);
 
-    const { vrm, proxy } = Object.values(stage.vrms)[0];
-    if (!vrm || !pose) return;
+    const { avatar } = Object.values(stage.vrms)[0];
+    if (!avatar.vrm || !pose) return;
 
     const boneNames = Object.keys(pose.bones);
     const bones = await openModal(SelectBones, {
@@ -413,7 +415,7 @@ export default function Home() {
 
     bones.map((name) => {
       const bone = pose.bones[name];
-      const o = vrm.scene.getObjectByName(name)!;
+      const o = avatar.vrm.scene.getObjectByName(name)!;
       if (!o) return;
 
       o.position.set(...(bone.position as any));
@@ -425,8 +427,8 @@ export default function Home() {
     const poseId = params.props.poseId;
     const pose = poses.find((p) => p.uid === poseId);
 
-    const { vrm, proxy } = Object.values(stage.vrms)[0];
-    if (!vrm || !pose) return;
+    const { avatar } = Object.values(stage.vrms)[0];
+    if (!avatar.vrm || !pose) return;
 
     const poseNames = [
       ...Object.keys(pose.blendShapeProxies),
@@ -441,13 +443,13 @@ export default function Home() {
 
     Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
       if (!morphs.includes(k)) return;
-      if (proxy[k]) proxy[k].value = value;
+      if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
     });
 
     Object.entries(pose.blendShapeProxies).map(
       ([name, value]: [string, number]) => {
         if (!morphs.includes(name)) return;
-        vrm.blendShapeProxy?.setValue(name, value);
+        avatar.vrm.expressionManager?.setValue(name, value);
       }
     );
   });
@@ -494,7 +496,7 @@ export default function Home() {
 
     if (!pose) return;
 
-    stage.stage.setCamMode(pose.camera.mode, {
+    stage.setCamMode(pose.camera.mode, {
       fov: pose.camera.fov,
       zoom: pose.camera.zoom,
       position: pose.camera.position,
@@ -502,7 +504,7 @@ export default function Home() {
       // quaternion: pose.camera.quaternion,
       target: pose.camera.target,
     });
-    // stage.stage.setSize(pose.canvas.width, pose.canvas.height);
+    // stage.setSize(pose.canvas.width, pose.canvas.height);
 
     setState({
       size: { width: pose.canvas.width, height: pose.canvas.height },
@@ -535,7 +537,7 @@ export default function Home() {
 
       executeOperation(editorOps.loadVrmBin, modelId, (blob) => {
         const url = URL.createObjectURL(blob);
-        stage.stage.loadVRM(url);
+        stage.loadVRM(url);
       });
     }
   );
@@ -546,38 +548,43 @@ export default function Home() {
     }
   );
 
-  const handleChangeHandMix = useFunc((_, v) => {
-    const { vrm } = Object.values(stage.vrms)[0];
-    if (!vrm) return;
+  // const handleChangeHandMix = useFunc((_, v) => {
+  //   const { vrm } = Object.values(stage.vrms)[0];
+  //   if (!vrm) return;
 
-    vrm.humanoid!.setPose({
-      [VRMSchema.HumanoidBoneName.RightThumbProximal]: {
-        rotation: new Quaternion()
-          .setFromAxisAngle(new Vector3(0, 0, 0.2), Math.PI / 2)
-          .toArray(),
-      },
-      [VRMSchema.HumanoidBoneName.RightThumbIntermediate]: {
-        rotation: new Quaternion()
-          .setFromAxisAngle(new Vector3(0, 0, 0.2), Math.PI / 2)
-          .toArray(),
-      },
-      [VRMSchema.HumanoidBoneName.RightIndexProximal]: {
-        rotation: new Quaternion()
-          .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
-          .toArray(),
-      },
-      [VRMSchema.HumanoidBoneName.RightIndexIntermediate]: {
-        rotation: new Quaternion()
-          .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
-          .toArray(),
-      },
-      [VRMSchema.HumanoidBoneName.RightIndexDistal]: {
-        rotation: new Quaternion()
-          .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
-          .toArray(),
-      },
-    });
-  });
+  //   vrm.humanoid!.setNormalizedPose({
+  //     [VRMHumanBoneName.RightThumbProximal]: {
+  //       rotation: new Quaternion()
+  //         .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
+  //         .toArray(),
+  //     },
+  //     [VRMHumanBoneName.RightThumbMetacarpal]: {
+  //       rotation: new Quaternion()
+  //         .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
+  //         .toArray(),
+  //     },
+  //     [VRMHumanBoneName.RightThumbDistal]: {
+  //       rotation: new Quaternion()
+  //         .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
+  //         .toArray(),
+  //     },
+  //     [VRMHumanBoneName.RightIndexProximal]: {
+  //       rotation: new Quaternion()
+  //         .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
+  //         .toArray(),
+  //     },
+  //     [VRMHumanBoneName.RightIndexIntermediate]: {
+  //       rotation: new Quaternion()
+  //         .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
+  //         .toArray(),
+  //     },
+  //     [VRMHumanBoneName.RightIndexDistal]: {
+  //       rotation: new Quaternion()
+  //         .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
+  //         .toArray(),
+  //     },
+  //   });
+  // });
 
   /////
   ///// Keyboard shortcust
@@ -598,29 +605,28 @@ export default function Home() {
   });
 
   useMousetrap("'", () => {
-    const vrm = Object.values(stage.vrms)[0];
-    const bone = vrm?.ui.currentBone;
+    const { avatar } = Object.values(stage!.vrms)[0];
+    const bone = avatar.ui.currentBone;
     if (!bone) return;
 
-    const child = bone.children.filter((o) => o.isBone);
-    if (child.length === 1) vrm.ui.currentBone = child[0];
+    const child = bone.children.filter((o: any): o is Bone => o.isBone);
+    if (child.length === 1) avatar.ui.currentBone = child[0];
   });
 
   useMousetrap(";", () => {
-    const vrm = Object.values(stage.vrms)[0];
-    const bone = vrm?.ui.currentBone;
+    const avatar = Object.values(stage!.vrms)[0];
+    const bone = avatar?.ui.currentBone;
     if (!bone || !bone.parent?.isBone) return;
 
-    vrm.ui.currentBone = bone.parent;
+    avatar.ui.currentBone = bone.parent;
   });
 
   useMousetrap("/", () => {
     if (mode !== EditorMode.photo) return;
 
     const modes = ["translate", "rotate", "scale"];
-    const current = stage.stage.boneControlMode;
-    stage.stage.boneControlMode =
-      modes[(modes.indexOf(current) + 1) % modes.length];
+    const current = stage.boneControlMode;
+    stage.boneControlMode = modes[(modes.indexOf(current) + 1) % modes.length];
   });
 
   useMousetrap("tab", (e) => {
@@ -639,14 +645,14 @@ export default function Home() {
   });
 
   useMousetrap("c", () => {
-    if (!stage.stage) return;
+    if (!stage) return;
 
     const prev = state.tmpCam;
     const current = {
-      mode: stage.stage.camMode,
-      target: stage.stage.orbitControls.target.toArray(),
-      position: stage.stage.activeCamera.position.toArray(),
-      quaternion: stage.stage.activeCamera.quaternion.toArray(),
+      mode: stage.camMode,
+      target: stage.orbitControls.target.toArray(),
+      position: stage.activeCamera.position.toArray(),
+      quaternion: stage.activeCamera.quaternion.toArray(),
     };
 
     setState({
@@ -655,7 +661,7 @@ export default function Home() {
 
     if (!prev) return;
 
-    stage.stage.setCamMode(prev.mode, prev);
+    stage.setCamMode(prev.mode, prev);
   });
 
   useMousetrap("shift+c", () => {
@@ -673,7 +679,7 @@ export default function Home() {
 
       if (file.name.endsWith(".vrm")) {
         executeOperation(editorOps.addVrm, file);
-        stage.stage.loadVRM(url);
+        stage!.loadVRM(url);
       } else if (file.name.endsWith(".json")) {
         const json = JSON.parse(await file.text());
 
@@ -698,32 +704,33 @@ export default function Home() {
   });
 
   useEffect(() => {
-    if (!stage.stage) return;
-    stage.stage.events.on("boneChanged", rerender);
+    if (!stage) return;
+    stage.events.on("boneChanged", rerender);
+
     return () => {
-      stage.stage.events.off("boneChanged", rerender);
+      stage.events.off("boneChanged", rerender);
     };
-  }, [stage.stage]);
+  }, [stage]);
 
   useEffect(() => {
-    if (!stage.stage) return;
+    if (!stage) return;
 
     executeOperation(
       editorOps.loadVrmBin,
       "4b45a65eace31e24192c09717670a3a02a4ea16aa21b7a6a14ee9c9499ba9f0e",
       (blob) => {
         const url = URL.createObjectURL(blob);
-        stage.stage.loadVRM(url);
+        stage.loadVRM(url);
       }
     );
-  }, [stage.stage]);
+  }, [stage]);
 
   useEffect(() => {
     const onResize = () => {
       if (mode === EditorMode.photo) {
-        stage.stage?.setSize(state.size.width, window.innerHeight);
+        stage?.setSize(state.size.width, window.innerHeight);
       } else {
-        stage.stage?.setSize(window.innerWidth, window.innerHeight);
+        stage?.setSize(window.innerWidth, window.innerHeight);
       }
     };
 
@@ -747,24 +754,25 @@ export default function Home() {
   // on mode changed
   useEffect(() => {
     if (mode === EditorMode.photo) {
-      stage.setDisplayBones(photoModeState.visibleBones);
-      stage.stage?.setSize(state.size.width, state.size.height);
+      stage?.setShowBones(photoModeState.visibleBones);
+      stage?.setSize(state.size.width, state.size.height);
     }
 
     if (mode === EditorMode.live) {
-      stage.setDisplayBones(false);
-      stage.stage?.setSize(window.innerWidth, window.innerHeight);
+      stage?.setShowBones(false);
+      stage?.setSize(window.innerWidth, window.innerHeight);
     }
   }, [mode]);
 
   useEffect(() => {
-    if (!stage.stage) return;
-    setState({ size: stage.stage?.getSize() });
-  }, [stage.stage]);
+    if (!stage) return;
+    setState({ size: stage?.getSize() });
+  }, [stage]);
 
   useEffect(() => {
-    const vrm = stage.stage ? Object.values(stage.stage.vrms)[0]?.vrm : null;
+    const vrm = stage ? Object.values(stage.avatars)[0]?.vrm : null;
     if (!vrm || !padLMouse || !padLMouse.isDown) return;
+
     const rateX = MathUtils.lerp(
       -0.3,
       0.3,
@@ -777,19 +785,20 @@ export default function Home() {
     );
 
     vrm.humanoid
-      ?.getBoneNode(VRMSchema.HumanoidBoneName.RightEye)
+      ?.getNormalizedBoneNode(VRMHumanBoneName.RightEye)
       ?.rotation.set(rateY, rateX, 0);
 
     if (state.syncEyes) {
       vrm.humanoid
-        ?.getBoneNode(VRMSchema.HumanoidBoneName.LeftEye)
+        ?.getNormalizedBoneNode(VRMHumanBoneName.LeftEye)
         ?.rotation.set(rateY, rateX, 0);
     }
   }, [state.syncEyes, padLMouse.clientX, padLMouse.clientY, padLMouse.isDown]);
 
   useEffect(() => {
-    const vrm = stage.stage ? Object.values(stage.stage.vrms)[0]?.vrm : null;
+    const vrm = stage ? Object.values(stage.avatars)[0]?.vrm : null;
     if (!vrm || !padRMouse || !padRMouse.isDown) return;
+
     const rateX = MathUtils.lerp(
       -0.3,
       0.3,
@@ -802,19 +811,19 @@ export default function Home() {
     );
 
     vrm.humanoid
-      ?.getBoneNode(VRMSchema.HumanoidBoneName.LeftEye)
+      ?.getNormalizedBoneNode(VRMHumanBoneName.LeftEye)
       ?.rotation.set(rateY, rateX, 0);
 
     if (state.syncEyes) {
       vrm.humanoid
-        ?.getBoneNode(VRMSchema.HumanoidBoneName.RightEye)
+        ?.getNormalizedBoneNode(VRMHumanBoneName.RightEye)
         ?.rotation.set(rateY, rateX, 0);
     }
   }, [state.syncEyes, padRMouse.clientX, padRMouse.clientY, padRMouse.isDown]);
 
   useMemo(() => !Mordred.instance && Mordred.init(), []);
 
-  const model = stage.stage ? Object.values(stage.stage.vrms)[0] : null;
+  const model = stage ? Object.values(stage.avatars)[0] : null;
   const cameraMenu = (
     <MenuItem
       onClick={(e) => {
@@ -831,11 +840,11 @@ export default function Home() {
             font-size: 12px;
           `}
         >
-          {stage.camMode}
+          {stage?.camMode}
         </span>
       </div>
 
-      {stage.camMode === "perspective" && (
+      {stage?.camMode === "perspective" && (
         <div
           css={`
             display: flex;
@@ -852,9 +861,9 @@ export default function Home() {
             size="min"
             value={state.fov}
             onChange={({ currentTarget }) => {
-              stage.stage.camFov = currentTarget.valueAsNumber;
+              stage.camFov = currentTarget.valueAsNumber;
               setState({ fov: currentTarget.valueAsNumber });
-              stage.stage.pCam.updateProjectionMatrix();
+              stage.pCam.updateProjectionMatrix();
             }}
           />
         </div>
@@ -992,7 +1001,7 @@ export default function Home() {
               `}
             >
               {mode === EditorMode.photo &&
-                stage.stage?.activeModel?.ui.activeBoneName && (
+                stage?.activeModel?.ui.activeBoneName && (
                   <span
                     css={`
                       position: absolute;
@@ -1006,7 +1015,7 @@ export default function Home() {
                       user-select: none;
                     `}
                   >
-                    {stage.stage.activeModel?.ui.activeBoneName}
+                    {stage.activeModel?.ui.activeBoneName}
                   </span>
                 )}
 
@@ -1068,9 +1077,7 @@ export default function Home() {
                 </div>
               </MenuItem>
               <MenuItem
-                onClick={() =>
-                  (stage.stage.enableEffect = !stage.stage.enableEffect)
-                }
+                onClick={() => (stage.enableEffect = !stage.enableEffect)}
               >
                 <RiMagicFill css={menuIconCss} />
                 <div>Effect</div>
@@ -1107,9 +1114,9 @@ export default function Home() {
                         setState((state) => {
                           state.size.width = currentTarget.valueAsNumber;
                         });
-                        stage.stage.setSize(
+                        stage.setSize(
                           currentTarget.valueAsNumber,
-                          stage.stage.getSize().height
+                          stage.getSize().height
                         );
                       }}
                     />
@@ -1124,8 +1131,8 @@ export default function Home() {
                         setState((state) => {
                           state.size.height = currentTarget.valueAsNumber;
                         });
-                        stage.stage.setSize(
-                          stage.stage.getSize().width,
+                        stage.setSize(
+                          stage.getSize().width,
                           currentTarget.valueAsNumber
                         );
                       }}
@@ -1144,10 +1151,7 @@ export default function Home() {
                         },
                       });
 
-                      stage.stage.setSize(
-                        window.innerWidth,
-                        window.innerHeight
-                      );
+                      stage.setSize(window.innerWidth, window.innerHeight);
                     }}
                   >
                     画面サイズにリセット
@@ -1368,9 +1372,23 @@ export default function Home() {
 
                 <div
                   css={`
+                    padding-right: 8px;
                     flex: 1;
                     overflow: auto;
+                    scrollbar-gutter: stable;
+
                     user-select: none;
+                    &::-webkit-scrollbar {
+                      width: 4px;
+                    }
+
+                    &::-webkit-scrollbar-track {
+                      background-color: #ccc;
+                    }
+
+                    &::-webkit-scrollbar-thumb {
+                      background-color: #17585d;
+                    }
                   `}
                 >
                   <ExprHead>
@@ -1394,19 +1412,23 @@ export default function Home() {
                     css={`
                       display: flex;
                       flex-flow: column;
-                      gap: 6px;
+                      gap: 12px;
                     `}
                   >
-                    {model?.vrm.blendShapeProxy?.expressions.map((name) => (
+                    {Object.keys(
+                      model?.vrm.expressionManager?.expressionMap ?? {}
+                    ).map((name) => (
                       <Slider
                         key={name}
                         label={<>{name}</>}
                         title={name}
                         min={0}
                         max={1}
-                        value={model.vrm.blendShapeProxy?.getValue(name) ?? 0}
+                        value={
+                          model?.vrm.expressionManager?.getValue(name) ?? 0
+                        }
                         onChange={(v) =>
-                          model.vrm.blendShapeProxy?.setValue(name, v)
+                          model?.vrm.expressionManager?.setValue(name, v)
                         }
                       />
                     ))}
@@ -1433,30 +1455,35 @@ export default function Home() {
                     css={`
                       display: flex;
                       flex-flow: column;
-                      gap: 6px;
+                      gap: 12px;
                     `}
                   >
-                    {model?.proxy &&
-                      Object.entries(model?.proxy).map(([name, proxy]) => (
-                        <Slider
-                          key={name}
-                          label={
-                            // prettier-ignore
-                            name.match(/eye/i) ? <>👀 {replaceVRoidShapeNamePrefix(name)}</>
+                    {model?.avatar.blendshapes ? (
+                      Object.entries(model.avatar.blendshapes).map(
+                        ([name, proxy]) => (
+                          <Slider
+                            key={name}
+                            label={
+                              // prettier-ignore
+                              name.match(/eye/i) ? <>👀 {replaceVRoidShapeNamePrefix(name)}</>
                           : name.match(/mth/i) ? <>💋 {replaceVRoidShapeNamePrefix(name)}</>
                           : name.match(/ha_/i) ? <>🦷 {replaceVRoidShapeNamePrefix(name)}</>
                           : name.match(/brw/i) ? <>⏜ {replaceVRoidShapeNamePrefix(name)}</>
                           : <>❓ {replaceVRoidShapeNamePrefix(name)}</>
-                          }
-                          title={replaceVRoidShapeNamePrefix(name)}
-                          min={-2.5}
-                          max={2.5}
-                          value={proxy.value}
-                          onChange={(v) => {
-                            proxy.value = v;
-                          }}
-                        />
-                      ))}
+                            }
+                            title={replaceVRoidShapeNamePrefix(name)}
+                            min={-2.5}
+                            max={2.5}
+                            value={proxy.value}
+                            onChange={(v) => {
+                              proxy.value = v;
+                            }}
+                          />
+                        )
+                      )
+                    ) : (
+                      <div>カスタム表情はありません</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1470,7 +1497,7 @@ export default function Home() {
                 `}
                 style={rightTab === "poses" ? {} : hiddenStyle}
               >
-                <h3>右手</h3>
+                {/* <h3>右手</h3>
 
                 <div>
                   <Slider
@@ -1486,7 +1513,7 @@ export default function Home() {
                   />
                 </div>
 
-                <h3>左手</h3>
+                <h3>左手</h3> */}
 
                 <List
                   css={`
@@ -1847,7 +1874,7 @@ const RangeInput = styled.input`
   display: block;
   width: 100%;
   height: 2px;
-  margin: 8px 0;
+  margin: 4px 0;
 
   appearance: none;
   --webkit-touch-callout: none;

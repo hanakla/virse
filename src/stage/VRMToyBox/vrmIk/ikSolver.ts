@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { VRM, VRMSchema } from "@pixiv/three-vrm";
+import { VRMHumanBoneName } from "@pixiv/three-vrm";
 
 // 計算用の一時的な変数
 // 不要なインスタンス化をさける
@@ -12,8 +12,13 @@ const _jointQuaternionInverse = new THREE.Quaternion();
 const _jointScale = new THREE.Vector3();
 const _axis = new THREE.Vector3();
 const _vector = new THREE.Vector3();
-const _quarternion = new THREE.Quaternion();
+const _quaternion = new THREE.Quaternion();
 
+/**
+ * IKを解く. 複数のIKChainを解く場合、順番によって結果が変わることに注意する
+ * @param ikChain 対象のIKChain
+ * @param iteration 反復回数
+ */
 export const solve = (ikChain: IKChain, iteration: number) => {
   // 目標位置のワールド座標
   ikChain.goal.getWorldPosition(_goalPosition);
@@ -64,13 +69,17 @@ export const solve = (ikChain: IKChain, iteration: number) => {
       _axis.normalize();
 
       // 回転
-      _quarternion.setFromAxisAngle(_axis, deltaAngle);
-      joint.bone.quaternion.multiply(_quarternion);
+      _quaternion.setFromAxisAngle(_axis, deltaAngle);
+      joint.bone.quaternion.multiply(_quaternion);
 
       // 回転角・軸制限
       joint.bone.rotation.setFromVector3(
         _vector
-          .setFromEuler(joint.bone.rotation)
+          .set(
+            joint.bone.rotation.x,
+            joint.bone.rotation.y,
+            joint.bone.rotation.z
+          )
           .max(joint.rotationMin)
           .min(joint.rotationMax),
         joint.order
@@ -84,32 +93,40 @@ export const solve = (ikChain: IKChain, iteration: number) => {
   }
 };
 
-export interface IKChain {
+/**
+ * 開始点から手先までの関節グループ. ≒ IKGroup
+ */
+export type IKChain = {
   goal: THREE.Object3D;
   effector: THREE.Object3D; // VRM.VRMHumanoid.getBoneNode() で取得することを想定
   joints: Array<Joint>;
-}
+};
 
-export interface Joint {
+/**
+ * 各関節の設定 ≒ Bone
+ */
+export type Joint = {
   bone: THREE.Object3D;
   order: "XYZ" | "YZX" | "ZXY" | "XZY" | "YXZ" | "ZYX";
   rotationMin: THREE.Vector3;
   rotationMax: THREE.Vector3;
-}
+};
 
-// VRM から IKChainを生成するための情報
-export interface IKConfig {
+/**
+ * VRM から IKChainを生成するための情報
+ */
+export type IKConfig = {
   iteration: number;
   chainConfigs: Array<ChainConfig>;
-}
+};
 
-export interface ChainConfig {
+export type ChainConfig = {
   jointConfigs: Array<JointConfig>;
-  effectorBoneName: VRMSchema.HumanoidBoneName; // IKChain.effectorに設定するボーン
-}
+  effectorBoneName: VRMHumanBoneName; // IKChain.effectorに設定するボーン
+};
 
-export interface JointConfig {
-  boneName: VRMSchema.HumanoidBoneName;
+export type JointConfig = {
+  boneName: VRMHumanBoneName;
 
   // オイラー角の回転順序
   order: "XYZ" | "YZX" | "ZXY" | "XZY" | "YXZ" | "ZYX";
@@ -117,4 +134,4 @@ export interface JointConfig {
   // オイラー角による関節角度制限
   rotationMin: THREE.Vector3; // -pi ~ pi
   rotationMax: THREE.Vector3; // -pi ~ pi
-}
+};

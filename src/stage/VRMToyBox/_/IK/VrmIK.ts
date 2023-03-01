@@ -1,16 +1,20 @@
 import * as THREE from "three";
-import { VRM } from "@pixiv/three-vrm";
+import { VRM, VRMHumanoid } from "@pixiv/three-vrm";
 import * as IKSolver from "./IKSolver";
 import { defaultIKConfig } from "./DefaultConfig";
 
 export class VrmIK {
-  private _chains: Array<IKSolver.IKChain>;
+  private _chains = new Array<IKSolver.IKChain>();
   private _iteration: number;
 
   constructor(vrm: VRM, ikConfig: IKSolver.IKConfig = defaultIKConfig) {
-    this._chains = ikConfig.chainConfigs.map((chainConfig) => {
-      return this._createIKChain(vrm, chainConfig);
+    ikConfig.chainConfigs.forEach((chainConfig) => {
+      const ikChain = this._createIKChain(vrm, chainConfig);
+      if (ikChain) {
+        this._chains.push(ikChain);
+      }
     });
+
     this._iteration = ikConfig.iteration || 1;
   }
 
@@ -28,29 +32,42 @@ export class VrmIK {
   private _createIKChain(
     vrm: VRM,
     chainConfig: IKSolver.ChainConfig
-  ): IKSolver.IKChain {
+  ): IKSolver.IKChain | null {
+    if (!vrm.humanoid) return null;
+
     const goal = new THREE.Object3D();
-    const effector = vrm.humanoid!.getBoneNode(chainConfig.effectorBoneName)!;
+    const effector = vrm.humanoid.getNormalizedBoneNode(
+      chainConfig.effectorBoneName
+    );
+    if (!effector) return null;
+
     const joints = chainConfig.jointConfigs.map((jointConfig) => {
-      return this._createJoint(vrm, jointConfig);
+      return this._createJoint(vrm.humanoid!, jointConfig);
     });
+    // nullを取り除く
+    const filteredJoints = joints.filter(
+      (joint): joint is IKSolver.Joint => joint !== null
+    );
 
     effector.getWorldPosition(goal.position);
-    vrm.scene.add(goal);
+    vrm.scene.attach(goal);
 
     return {
       goal: goal,
       effector: effector,
-      joints: joints,
+      joints: filteredJoints,
     };
   }
 
   private _createJoint(
-    vrm: VRM,
+    vrmHumanoid: VRMHumanoid,
     jointConfig: IKSolver.JointConfig
-  ): IKSolver.Joint {
+  ): IKSolver.Joint | null {
+    const bone = vrmHumanoid.getNormalizedBoneNode(jointConfig.boneName);
+    if (!bone) return null;
+
     return {
-      bone: vrm.humanoid!.getBoneNode(jointConfig.boneName)!,
+      bone: bone,
       order: jointConfig.order,
       rotationMin: jointConfig.rotationMin,
       rotationMax: jointConfig.rotationMax,
