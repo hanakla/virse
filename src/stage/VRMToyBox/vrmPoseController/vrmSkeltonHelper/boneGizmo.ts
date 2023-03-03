@@ -43,3 +43,19 @@ export const activeMaterial = new THREE.MeshBasicMaterial({
   transparent: true,
   opacity: 1,
 });
+
+export const defaultNonStandardMaterial = new THREE.MeshBasicMaterial({
+  color: 0x8400ff,
+  depthTest: false,
+  depthWrite: false,
+  transparent: true,
+  opacity: 0.25,
+});
+
+export const focusNonStandardMaterial = new THREE.MeshBasicMaterial({
+  color: 0x8400ff,
+  depthTest: false,
+  depthWrite: false,
+  transparent: true,
+  opacity: 1,
+});

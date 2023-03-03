@@ -25,6 +25,7 @@
     "escape-string-regexp": "^5.0.0",
     "idb": "^7.0.1",
     "kalidokit": "^1.1.5",
+    "klona": "^2.0.6",
     "mitt": "^3.0.0",
     "nanoid": "^3.3.1",
     "next": "12.2.5",

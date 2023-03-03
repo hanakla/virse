@@ -2564,6 +2564,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"klona@npm:^2.0.6":
+  version: 2.0.6
+  resolution: "klona@npm:2.0.6"
+  checksum: 1e6259d52cde4ac1053374c5a1e256d7b1f8605623d2318dbaa1207dd518ac05b3335ecb427a439dbb6afbc2f17ef0d9a22f3d1700775c48af0b2ee84291ca65
+  languageName: node
+  linkType: hard
+
 "language-subtag-registry@npm:~0.3.2":
   version: 0.3.21
   resolution: "language-subtag-registry@npm:0.3.21"
@@ -4177,6 +4184,7 @@ __metadata:
     file-loader: "npm:^6.2.0"
     idb: "npm:^7.0.1"
     kalidokit: "npm:^1.1.5"
+    klona: "npm:^2.0.6"
     mitt: "npm:^3.0.0"
     nanoid: "npm:^3.3.1"
     next: "npm:12.2.5"

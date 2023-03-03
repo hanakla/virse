@@ -69,6 +69,7 @@ import { SelectBones } from "../modals/SelectBones";
 import { SelectPose } from "../modals/SelectPose";
 import { nanoid } from "nanoid";
 import { SelectExpressions } from "../modals/SelectExpressions";
+import { migrateV0PoseToV1 } from "../domains/vrm";
 
 const replaceVRoidShapeNamePrefix = (name: string) => {
   return name.replace(/^Fcl_/g, "");
@@ -203,10 +204,13 @@ export default function Home() {
         rotation: stage.activeCamera.rotation.toArray(),
         quaternion: stage.activeCamera.quaternion.toArray(),
       },
-      blendShapeProxies: vrm.blendShapeProxy?.expressions.reduce((a, name) => {
-        a[name] = vrm.blendShapeProxy?.getValue(name)!;
-        return a;
-      }, Object.create(null)),
+      blendShapeProxies: vrm.expressionManager?.expressions.reduce(
+        (a, expr) => {
+          a[expr.name] = vrm.expressionManager?.getValue(expr.name)!;
+          return a;
+        },
+        Object.create(null)
+      ),
       morphs: {
         ...original?.morphs,
         ...Object.entries(proxy).reduce((a, [k, proxy]) => {
@@ -299,7 +303,7 @@ export default function Home() {
 
   const handleClickLoadPoseOnly = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
-    const pose = poses.find((p) => p.uid === poseId);
+    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const { avatar } = Object.values(stage.vrms)[0];
     if (!avatar || !pose) return;
@@ -314,14 +318,14 @@ export default function Home() {
       }
     );
 
-    avatar.vrm.humanoid!.setNormalizedPose(pose.vrmPose);
+    avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
 
     setState({ poseId, poseName: pose.name });
   });
 
   const handleClickLoadScene = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
-    const pose = poses.find((p) => p.uid === poseId);
+    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const { avatar } = Object.values(stage.vrms)[0];
     if (!avatar.vrm || !pose) return;
@@ -364,7 +368,7 @@ export default function Home() {
 
   const handleClickLoadSceneAll = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
-    const pose = poses.find((p) => p.uid === poseId);
+    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const { avatar } = Object.values(stage.vrms)[0];
     if (!avatar.vrm || !pose) return;
@@ -389,8 +393,7 @@ export default function Home() {
       }
     );
 
-    console.log(avatar.vrm, pose);
-    avatar.vrm.humanoid!.setNormalizedPose(pose.vrmPose);
+    avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
 
     setState({
       poseId: poseId!,
@@ -401,7 +404,7 @@ export default function Home() {
 
   const handleClickLoadBones = useFunc(async (params: ItemParams) => {
     const poseId = params.props.poseId;
-    const pose = poses.find((p) => p.uid === poseId);
+    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const { avatar } = Object.values(stage.vrms)[0];
     if (!avatar.vrm || !pose) return;
@@ -425,7 +428,7 @@ export default function Home() {
 
   const handleClickLoadShapes = useFunc(async (params: ItemParams) => {
     const poseId = params.props.poseId;
-    const pose = poses.find((p) => p.uid === poseId);
+    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const { avatar } = Object.values(stage.vrms)[0];
     if (!avatar.vrm || !pose) return;
@@ -456,7 +459,7 @@ export default function Home() {
 
   const handleClickDownloadPose = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
-    const pose = poses.find((p) => p.uid === poseId);
+    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
     if (!pose) return;
 
     const json = new Blob([JSON.stringify(pose, null, "  ")], {
@@ -492,7 +495,7 @@ export default function Home() {
 
   const handleClickLoadCamera = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
-    const pose = poses.find((p) => p.uid === poseId);
+    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     if (!pose) return;
 
@@ -552,7 +555,7 @@ export default function Home() {
   //   const { vrm } = Object.values(stage.vrms)[0];
   //   if (!vrm) return;
 
-  //   vrm.humanoid!.setNormalizedPose({
+  //   vrm.humanoid!.setRawPose({
   //     [VRMHumanBoneName.RightThumbProximal]: {
   //       rotation: new Quaternion()
   //         .setFromAxisAngle(new Vector3(0, 0, -v), Math.PI / 2)
@@ -605,20 +608,22 @@ export default function Home() {
   });
 
   useMousetrap("'", () => {
-    const { avatar } = Object.values(stage!.vrms)[0];
-    const bone = avatar.ui.currentBone;
+    const avatar = stage?.activeAvatar;
+    const bone = avatar?.ui.activeBone;
     if (!bone) return;
 
     const child = bone.children.filter((o: any): o is Bone => o.isBone);
-    if (child.length === 1) avatar.ui.currentBone = child[0];
+    if (child.length === 1) avatar.ui.activeBone = child[0];
   });
 
   useMousetrap(";", () => {
-    const avatar = Object.values(stage!.vrms)[0];
-    const bone = avatar?.ui.currentBone;
-    if (!bone || !bone.parent?.isBone) return;
+    const avatar = stage?.activeAvatar;
+    if (!avatar) return;
 
-    avatar.ui.currentBone = bone.parent;
+    const bone = avatar?.ui.activeBone;
+    if (!bone || !(bone.parent as any).isBone) return;
+
+    avatar.ui.activeBone = bone.parent;
   });
 
   useMousetrap("/", () => {
@@ -1001,7 +1006,7 @@ export default function Home() {
               `}
             >
               {mode === EditorMode.photo &&
-                stage?.activeModel?.ui.activeBoneName && (
+                stage?.activeAvatar?.ui.activeBoneName && (
                   <span
                     css={`
                       position: absolute;
@@ -1015,7 +1020,7 @@ export default function Home() {
                       user-select: none;
                     `}
                   >
-                    {stage.activeModel?.ui.activeBoneName}
+                    {stage.activeAvatar?.ui.activeBoneName}
                   </span>
                 )}
 
@@ -1422,7 +1427,7 @@ export default function Home() {
                         key={name}
                         label={<>{name}</>}
                         title={name}
-                        min={0}
+                        min={-1}
                         max={1}
                         value={
                           model?.vrm.expressionManager?.getValue(name) ?? 0

@@ -36,9 +36,7 @@ export class VrmIK {
     if (!vrm.humanoid) return null;
 
     const goal = new THREE.Object3D();
-    const effector = vrm.humanoid.getNormalizedBoneNode(
-      chainConfig.effectorBoneName
-    );
+    const effector = vrm.humanoid.getRawBoneNode(chainConfig.effectorBoneName);
     if (!effector) return null;
 
     const joints = chainConfig.jointConfigs.map((jointConfig) => {
@@ -63,7 +61,7 @@ export class VrmIK {
     vrmHumanoid: VRMHumanoid,
     jointConfig: IKSolver.JointConfig
   ): IKSolver.Joint | null {
-    const bone = vrmHumanoid.getNormalizedBoneNode(jointConfig.boneName);
+    const bone = vrmHumanoid.getRawBoneNode(jointConfig.boneName);
     if (!bone) return null;
 
     return {

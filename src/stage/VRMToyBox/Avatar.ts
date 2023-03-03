@@ -10,7 +10,7 @@ import { TransformControls } from "three/examples/jsm/controls/TransformControls
 import { VRM, VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 import { VrmIK } from "./IK";
 import { KalidokitCapture } from "../Kalidokit/capture";
-import { Bone } from "three";
+import { Bone, SkinnedMesh } from "three";
 import { AvatarController } from "./AvatarController";
 import { Emitter } from "../../lib/Emitter";
 import { v1IKConfig } from "./IK/v1IkConfig";
@@ -23,7 +23,18 @@ type Events = {
   boneDragging: { dragging: boolean };
 };
 
-type MorphProxy = { name: string; binds: any[]; _value: number; value: number };
+type MorphProxy = {
+  name: string;
+  binds: Array<{
+    meshName: string | undefined;
+    targetName: string;
+    meshIdx: number;
+    morphTargetIndex: number;
+    primitives: SkinnedMesh[];
+  }>;
+  _value: number;
+  value: number;
+};
 
 export class Avatar {
   private _stage: VirseStage;
@@ -75,7 +86,7 @@ export class Avatar {
     loader.register(
       (parser) =>
         new VRMLoaderPlugin(parser, {
-          autoUpdateHumanBones: true,
+          autoUpdateHumanBones: false,
         })
     );
 
@@ -90,6 +101,8 @@ export class Avatar {
       l.frustumCulled = false;
     });
 
+    VRMUtils.removeUnnecessaryJoints(vrm.scene);
+    VRMUtils.removeUnnecessaryVertices(vrm.scene);
     VRMUtils.rotateVRM0(vrm);
 
     this._vrm = vrm;
@@ -121,7 +134,7 @@ export class Avatar {
     ));
 
     ui.events.on("boneChanged", (b) => this.events.emit("boneChanged", b.bone));
-    ui.events.on("ikDragChange", (e) => this.events.emit("boneDragging", e));
+    ui.events.on("dragChange", (e) => this.events.emit("boneDragging", e));
 
     this.blendshapes = await this.buildGltfTargets();
   }
@@ -153,7 +166,8 @@ export class Avatar {
       meshIdx < this.gltfJson.json.meshes.length;
       meshIdx++
     ) {
-      const mesh = this.gltfJson.json.meshes[meshIdx];
+      const mesh: GLTFSchema.IMesh = this.gltfJson.json.meshes[meshIdx];
+
       for (let primIdx = 0; primIdx < mesh.primitives.length; primIdx++) {
         const pri = mesh.primitives[primIdx];
 
@@ -188,8 +202,8 @@ export class Avatar {
                 set(v: number) {
                   proxy[this.name]._value = v;
                   proxy[this.name].binds.forEach((bind) => {
-                    bind.primitives.forEach((prim: any) => {
-                      prim.morphTargetInfluences[bind.morphTargetIndex] = v;
+                    bind.primitives.forEach((mesh) => {
+                      mesh.morphTargetInfluences[bind.morphTargetIndex] = v;
                     });
                   });
                 },
@@ -214,12 +228,13 @@ export class Avatar {
               )
             )
               .flat()
-              .filter((v): v is GLTFPrimitive => v != null),
+              .filter((v): v is SkinnedMesh => v != null),
           });
         }
       }
     }
 
+    console.log(proxy);
     return proxy;
   }
 }
@@ -237,7 +252,7 @@ export class Avatar {
 export async function gltfExtractPrimitivesFromNode(
   gltf: GLTF,
   nodeIndex: number
-): Promise<GLTFPrimitive[] | null> {
+): Promise<SkinnedMesh[] | null> {
   const node: THREE.Object3D = await gltf.parser.getDependency(
     "node",
     nodeIndex
@@ -252,7 +267,7 @@ function extractPrimitivesInternal(
   gltf: GLTF,
   nodeIndex: number,
   node: THREE.Object3D
-): GLTFPrimitive[] | null {
+): SkinnedMesh[] | null {
   /**
    * Let's list up every possible patterns that parsed gltf nodes with a mesh can have,,,
    *
@@ -320,7 +335,7 @@ function extractPrimitivesInternal(
   node.traverse((object) => {
     if (primitives.length < primitiveCount) {
       if ((object as any).isMesh) {
-        primitives.push(object as GLTFPrimitive);
+        primitives.push(object);
       }
     }
   });

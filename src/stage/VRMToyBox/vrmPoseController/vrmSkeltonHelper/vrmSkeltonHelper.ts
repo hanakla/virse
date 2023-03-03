@@ -6,8 +6,11 @@ import {
   defaultMaterial,
   focusMaterial,
   activeMaterial,
+  defaultNonStandardMaterial,
+  focusNonStandardMaterial,
 } from "./boneGizmo";
 import { InteractableObject } from "../interactableObject";
+import { Bone, Object3D } from "three";
 
 /**
  * FKの操作用の３DUIを生成する
@@ -21,13 +24,30 @@ export const createSkeltonHelper = (vrm: VRM): InteractableObject[] => {
     bones.push(object);
   });
 
-  console.log(bones);
+  const standardBoneNodes: Object3D[] = Object.values(VRMHumanBoneName)
+    .map((boneName) => {
+      return vrm.humanoid?.getRawBoneNode(boneName);
+    })
+    .filter((node): node is Object3D => node != null);
 
-  Object.values(VRMHumanBoneName).forEach((boneName) => {
-    if (ignoreBoneList.includes(boneName)) return;
+  const targetBones = bones.map((bone) => {
+    const stdBoneNode = standardBoneNodes.find((stdNode) => stdNode === bone);
 
+    return {
+      type: stdBoneNode == null ? "nonStandard" : "standard",
+      boneName: bone.name,
+      vrmBoneName: stdBoneNode?.name as VRMHumanBoneName | undefined,
+      node: bone,
+    };
+  });
+
+  // Object.values(VRMHumanBoneName).forEach((boneName) => {
+  //   if (ignoreBoneList.includes(boneName)) return;
+
+  targetBones.forEach(({ type, node, boneName, vrmBoneName }) => {
     // TODO: 名前を再考
-    const childNode = vrm.humanoid?.getRawBoneNode(boneName);
+    // const childNode = vrm.humanoid?.getNormalizedBoneNode(boneName);
+    const childNode = node;
     if (!childNode) return;
     const childWorldPos = childNode.getWorldPosition(new THREE.Vector3());
 
@@ -38,8 +58,8 @@ export const createSkeltonHelper = (vrm: VRM): InteractableObject[] => {
     const boneUI = new InteractableObject(
       parentNode,
       boneGeometry,
-      defaultMaterial,
-      focusMaterial,
+      type === "standard" ? defaultMaterial : defaultNonStandardMaterial,
+      type === "standard" ? focusMaterial : focusNonStandardMaterial,
       activeMaterial,
       "rotate"
     );
@@ -55,10 +75,8 @@ export const createSkeltonHelper = (vrm: VRM): InteractableObject[] => {
     parentNode.attach(boneUI);
     boneUIObjects.push(boneUI);
 
-    console.log(parentNode);
-
     // 指先などの特定の末端ボーンに追加でGizmoを配置する
-    if (needDummyBoneList.includes(boneName)) {
+    if (needDummyBoneList.includes(vrmBoneName)) {
       const dummyBone = new InteractableObject(
         childNode,
         boneGeometry,

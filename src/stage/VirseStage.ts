@@ -172,7 +172,7 @@ export class VirseStage {
         });
 
         if (hasBone) {
-          avatar.ui.selectBone(bone);
+          avatar.ui.activeBone = bone;
         }
       });
     };
@@ -275,7 +275,7 @@ export class VirseStage {
     });
   }
 
-  public get activeModel() {
+  public get activeAvatar() {
     return Object.values(this.avatars)[0];
   }
 
@@ -354,11 +354,13 @@ export class VirseStage {
     const avatar = new Avatar(this);
     await avatar.loadVRM(url);
 
-    console.log(this.#showBones);
     avatar.ui.setVisible(this.#showBones);
 
-    avatar.ui.events.on("ikDragChange", ({ dragging }) => {
-      console.log("ikDragChange");
+    avatar.ui.events.on("boneChanged", () => {
+      this.events.emit("updated");
+    });
+
+    avatar.ui.events.on("dragChange", ({ dragging }) => {
       this.orbitControls.enabled = !dragging;
     });
 

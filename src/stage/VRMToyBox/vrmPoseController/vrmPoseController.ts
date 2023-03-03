@@ -6,7 +6,7 @@ import { createSkeltonHelper } from "./vrmSkeltonHelper";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { InteractableObject } from "./interactableObject";
 import { createVrmIkHelper } from "./vrmIkHelper/vrmIkHelper";
-import { Vector3 } from "three";
+import { Object3D, Vector3 } from "three";
 import { v1IKConfig } from "../vrmIk/v1IkConfig";
 // import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 import mitt from "mitt";
@@ -26,8 +26,8 @@ const createTransformController = (
 };
 
 type Events = {
-  boneChanged: { bone: THREE.Bone | null };
-  ikDragChange: { dragging: boolean };
+  boneChanged: { bone: THREE.Bone | THREE.Object3D | null };
+  dragChange: { dragging: boolean };
 };
 
 /**
@@ -41,6 +41,8 @@ export class VrmPoseController {
   private _selectedObject: InteractableObject | null = null;
   private _interactableObjects: InteractableObject[];
   private _needIkSolve = false;
+
+  #activeBone: Object3D | null = null;
 
   public readonly events = mitt<Events>();
 
@@ -77,7 +79,7 @@ export class VrmPoseController {
     this._transformController.addEventListener("dragging-changed", (event) => {
       orbitControls.enabled = !event.value;
 
-      this.events.emit("ikDragChange", { dragging: event.value });
+      this.events.emit("dragChange", { dragging: event.value });
 
       if (event.target.getMode() === "translate") {
         this._needIkSolve = !!event.value;
@@ -93,6 +95,37 @@ export class VrmPoseController {
 
     canvas.addEventListener("mousedown", this._handleMouseDown);
     canvas.addEventListener("mousemove", this._handleMouseMove);
+  }
+
+  public get activeBone(): Object3D | null {
+    return this.#activeBone;
+  }
+
+  public set activeBone(bone: Object3D | null) {
+    if (!bone?.isBone) {
+      this._dispatchUnselect();
+      return;
+    }
+
+    const interactObj = bone?.children.find(
+      (child): child is InteractableObject =>
+        child instanceof InteractableObject
+    );
+    if (!interactObj) return;
+
+    this._selectedObject?.dispatchEvent({ type: "unselect" });
+    interactObj.dispatchEvent({ type: "select" });
+
+    this._transformController.attach(interactObj.controlTarget);
+    this._transformController.setMode(interactObj.tag);
+
+    this._selectedObject = interactObj;
+    this.#activeBone = interactObj.controlTarget;
+    this.events.emit("boneChanged", { bone: interactObj.controlTarget });
+  }
+
+  public get activeBoneName(): string | null {
+    return this.#activeBone?.name || null;
   }
 
   public update = () => {
@@ -214,8 +247,6 @@ export class VrmPoseController {
     if (interactObj instanceof InteractableObject) {
       this._dispatchBlur();
       this._focusedObject = interactObj;
-      console.log(interactObj.controlTarget);
-      this.events.emit("boneChanged", { bone: interactObj.parent });
     }
   };
 
@@ -231,6 +262,9 @@ export class VrmPoseController {
     if (interactObj.tag === "rotate" || interactObj.tag === "translate") {
       this._transformController.attach(interactObj.controlTarget);
       this._transformController.setMode(interactObj.tag);
+
+      this.#activeBone = interactObj.controlTarget;
+      this.events.emit("boneChanged", { bone: interactObj.controlTarget });
     }
 
     interactObj.dispatchEvent({ type: "select" });
@@ -240,6 +274,8 @@ export class VrmPoseController {
     this._transformController.detach();
     this._selectedObject?.dispatchEvent({ type: "unselect" });
     this._selectedObject = null;
+    this.#activeBone = null;
+    this.events.emit("boneChanged", { bone: null });
   };
 
   private _dispatchFocus = (interactObj: InteractableObject) => {

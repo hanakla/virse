@@ -17,19 +17,22 @@ type State = {
 };
 
 export type VirsePose = {
-  id: string;
   uid: string;
   name: string;
   canvas: any;
   camera: any;
-  blendShapeProxies: Record<string, any>;
-  morphs: Record<string, any>;
+  blendShapeProxies: Record<string, number>;
+  morphs: Record<string, { value: number }>;
   vrmPose: VRMPose;
   bones: any;
   createdAt: Date;
+  schemaVersion: number | void;
 };
 
-export type UnsavedVirsePose = Omit<VirsePose, "id" | "uid" | "updatedAt">;
+export type UnsavedVirsePose = Omit<
+  VirsePose,
+  "uid" | "updatedAt" | "schemaVersion"
+>;
 
 export enum EditorMode {
   photo = "photo",
@@ -136,7 +139,7 @@ export const [EditorStore, editorOps] = minOps("Editor", {
           // prettier-ignore
           a.name === b.name ?
             a.createdAt && b.createdAt ? +a.createdAt - +b.createdAt
-            : a.id - b.id
+            : a.uid - b.uid
           : a.name > b.name ? 1
           : -1
         ),
@@ -181,7 +184,12 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       x.finally(() => db.close());
 
       const store = db.transaction(STORE_NAME, "readwrite");
-      await store.store.add({ ...pose, uid: nanoid(), createdAt: new Date() });
+      await store.store.add({
+        ...pose,
+        uid: nanoid(),
+        createdAt: new Date(),
+        schemaVersion: 2,
+      });
       await store.done;
       db.close();
 
@@ -193,7 +201,11 @@ export const [EditorStore, editorOps] = minOps("Editor", {
 interface VirseDBSchema extends DBSchema {
   [STORE_NAME]: {
     key: number;
-    value: UnsavedVirsePose & { uid: string; createdAt: Date };
+    value: UnsavedVirsePose & {
+      uid: string;
+      createdAt: Date;
+      schemaVersion: number | void;
+    };
     indexes: {
       uid: string;
     };
