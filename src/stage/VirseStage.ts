@@ -1,12 +1,12 @@
-import * as THREE from "three";
-import { VRM, VRMUtils } from "@pixiv/three-vrm";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import * as THREE from 'three';
+import { VRM, VRMUtils } from '@pixiv/three-vrm';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import {
   EffectComposer,
   Pass,
-} from "three/examples/jsm/postprocessing/EffectComposer";
-import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
-import { FXAAShader } from "three/examples/jsm/shaders/FXAAShader";
+} from 'three/examples/jsm/postprocessing/EffectComposer';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
 // import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import {
   Bone,
@@ -17,16 +17,16 @@ import {
   PerspectiveCamera,
   SkeletonHelper,
   WebGLRenderer,
-} from "three";
-import { nanoid } from "nanoid";
+} from 'three';
+import { nanoid } from 'nanoid';
 // import { AvatarController } from "./VRMToyBox/AvatarController";
-import { Avatar } from "./VRMToyBox/Avatar";
-import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass";
-import { fit } from "object-fit-math";
-import mitt from "mitt";
-import { VrmPoseController } from "./VRMToyBox/vrmPoseController";
+import { Avatar } from './VRMToyBox/Avatar';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+import { fit } from 'object-fit-math';
+import mitt from 'mitt';
+import { VrmPoseController } from './VRMToyBox/vrmPoseController';
 
-export type CamModes = "perspective" | "orthographic";
+export type CamModes = 'perspective' | 'orthographic';
 
 type Events = {
   boneChanged: Bone | null;
@@ -84,7 +84,7 @@ export class VirseStage {
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(this.#size.width, this.#size.height);
-    this.renderer.setClearColor("#ffffff");
+    this.renderer.setClearColor('#ffffff');
     this.renderer.setClearAlpha(0);
 
     // const size = fit(
@@ -99,10 +99,8 @@ export class VirseStage {
     const scene = (this.rootScene = new THREE.Scene());
 
     this.pCam = new THREE.PerspectiveCamera(
-      30,
-      window.innerWidth / window.innerHeight,
-      1,
-      10000
+      15,
+      window.innerWidth / window.innerHeight
     );
     this.pCam.position.set(0.0, 1.3, 3);
     this.pCam.rotation.set(0.0, Math.PI, 0);
@@ -141,9 +139,9 @@ export class VirseStage {
     effectComposer.addPass(renderPass);
 
     const fxaa = new ShaderPass(FXAAShader);
-    fxaa.material.uniforms["resolution"].value.x =
+    fxaa.material.uniforms['resolution'].value.x =
       1 / (canvas.offsetWidth * window.devicePixelRatio);
-    fxaa.material.uniforms["resolution"].value.y =
+    fxaa.material.uniforms['resolution'].value.y =
       1 / (canvas.offsetHeight * window.devicePixelRatio);
     effectComposer.addPass(fxaa);
 
@@ -215,10 +213,10 @@ export class VirseStage {
   ) {
     this.orbitControls.dispose();
 
-    mode ??= this.camMode === "perspective" ? "orthographic" : "perspective";
+    mode ??= this.camMode === 'perspective' ? 'orthographic' : 'perspective';
 
     const cam = (this.activeCamera =
-      mode === "perspective" ? this.pCam : this.oCam);
+      mode === 'perspective' ? this.pCam : this.oCam);
 
     // this.activeCamera.position.set(0.0, 1.4, 0.7);
     if (cam instanceof PerspectiveCamera && opt.fov != null) cam.fov = opt.fov;
@@ -246,7 +244,7 @@ export class VirseStage {
 
     this.passes.render.camera = this.activeCamera;
 
-    this.events.emit("updated");
+    this.events.emit('updated');
   }
 
   public get camFov() {
@@ -261,17 +259,17 @@ export class VirseStage {
 
   public get camMode(): CamModes {
     return this.activeCamera instanceof PerspectiveCamera
-      ? "perspective"
-      : "orthographic";
+      ? 'perspective'
+      : 'orthographic';
   }
 
   public setControlMode(mode: string) {
     Object.values(this.avatars).map(({ avatar }) => {
-      avatar.ui.ikControlMode(mode);
+      avatar.ui.fkControlMode = mode;
     });
   }
 
-  public get boneControlMode(): "rotate" | "translate" {
+  public get boneControlMode(): 'rotate' | 'translate' {
     return this.activeAvatar.ui.fkControlMode;
   }
 
@@ -310,9 +308,9 @@ export class VirseStage {
     this.oCam.updateProjectionMatrix();
 
     this.renderer.setSize(w, h, false);
-    this.passes.fxaa.material.uniforms["resolution"].value.x =
+    this.passes.fxaa.material.uniforms['resolution'].value.x =
       1 / (w * window.devicePixelRatio);
-    this.passes.fxaa.material.uniforms["resolution"].value.y =
+    this.passes.fxaa.material.uniforms['resolution'].value.y =
       1 / (h * window.devicePixelRatio);
     this.passes.render.setSize(w, h);
     this.composer.setSize(w, h);
@@ -320,10 +318,10 @@ export class VirseStage {
     const size = fit(
       { width: window.innerWidth, height: window.innerHeight },
       this.#size,
-      "contain"
+      'contain'
     );
-    this.canvas.style.setProperty("width", `${size.width}px`);
-    this.canvas.style.setProperty("height", `${size.height}px`);
+    this.canvas.style.setProperty('width', `${size.width}px`);
+    this.canvas.style.setProperty('height', `${size.height}px`);
   }
 
   public getSize() {
@@ -361,21 +359,21 @@ export class VirseStage {
 
     avatar.ui.setVisible(this.#showBones);
 
-    avatar.ui.events.on("boneChanged", () => {
-      this.events.emit("updated");
+    avatar.ui.events.on('boneChanged', () => {
+      this.events.emit('updated');
     });
 
-    avatar.ui.events.on("boneHoverChanged", ({ bone }) => {
-      this.events.emit("boneHoverChanged", bone);
-      this.events.emit("updated");
+    avatar.ui.events.on('boneHoverChanged', ({ bone }) => {
+      this.events.emit('boneHoverChanged', bone);
+      this.events.emit('updated');
     });
 
-    avatar.ui.events.on("dragChange", ({ dragging }) => {
+    avatar.ui.events.on('dragChange', ({ dragging }) => {
       this.orbitControls.enabled = !dragging;
     });
 
-    avatar.kalidokit.events.on("statusChanged", () => {
-      this.events.emit("updated");
+    avatar.kalidokit.events.on('statusChanged', () => {
+      this.events.emit('updated');
     });
 
     this.avatars[nanoid()] = {
@@ -388,7 +386,7 @@ export class VirseStage {
       },
     };
 
-    this.events.emit("updated");
+    this.events.emit('updated');
   }
 
   public resetCamera() {
@@ -397,7 +395,7 @@ export class VirseStage {
     this.pCam.zoom = 1;
 
     this.oCam.position.set(0.0, 1.4, 0);
-    this.oCam.rotation.set(0, 0, 0, "XYZ");
+    this.oCam.rotation.set(0, 0, 0, 'XYZ');
     this.oCam.position.set(0.0, 1.4, 0);
     this.oCam.zoom = 200;
 

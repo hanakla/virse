@@ -1,9 +1,9 @@
-import { minOps } from "@fleur/fleur";
-import { DBSchema, openDB } from "idb";
-import blobToHash from "blob-to-hash";
-import { VRM, VRMPose, VRMSchema } from "@pixiv/three-vrm";
-import { WebIO } from "@gltf-transform/core";
-import { nanoid } from "nanoid";
+import { minOps } from '@fleur/fleur';
+import { DBSchema, openDB } from 'idb';
+import blobToHash from 'blob-to-hash';
+import { VRM, VRMPose, VRMSchema } from '@pixiv/three-vrm';
+import { WebIO } from '@gltf-transform/core';
+import { nanoid } from 'nanoid';
 
 type State = {
   mode: EditorMode;
@@ -31,17 +31,17 @@ export type VirsePose = {
 
 export type UnsavedVirsePose = Omit<
   VirsePose,
-  "uid" | "createdAt" | "updatedAt" | "schemaVersion"
+  'uid' | 'createdAt' | 'updatedAt' | 'schemaVersion'
 >;
 
 export enum EditorMode {
-  photo = "photo",
-  live = "live",
+  photo = 'photo',
+  live = 'live',
 }
 
-const POSE_STORE_NAME = "poses";
+const POSE_STORE_NAME = 'poses';
 
-export const [EditorStore, editorOps] = minOps("Editor", {
+export const [EditorStore, editorOps] = minOps('Editor', {
   initialState: (): State => ({
     mode: EditorMode.photo,
     menuOpened: true,
@@ -59,7 +59,7 @@ export const [EditorStore, editorOps] = minOps("Editor", {
     setMenuOpened(x, opened: boolean) {
       x.commit({ menuOpened: opened });
     },
-    setPhotoModeState(x, photoModeState: State["photoModeState"]) {
+    setPhotoModeState(x, photoModeState: State['photoModeState']) {
       x.commit((draft) => {
         Object.assign(draft.photoModeState, photoModeState);
       });
@@ -68,7 +68,7 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       const db = await connectIdb();
       x.finally(() => db.close());
 
-      const result = await db.get("modelFile", id);
+      const result = await db.get('modelFile', id);
       if (!result) return;
 
       cb(result.bin);
@@ -77,33 +77,33 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       const db = await connectIdb();
       x.finally(() => db.close());
 
-      const index = await db.getAll("modelIndex");
+      const index = await db.getAll('modelIndex');
       x.commit({ modelIndex: index });
     },
     async addVrm(x, vrm: File) {
       const gltfBin = new Uint8Array(await vrm.arrayBuffer());
       const { json: gltfJson } = await new WebIO({
-        credentials: "include",
+        credentials: 'include',
       }).binaryToJSON(gltfBin);
 
       const meta = (gltfJson.extensions?.VRM as VRMSchema.VRM)?.meta;
       const name = meta?.title ?? vrm.name;
-      const hash = await blobToHash("sha256", vrm, "hex");
+      const hash = await blobToHash('sha256', vrm, 'hex');
 
       const db = await connectIdb();
       x.finally(() => db.close());
-      x.finally(() => console.log("ok"));
+      x.finally(() => console.log('ok'));
 
       const indexTrans = db.transaction(
-        ["modelIndex", "modelFile"],
-        "readwrite"
+        ['modelIndex', 'modelFile'],
+        'readwrite'
       );
 
       await Promise.all([
         indexTrans
-          .objectStore("modelIndex")
-          .put({ hash, name, version: meta?.version ?? "" }),
-        indexTrans.objectStore("modelFile").add({ hash, bin: vrm }),
+          .objectStore('modelIndex')
+          .put({ hash, name, version: meta?.version ?? '' }),
+        indexTrans.objectStore('modelFile').add({ hash, bin: vrm }),
         indexTrans.done,
       ]);
 
@@ -113,11 +113,11 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       const db = await connectIdb();
       x.finally(() => db.close());
 
-      const trans = db.transaction(["modelIndex", "modelFile"], "readwrite");
+      const trans = db.transaction(['modelIndex', 'modelFile'], 'readwrite');
 
       await Promise.all([
-        trans.objectStore("modelIndex").delete(id),
-        trans.objectStore("modelFile").delete(id),
+        trans.objectStore('modelIndex').delete(id),
+        trans.objectStore('modelFile').delete(id),
         trans.done,
       ]);
 
@@ -169,12 +169,7 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       const db = await connectIdb();
       x.finally(() => db.close());
 
-      console.log(uid);
-
-      const id = await db.getKeyFromIndex(POSE_STORE_NAME, "uid", uid);
-      if (!id) return;
-
-      await db.delete(POSE_STORE_NAME, id);
+      await db.delete(POSE_STORE_NAME, uid);
       db.close();
 
       await x.executeOperation(editorOps.loadPoses);
@@ -187,10 +182,10 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       const db = await connectIdb();
       x.finally(() => db.close());
 
-      const tx = db.transaction(POSE_STORE_NAME, "readwrite");
+      const tx = db.transaction(POSE_STORE_NAME, 'readwrite');
 
-      if (overwrite && "uid" in pose) {
-        console.log("put");
+      if (overwrite && 'uid' in pose) {
+        console.log('put');
         await tx.store.put({
           ...pose,
           schemaVersion: 2,
@@ -226,34 +221,34 @@ interface VirseDBSchema extends DBSchema {
   modelIndex: {
     key: string;
     value: VirseDBModelIndex;
-    indexes: { hash: "hash" };
+    indexes: { hash: 'hash' };
   };
   modelFile: {
     key: string;
     value: { hash: string; bin: File };
-    indexes: { hash: "hash" };
+    indexes: { hash: 'hash' };
   };
 }
 
 type VirseDBModelIndex = { hash: string; name: string; version: string };
 
 const connectIdb = async () => {
-  const db = await openDB<VirseDBSchema>("virse", 1, {
+  const db = await openDB<VirseDBSchema>('virse', 1, {
     upgrade(db, old, next, tx) {
       if (old < 2) {
         db.createObjectStore(POSE_STORE_NAME, {
           autoIncrement: false,
-          keyPath: "uid",
+          keyPath: 'uid',
         });
 
-        db.createObjectStore("modelIndex", {
+        db.createObjectStore('modelIndex', {
           autoIncrement: false,
-          keyPath: "hash",
+          keyPath: 'hash',
         });
 
-        db.createObjectStore("modelFile", {
+        db.createObjectStore('modelFile', {
           autoIncrement: false,
-          keyPath: "hash",
+          keyPath: 'hash',
         });
       }
     },

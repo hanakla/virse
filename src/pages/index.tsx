@@ -110,7 +110,7 @@ export default function Home() {
     eyeLeft: { x: 0, y: 0 },
     eyeRight: { x: 0, y: 0 },
     size: { width: 1000, height: 1000 },
-    fov: 10,
+    fov: 15,
     showColorPane: false,
     currentCamKind: 'capture' as 'editorial' | 'capture',
     captureCam: null as StashedCam | null,
@@ -388,8 +388,6 @@ export default function Home() {
     );
 
     avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
-
-    setState({ poseId, poseName: pose.name });
   });
 
   const handleClickLoadScene = useFunc((params: ItemParams) => {
@@ -432,6 +430,7 @@ export default function Home() {
       poseId: poseId!,
       poseName: pose.name,
       captureCam: pose.camera,
+      fov: pose.camera.fov,
       size: { width: pose.canvas.width, height: pose.canvas.height },
     });
   });
@@ -469,6 +468,7 @@ export default function Home() {
       poseId: poseId!,
       poseName: pose.name,
       captureCam: pose.camera,
+      fov: pose.camera.fov,
       size: { width: pose.canvas.width, height: pose.canvas.height },
     });
   });
@@ -581,6 +581,7 @@ export default function Home() {
     // stage.setSize(pose.canvas.width, pose.canvas.height);
 
     setState({
+      fov: pose.camera.fov,
       size: { width: pose.canvas.width, height: pose.canvas.height },
     });
   });
