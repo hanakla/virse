@@ -11,6 +11,7 @@ import * as THREE from 'three';
 export class InteractableObject extends THREE.Object3D {
   public readonly controlTarget: THREE.Object3D;
   public readonly tag: string;
+  public enabled: boolean = true;
 
   private _gizmo: THREE.Mesh;
   private _defaultMaterial: THREE.Material;
@@ -23,7 +24,8 @@ export class InteractableObject extends THREE.Object3D {
     defaultMaterial: THREE.Material,
     hoverMaterial: THREE.Material,
     activeMaterial: THREE.Material,
-    tag: string
+    tag: string,
+    public targetType: 'fk' | 'ik'
   ) {
     super();
 
@@ -35,6 +37,7 @@ export class InteractableObject extends THREE.Object3D {
     this.add(this._gizmo);
 
     this.addEventListener('select', () => {
+      if (!this.enabled) return;
       this._handleSelect();
     });
 
@@ -42,8 +45,9 @@ export class InteractableObject extends THREE.Object3D {
       this._handleUnselect();
     });
 
-    this.addEventListener('focus', () => {
-      this._handleFocus();
+    this.addEventListener('hover', () => {
+      if (!this.enabled) return;
+      this._handleHover();
     });
 
     this.addEventListener('blur', () => {
@@ -61,7 +65,7 @@ export class InteractableObject extends THREE.Object3D {
     this._gizmo.material = this._defaultMaterial;
   };
 
-  private _handleFocus = () => {
+  private _handleHover = () => {
     this._gizmo.material = this._hoverMaterial;
   };
 

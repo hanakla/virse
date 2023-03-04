@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@charlietango/use-focus-trap": "^1.4.0",
     "@fleur/fleur": "^3.1.0-beta.7",
     "@fleur/mordred": "^0.1.0-pre.3",
     "@fleur/next": "^1.0.0",

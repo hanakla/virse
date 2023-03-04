@@ -1,4 +1,4 @@
-import type { NextPage } from "next";
+import type { NextPage } from 'next';
 import {
   CSSProperties,
   memo,
@@ -7,9 +7,9 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react";
-import { rgba } from "polished";
-import { useVirseStage } from "../stage";
+} from 'react';
+import { rgba } from 'polished';
+import { useVirseStage } from '../stage';
 import {
   RiArrowLeftSFill,
   RiBodyScanLine,
@@ -22,36 +22,36 @@ import {
   RiPaintFill,
   RiRefreshLine,
   RiSkullFill,
-} from "react-icons/ri";
-import useMeasure from "react-use-measure";
-import { letDownload, styleWhen, useObjectState } from "@hanakla/arma";
-import styled, { css } from "styled-components";
+} from 'react-icons/ri';
+import useMeasure from 'react-use-measure';
+import { letDownload, styleWhen, useObjectState } from '@hanakla/arma';
+import styled, { css } from 'styled-components';
 import {
   useBufferedState,
   useFunc,
-  useMousetrap,
+  useBindMousetrap,
+  useStableLatestRef,
   useStoreState,
-} from "../utils/hooks";
-import { Bone, MathUtils, Quaternion, Vector3 } from "three";
-import { useEffect } from "react";
-import useMouse from "@react-hook/mouse-position";
-import { VRMHumanBoneName } from "@pixiv/three-vrm";
-import { useFleurContext, useStore } from "@fleur/react";
+} from '../utils/hooks';
+import { Bone, MathUtils } from 'three';
+import { useEffect } from 'react';
+import useMouse from '@react-hook/mouse-position';
+import { VRMExpressionPresetName, VRMHumanBoneName } from '@pixiv/three-vrm';
+import { useFleurContext, useStore } from '@fleur/react';
 import {
   EditorMode,
   editorOps,
   EditorStore,
   UnsavedVirsePose,
-  VirsePose,
-} from "../domains/editor";
-import { Button } from "../components/Button";
-import { Checkbox } from "../components/Checkbox";
-import { Input } from "../components/Input";
-import { transitionCss } from "../styles/mixins";
-import { Sidebar } from "../components/Sidebar";
-import { InputSection } from "../components/InputSection";
-import { useClickAway, useDrop, useMount, useUpdate } from "react-use";
-import Head from "next/head";
+} from '../domains/editor';
+import { Button } from '../components/Button';
+import { Checkbox } from '../components/Checkbox';
+import { Input } from '../components/Input';
+import { transitionCss } from '../styles/mixins';
+import { Sidebar } from '../components/Sidebar';
+import { InputSection } from '../components/InputSection';
+import { useClickAway, useDrop, useMount, useUpdate } from 'react-use';
+import Head from 'next/head';
 import {
   Menu as ContextMenu,
   Item as ContextItem,
@@ -59,20 +59,30 @@ import {
   ItemParams,
   animation,
   Separator,
-} from "react-contexify";
-import "react-contexify/dist/ReactContexify.css";
-import { List, ListItem } from "../components/List";
-import { Recorder } from "../stage/Recorder";
-import { ChromePicker, ColorChangeHandler } from "react-color";
-import { Mordred, MordredRoot, openModal } from "@fleur/mordred";
-import { SelectBones } from "../modals/SelectBones";
-import { SelectPose } from "../modals/SelectPose";
-import { nanoid } from "nanoid";
-import { SelectExpressions } from "../modals/SelectExpressions";
-import { migrateV0PoseToV1 } from "../domains/vrm";
+} from 'react-contexify';
+import 'react-contexify/dist/ReactContexify.css';
+import { List, ListItem } from '../components/List';
+import { Recorder } from '../stage/Recorder';
+import { ChromePicker, ColorChangeHandler } from 'react-color';
+import { Mordred, MordredRoot, openModal } from '@fleur/mordred';
+import { SelectBones } from '../modals/SelectBones';
+import { SelectPose } from '../modals/SelectPose';
+import { nanoid } from 'nanoid';
+import { SelectExpressions } from '../modals/SelectExpressions';
+import { migrateV0PoseToV1 } from '../domains/vrm';
+import useEvent from 'react-use-event-hook';
+import { SelectChangeBones } from '../modals/SelectChangeBone';
+import { CamModes } from '../stage/VirseStage';
 
 const replaceVRoidShapeNamePrefix = (name: string) => {
-  return name.replace(/^Fcl_/g, "");
+  return name.replace(/^Fcl_/g, '');
+};
+
+type StashedCam = {
+  mode: CamModes;
+  target: number[];
+  position: number[];
+  quaternion: number[];
 };
 
 export default function Home() {
@@ -80,6 +90,7 @@ export default function Home() {
 
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const [sidebarRef, sidebarBBox] = useMeasure();
+  const rootRef = useRef<HTMLDivElement>(null);
   const padLRef = useRef<HTMLDivElement>(null);
   const padRRef = useRef<HTMLDivElement>(null);
   const bgColoPaneRef = useRef<HTMLDivElement>(null);
@@ -90,10 +101,10 @@ export default function Home() {
 
   const stage = useVirseStage(canvas);
 
-  const [rightTab, setRightTab] = useState<"expr" | "poses">("expr");
+  const [rightTab, setRightTab] = useState<'expr' | 'poses'>('expr');
   const [state, setState] = useObjectState({
-    poseId: null as number | null,
-    poseName: "",
+    poseId: null as string | null,
+    poseName: '',
     rotation: false,
     syncEyes: true,
     eyeLeft: { x: 0, y: 0 },
@@ -101,9 +112,11 @@ export default function Home() {
     size: { width: 1000, height: 1000 },
     fov: 10,
     showColorPane: false,
-    tmpCam: null as any,
+    currentCamKind: 'capture' as 'editorial' | 'capture',
+    captureCam: null as StashedCam | null,
+    editorialCam: null as StashedCam | null,
     color: {
-      hex: "#fff",
+      hex: '#fff',
       rgb: { r: 255, g: 255, b: 255 },
       alpha: 0,
     },
@@ -121,7 +134,7 @@ export default function Home() {
   );
 
   const handleClickBackgroundColor = useFunc((e) => {
-    if ((e.target as HTMLElement).closest("[data-ignore-click]")) return;
+    if ((e.target as HTMLElement).closest('[data-ignore-click]')) return;
 
     setState((state) => {
       state.showColorPane = !state.showColorPane;
@@ -163,7 +176,7 @@ export default function Home() {
   const handleClickTransform = useFunc(() => {
     setState((s) => {
       s.rotation = !s.rotation;
-      stage!.setControlMode(!s.rotation ? "rotate" : "translate");
+      stage!.setControlMode(!s.rotation ? 'rotate' : 'translate');
     });
   });
 
@@ -179,8 +192,10 @@ export default function Home() {
     }
   });
 
-  const handleClickSavePose = useFunc(() => {
-    const { vrm, proxy } = Object.values(stage.vrms)[0];
+  const serializeCurrentPose = useStableLatestRef(() => {
+    if (!stage?.activeAvatar) return;
+
+    const { vrm, avatar } = stage.activeAvatar;
     const bones: Bone[] = [];
 
     vrm.scene.traverse((o) => {
@@ -204,16 +219,16 @@ export default function Home() {
         rotation: stage.activeCamera.rotation.toArray(),
         quaternion: stage.activeCamera.quaternion.toArray(),
       },
-      blendShapeProxies: vrm.expressionManager?.expressions.reduce(
-        (a, expr) => {
-          a[expr.name] = vrm.expressionManager?.getValue(expr.name)!;
+      blendShapeProxies: Object.values(VRMExpressionPresetName).reduce(
+        (a, name) => {
+          a[name] = vrm.expressionManager?.getValue(name)!;
           return a;
         },
         Object.create(null)
       ),
       morphs: {
         ...original?.morphs,
-        ...Object.entries(proxy).reduce((a, [k, proxy]) => {
+        ...Object.entries(avatar.blendshapes ?? {}).reduce((a, [k, proxy]) => {
           a[k] = { value: proxy.value };
           return a;
         }, Object.create(null)),
@@ -232,19 +247,65 @@ export default function Home() {
       },
     };
 
+    return pose;
+  });
+
+  const handleClickOverwritePose = useEvent(() => {
+    const pose = serializeCurrentPose.current();
+    if (!pose || !state.poseId) return;
+
+    executeOperation(
+      editorOps.savePose,
+      { ...pose, uid: state.poseId },
+      { overwrite: true }
+    );
+  });
+
+  const handleClickSavePose = useEvent(() => {
+    const pose = serializeCurrentPose.current();
+    if (!pose) return;
+
     executeOperation(editorOps.savePose, pose);
   });
 
   const handleClickResetPose = useFunc(() => {
-    const avatar = Object.values(stage.vrms)[0];
+    const avatar = stage?.activeAvatar?.avatar;
     if (!avatar) return;
 
-    avatar.avatar.resetPose();
+    avatar.resetPose();
+    avatar.resetExpressions();
     stage.resetCamera();
 
     setState({
       poseId: null,
-      poseName: "",
+      poseName: '',
+    });
+  });
+
+  const handleClickResetPoses = useEvent(() => {
+    const avatar = stage?.activeAvatar?.avatar;
+    if (!avatar) return;
+
+    avatar.resetPose();
+    avatar.resetExpressions();
+  });
+
+  const handleClickResetSelectBone = useEvent(async () => {
+    const avatar = stage?.activeAvatar?.avatar;
+    if (!avatar) return;
+
+    const bones = await openModal(SelectBones, {
+      boneNames: avatar.allBoneNames,
+    });
+
+    if (!bones) return;
+
+    bones.forEach((name) => {
+      const obj = avatar.vrm.scene.getObjectByName(name);
+      const init = avatar.getInitialBoneState(name);
+
+      obj?.position.fromArray(init!.position);
+      obj?.quaternion.fromArray(init!.quaternion);
     });
   });
 
@@ -269,6 +330,7 @@ export default function Home() {
   /////
   //// Pose UI Event Handlers
   /////
+  // #region Pose UI Event Handlers
   const handleDblClickPose = useFunc((e: MouseEvent<HTMLLIElement>) => {
     handleClickLoadPoseOnly({
       event: e,
@@ -283,7 +345,7 @@ export default function Home() {
     const poseId = parseInt(e.currentTarget.dataset.poseId!);
 
     showContextMenu(e, {
-      id: "scene",
+      id: 'scene',
       props: {
         poseId,
       },
@@ -294,10 +356,17 @@ export default function Home() {
     const poseId = e.currentTarget.dataset.poseId!;
 
     showContextMenu(e, {
-      id: "posemenu",
+      id: 'posemenu',
       props: {
         poseId,
       },
+    });
+  });
+
+  const handleResetContextMenu = useEvent((e: MouseEvent<HTMLElement>) => {
+    showContextMenu(e, {
+      id: 'resetMenu',
+      props: {},
     });
   });
 
@@ -362,6 +431,7 @@ export default function Home() {
     setState({
       poseId: poseId!,
       poseName: pose.name,
+      captureCam: pose.camera,
       size: { width: pose.canvas.width, height: pose.canvas.height },
     });
   });
@@ -398,6 +468,7 @@ export default function Home() {
     setState({
       poseId: poseId!,
       poseName: pose.name,
+      captureCam: pose.camera,
       size: { width: pose.canvas.width, height: pose.canvas.height },
     });
   });
@@ -462,8 +533,8 @@ export default function Home() {
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
     if (!pose) return;
 
-    const json = new Blob([JSON.stringify(pose, null, "  ")], {
-      type: "application/json",
+    const json = new Blob([JSON.stringify(pose, null, '  ')], {
+      type: 'application/json',
     });
     const url = URL.createObjectURL(json);
 
@@ -481,11 +552,11 @@ export default function Home() {
             }),
           },
           null,
-          "  "
+          '  '
         ),
       ],
       {
-        type: "application/json",
+        type: 'application/json',
       }
     );
     const url = URL.createObjectURL(json);
@@ -518,12 +589,16 @@ export default function Home() {
     executeOperation(editorOps.deletePose, params.props.poseId);
   });
 
+  // #endregion
+  // endregion
+
   /////
   //// Models UI Event Handlers
   /////
+  // #region Models UI Event Handlers
   const handleModelsContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
     const modelId = e.currentTarget.dataset.modelId!;
-    showContextMenu(e, { id: "modelmenu", props: { modelId } });
+    showContextMenu(e, { id: 'modelmenu', props: { modelId } });
   });
 
   const handleDblClickModel = useFunc((e: MouseEvent<HTMLElement>) => {
@@ -532,6 +607,44 @@ export default function Home() {
       triggerEvent: e.nativeEvent,
       props: { modelId: e.currentTarget.dataset.modelId! },
     });
+  });
+
+  const handleClickCapture = useEvent(async () => {
+    stage!.setShowBones(false);
+
+    console.time('capture');
+
+    await new Promise((r) => requestAnimationFrame(r));
+
+    if (state.captureCam) {
+      stage?.setCamMode(state.captureCam.mode, state.captureCam);
+    }
+
+    const blob = await new Promise<Blob>((resolve) => {
+      canvas.current?.toBlob((blob) => {
+        resolve(blob!);
+      }, 'image/png');
+    });
+
+    console.timeEnd('capture');
+
+    const url = URL.createObjectURL(blob);
+
+    letDownload(
+      url,
+      `${state.poseName !== '' ? state.poseName : 'Untitled'}.png`
+    );
+
+    const cam =
+      state.currentCamKind === 'capture'
+        ? state.captureCam
+        : state.editorialCam;
+
+    if (cam) {
+      stage?.setCamMode(cam.mode, cam);
+    }
+
+    stage!.setShowBones(photoModeState.visibleBones);
   });
 
   const handleClickLoadModel = useFunc(
@@ -548,6 +661,54 @@ export default function Home() {
   const handleClickRemoveModel = useFunc(
     (params: ItemParams<{ modelId: string }>) => {
       executeOperation(editorOps.deleteVrm, params.props!.modelId);
+    }
+  );
+
+  const changeCamKind = useStableLatestRef(
+    (nextMode: 'editorial' | 'capture') => {
+      if (!stage) return;
+
+      const current = {
+        mode: stage.camMode,
+        target: stage.orbitControls.target.toArray(),
+        position: stage.activeCamera.position.toArray(),
+        quaternion: stage.activeCamera.quaternion.toArray(),
+      };
+
+      if (nextMode === 'capture') {
+        // stash current to editorial cam, restore capture cam
+        const next = state.captureCam ?? current;
+
+        stage.setCamMode(next.mode, next);
+
+        setState({
+          currentCamKind: 'capture',
+          editorialCam: current,
+          captureCam: state.captureCam ?? current,
+        });
+      } else if (nextMode === 'editorial') {
+        // stash current to capture cam, restore editorial cam
+        const next = state.editorialCam ?? current;
+
+        stage.setCamMode(next.mode, next);
+
+        setState({
+          currentCamKind: 'editorial',
+          editorialCam: state.editorialCam ?? current,
+          captureCam: current,
+        });
+      }
+    }
+  );
+
+  const handleClickChangeCam = useEvent(
+    ({ currentTarget }: MouseEvent<HTMLElement>) => {
+      if (!stage) return;
+
+      const camMode: 'capture' | 'editorial' = currentTarget.dataset
+        .camMode as any;
+
+      changeCamKind.current(camMode);
     }
   );
 
@@ -588,35 +749,73 @@ export default function Home() {
   //     },
   //   });
   // });
+  // #endregion
+  // endregion
 
   /////
-  ///// Keyboard shortcust
+  ///// Keyboard shortcut
   /////
-  useMousetrap("r", () => {
+  useBindMousetrap(rootRef, 'r', () => {
     if (mode !== EditorMode.photo) return;
 
     setState((s) => {
       s.rotation = !s.rotation;
-      stage.setControlMode(!s.rotation ? "rotate" : "translate");
+      stage.setControlMode(!s.rotation ? 'rotate' : 'translate');
     });
   });
 
-  useMousetrap("b", () => {
+  useBindMousetrap(rootRef, 'b', () => {
     if (mode !== EditorMode.photo) return;
 
     handleClickDisplayBones();
   });
 
-  useMousetrap("'", () => {
+  useBindMousetrap(rootRef, 'l', async () => {
     const avatar = stage?.activeAvatar;
     const bone = avatar?.ui.activeBone;
     if (!bone) return;
 
-    const child = bone.children.filter((o: any): o is Bone => o.isBone);
-    if (child.length === 1) avatar.ui.activeBone = child[0];
+    const siblBones = (bone.parent?.children ?? []).filter(
+      (o: any): o is Bone => o.isBone
+    );
+    if (siblBones.length === 0) return;
+    else if (siblBones.length === 1) avatar.ui.activeBone = siblBones[0];
+    else {
+      const targetBoneName = await openModal(SelectChangeBones, {
+        boneNames: siblBones.map((o) => o.name),
+        activeBoneName: bone.name,
+      });
+      if (!targetBoneName) return;
+
+      const targetBone = siblBones.find((o) => o.name === targetBoneName);
+      if (!targetBone) return;
+
+      avatar.ui.activeBone = targetBone;
+    }
   });
 
-  useMousetrap(";", () => {
+  useBindMousetrap(rootRef, "'", async () => {
+    const avatar = stage?.activeAvatar;
+    const bone = avatar?.ui.activeBone;
+    if (!bone) return;
+
+    const childBones = bone.children.filter((o: any): o is Bone => o.isBone);
+    if (childBones.length === 0) return;
+    else if (childBones.length === 1) avatar.ui.activeBone = childBones[0];
+    else {
+      const targetBoneName = await openModal(SelectChangeBones, {
+        boneNames: childBones.map((o) => o.name),
+      });
+      if (!targetBoneName) return;
+
+      const targetBone = childBones.find((o) => o.name === targetBoneName);
+      if (!targetBone) return;
+
+      avatar.ui.activeBone = targetBone;
+    }
+  });
+
+  useBindMousetrap(rootRef, ';', () => {
     const avatar = stage?.activeAvatar;
     if (!avatar) return;
 
@@ -626,52 +825,43 @@ export default function Home() {
     avatar.ui.activeBone = bone.parent;
   });
 
-  useMousetrap("/", () => {
+  useBindMousetrap(rootRef, '/', () => {
     if (mode !== EditorMode.photo) return;
 
-    const modes = ["translate", "rotate", "scale"];
-    const current = stage.boneControlMode;
-    stage.boneControlMode = modes[(modes.indexOf(current) + 1) % modes.length];
+    const modes = ['translate', 'rotate'] as const;
+    const current = stage!.boneControlMode;
+
+    stage!.boneControlMode = modes[(modes.indexOf(current) + 1) % modes.length];
   });
 
-  useMousetrap("tab", (e) => {
+  useBindMousetrap(rootRef, 'tab', (e) => {
     e.preventDefault();
 
     const { menuOpened } = getStore(EditorStore).state;
     executeOperation(editorOps.setMenuOpened, !menuOpened);
   });
 
-  useMousetrap("p", () => {
-    setRightTab("poses");
+  useBindMousetrap(rootRef, 'p', () => {
+    setRightTab('poses');
   });
 
-  useMousetrap("o", () => {
-    setRightTab("expr");
+  useBindMousetrap(rootRef, 'o', () => {
+    setRightTab('expr');
   });
 
-  useMousetrap("c", () => {
+  useBindMousetrap(rootRef, 'c', () => {
     if (!stage) return;
 
-    const prev = state.tmpCam;
-    const current = {
-      mode: stage.camMode,
-      target: stage.orbitControls.target.toArray(),
-      position: stage.activeCamera.position.toArray(),
-      quaternion: stage.activeCamera.quaternion.toArray(),
-    };
+    const camKinds = ['editorial', 'capture'] as const;
+    const nextCamKind =
+      camKinds[(camKinds.indexOf(state.currentCamKind) + 1) % camKinds.length];
 
-    setState({
-      tmpCam: current,
-    });
-
-    if (!prev) return;
-
-    stage.setCamMode(prev.mode, prev);
+    changeCamKind.current(nextCamKind);
   });
 
-  useMousetrap("shift+c", () => {
+  useBindMousetrap(rootRef, 'shift+c', () => {
     setState({
-      tmpCam: null,
+      captureCam: null,
     });
   });
 
@@ -682,10 +872,10 @@ export default function Home() {
     onFiles: async ([file]) => {
       const url = URL.createObjectURL(file);
 
-      if (file.name.endsWith(".vrm")) {
+      if (file.name.endsWith('.vrm')) {
         executeOperation(editorOps.addVrm, file);
         stage!.loadVRM(url);
-      } else if (file.name.endsWith(".json")) {
+      } else if (file.name.endsWith('.json')) {
         const json = JSON.parse(await file.text());
 
         if (json.poseset) {
@@ -710,10 +900,10 @@ export default function Home() {
 
   useEffect(() => {
     if (!stage) return;
-    stage.events.on("boneChanged", rerender);
+    stage.events.on('boneChanged', rerender);
 
     return () => {
-      stage.events.off("boneChanged", rerender);
+      stage.events.off('boneChanged', rerender);
     };
   }, [stage]);
 
@@ -722,7 +912,7 @@ export default function Home() {
 
     executeOperation(
       editorOps.loadVrmBin,
-      "4b45a65eace31e24192c09717670a3a02a4ea16aa21b7a6a14ee9c9499ba9f0e",
+      '4b45a65eace31e24192c09717670a3a02a4ea16aa21b7a6a14ee9c9499ba9f0e',
       (blob) => {
         const url = URL.createObjectURL(blob);
         stage.loadVRM(url);
@@ -739,20 +929,20 @@ export default function Home() {
       }
     };
 
-    window.addEventListener("resize", onResize);
+    window.addEventListener('resize', onResize);
 
-    return () => window.addEventListener("resize", onResize);
+    return () => window.addEventListener('resize', onResize);
   }, []);
 
   useEffect(() => {
     const cancelContextMenu = (e: Event) => e.preventDefault();
 
-    window.addEventListener("click", hideAll);
-    window.addEventListener("contextmenu", cancelContextMenu);
+    window.addEventListener('click', hideAll);
+    window.addEventListener('contextmenu', cancelContextMenu);
 
     return () => {
-      window.addEventListener("click", hideAll);
-      window.addEventListener("contextmenu", cancelContextMenu);
+      window.addEventListener('click', hideAll);
+      window.addEventListener('contextmenu', cancelContextMenu);
     };
   }, []);
 
@@ -790,12 +980,12 @@ export default function Home() {
     );
 
     vrm.humanoid
-      ?.getNormalizedBoneNode(VRMHumanBoneName.RightEye)
+      ?.getRawBoneNode(VRMHumanBoneName.RightEye)
       ?.rotation.set(rateY, rateX, 0);
 
     if (state.syncEyes) {
       vrm.humanoid
-        ?.getNormalizedBoneNode(VRMHumanBoneName.LeftEye)
+        ?.getRawBoneNode(VRMHumanBoneName.LeftEye)
         ?.rotation.set(rateY, rateX, 0);
     }
   }, [state.syncEyes, padLMouse.clientX, padLMouse.clientY, padLMouse.isDown]);
@@ -816,12 +1006,12 @@ export default function Home() {
     );
 
     vrm.humanoid
-      ?.getNormalizedBoneNode(VRMHumanBoneName.LeftEye)
+      ?.getRawBoneNode(VRMHumanBoneName.LeftEye)
       ?.rotation.set(rateY, rateX, 0);
 
     if (state.syncEyes) {
       vrm.humanoid
-        ?.getNormalizedBoneNode(VRMHumanBoneName.RightEye)
+        ?.getRawBoneNode(VRMHumanBoneName.RightEye)
         ?.rotation.set(rateY, rateX, 0);
     }
   }, [state.syncEyes, padRMouse.clientX, padRMouse.clientY, padRMouse.isDown]);
@@ -849,7 +1039,7 @@ export default function Home() {
         </span>
       </div>
 
-      {stage?.camMode === "perspective" && (
+      {stage?.camMode === 'perspective' && (
         <div
           css={`
             display: flex;
@@ -879,6 +1069,7 @@ export default function Home() {
   //// Render
   return (
     <div
+      ref={rootRef}
       css={`
         position: relative;
         display: flex;
@@ -886,6 +1077,7 @@ export default function Home() {
         height: 100%;
         background-color: #fafafa;
       `}
+      tabIndex={-1}
     >
       <Head>
         <title>Virse</title>
@@ -907,15 +1099,15 @@ export default function Home() {
             display: flex;
             justify-content: flex-start;
             padding: 0 24px;
-            background-color: ${rgba("#fff", 0.8)};
-            box-shadow: 0 4px 5px ${rgba("#aaaa", 0.1)};
+            background-color: ${rgba('#fff', 0.8)};
+            box-shadow: 0 4px 5px ${rgba('#aaaa', 0.1)};
             backdrop-filter: blur(4px);
             user-select: none;
             pointer-events: all;
             ${transitionCss}
           `}
           style={{
-            transform: menuOpened ? "translateY(0)" : "translateY(-100%)",
+            transform: menuOpened ? 'translateY(0)' : 'translateY(-100%)',
           }}
         >
           <NavItem
@@ -1005,24 +1197,90 @@ export default function Home() {
                 padding-top: 8px;
               `}
             >
-              {mode === EditorMode.photo &&
-                stage?.activeAvatar?.ui.activeBoneName && (
-                  <span
-                    css={`
+              {mode === EditorMode.photo && (
+                <>
+                  <div
+                    css={css`
                       position: absolute;
                       right: -48px;
                       top: 16px;
-                      padding: 4px;
-                      background-color: rgb(255 255 255 / 68%);
-                      font-weight: bold;
                       transform: translateX(100%);
-                      cursor: default;
                       user-select: none;
+                      cursor: default;
                     `}
                   >
-                    {stage.activeAvatar?.ui.activeBoneName}
-                  </span>
-                )}
+                    <span
+                      css={`
+                        display: inline-block;
+                        padding: 4px;
+                        background-color: rgb(255 255 255 / 68%);
+                        font-weight: bold;
+                      `}
+                    >
+                      {stage?.activeAvatar?.ui.activeBoneName ?? '(None)'}
+                    </span>
+
+                    {stage?.activeAvatar?.ui.hoveredBone && (
+                      <>
+                        <br />
+                        <span
+                          css={`
+                            display: inline-block;
+                            padding: 4px;
+                            background-color: rgb(255 255 255 / 68%);
+                            font-size: 14px;
+                            opacity: 0.8;
+                          `}
+                        >
+                          {stage.activeAvatar?.ui.hoveredBone.name}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <div
+                    css={css`
+                      position: absolute;
+                      right: -48px;
+                      bottom: 16px;
+                      transform: translateX(100%);
+                      display: flex;
+                      flex-flow: row;
+                      gap: 8px;
+                      user-select: none;
+                      cursor: default;
+                    `}
+                  >
+                    <Button
+                      css={`
+                        white-space: nowrap;
+                      `}
+                      style={
+                        state.currentCamKind === 'editorial'
+                          ? { boxShadow: '0 0 0 2px #34c0b9' }
+                          : {}
+                      }
+                      onClick={handleClickChangeCam}
+                      data-cam-mode="editorial"
+                    >
+                      Editorial cam
+                    </Button>
+                    <Button
+                      css={`
+                        white-space: nowrap;
+                      `}
+                      style={
+                        state.currentCamKind === 'capture'
+                          ? { boxShadow: '0 0 0 2px #34c0b9' }
+                          : {}
+                      }
+                      onClick={handleClickChangeCam}
+                      data-cam-mode="capture"
+                    >
+                      Capture cam
+                    </Button>
+                  </div>
+                </>
+              )}
 
               <MenuItem
                 css={`
@@ -1040,9 +1298,9 @@ export default function Home() {
                     top: 0;
                     left: 100%;
                     z-index: 1;
-                    box-shadow: 0 4px 5px ${rgba("#aaaa", 0.1)};
+                    box-shadow: 0 4px 5px ${rgba('#aaaa', 0.1)};
                   `}
-                  style={{ display: state.showColorPane ? "block" : "none" }}
+                  style={{ display: state.showColorPane ? 'block' : 'none' }}
                 >
                   <ChromePicker
                     disableAlpha={false}
@@ -1063,7 +1321,7 @@ export default function Home() {
                       font-size: 12px;
                     `}
                   >
-                    {photoModeState.visibleBones ? "on" : "off"}
+                    {photoModeState.visibleBones ? 'on' : 'off'}
                   </span>
                 </div>
               </MenuItem>
@@ -1077,7 +1335,7 @@ export default function Home() {
                       font-size: 12px;
                     `}
                   >
-                    {!state.bones ? "on" : "off"}
+                    {!state.bones ? 'on' : 'off'}
                   </span>
                 </div>
               </MenuItem>
@@ -1087,7 +1345,10 @@ export default function Home() {
                 <RiMagicFill css={menuIconCss} />
                 <div>Effect</div>
               </MenuItem>
-              <MenuItem onClick={handleClickResetPose}>
+              <MenuItem
+                onClick={handleClickResetPose}
+                onContextMenu={handleResetContextMenu}
+              >
                 <RiFlashlightFill css={menuIconCss} />
                 リセット
               </MenuItem>
@@ -1181,10 +1442,10 @@ export default function Home() {
                         css={`
                           margin-top: 6px;
                           font-size: 12px;
-                          color: ${rgba("#444", 0.8)};
+                          color: ${rgba('#444', 0.8)};
                         `}
                       >
-                        {entry.version ? entry.version : "(バージョンなし)"}
+                        {entry.version ? entry.version : '(バージョンなし)'}
                       </div>
                     </ListItem>
                   ))}
@@ -1223,25 +1484,13 @@ export default function Home() {
                 kind="primary"
                 css={`
                   padding: 12px;
-                  box-shadow: 0 4px 5px ${rgba("#aaaa", 0.5)};
+                  box-shadow: 0 4px 5px ${rgba('#aaaa', 0.5)};
                   ${transitionCss}
                 `}
                 style={{
-                  transform: menuOpened ? "translateX(0)" : "translateX(-100%)",
+                  transform: menuOpened ? 'translateX(0)' : 'translateX(-100%)',
                 }}
-                onClick={() => {
-                  console.time("capture");
-                  canvas.current?.toBlob((blob) => {
-                    console.timeEnd("capture");
-                    const url = URL.createObjectURL(blob!);
-                    letDownload(
-                      url,
-                      `${
-                        state.poseName !== "" ? state.poseName : "Untitled"
-                      }.png`
-                    );
-                  }, "image/png");
-                }}
+                onClick={handleClickCapture}
               >
                 <RiCamera2Line
                   css={`
@@ -1264,14 +1513,14 @@ export default function Home() {
             >
               <TabBar>
                 <Tab
-                  active={rightTab === "expr"}
-                  onClick={() => setRightTab("expr")}
+                  active={rightTab === 'expr'}
+                  onClick={() => setRightTab('expr')}
                 >
                   表情
                 </Tab>
                 <Tab
-                  active={rightTab === "poses"}
-                  onClick={() => setRightTab("poses")}
+                  active={rightTab === 'poses'}
+                  onClick={() => setRightTab('poses')}
                 >
                   ポーズ
                 </Tab>
@@ -1286,7 +1535,7 @@ export default function Home() {
                   flex: 1;
                   overflow: auto;
                 `}
-                style={rightTab === "expr" ? {} : hiddenStyle}
+                style={rightTab === 'expr' ? {} : hiddenStyle}
               >
                 <div>
                   <label
@@ -1323,9 +1572,9 @@ export default function Home() {
                       css={`
                         position: relative;
                         width: 100%;
-                        background-color: ${rgba("#fff", 0.5)};
+                        background-color: ${rgba('#fff', 0.5)};
                         &::before {
-                          content: "";
+                          content: '';
                           display: block;
                           padding-top: 100%;
                         }
@@ -1350,9 +1599,9 @@ export default function Home() {
                       css={`
                         position: relative;
                         width: 100%;
-                        background-color: ${rgba("#fff", 0.5)};
+                        background-color: ${rgba('#fff', 0.5)};
                         &::before {
-                          content: "";
+                          content: '';
                           display: block;
                           padding-top: 100%;
                         }
@@ -1427,7 +1676,7 @@ export default function Home() {
                         key={name}
                         label={<>{name}</>}
                         title={name}
-                        min={-1}
+                        min={0}
                         max={1}
                         value={
                           model?.vrm.expressionManager?.getValue(name) ?? 0
@@ -1496,11 +1745,12 @@ export default function Home() {
               <div
                 css={`
                   display: flex;
-                  gap: 8px;
+                  gap: 16px;
                   flex: 1;
                   flex-flow: column;
+                  overflow: hidden;
                 `}
-                style={rightTab === "poses" ? {} : hiddenStyle}
+                style={rightTab === 'poses' ? {} : hiddenStyle}
               >
                 {/* <h3>右手</h3>
 
@@ -1523,13 +1773,13 @@ export default function Home() {
                 <List
                   css={`
                     flex: 1;
-                    max-height: 70vh;
                     overflow: auto;
                   `}
                 >
                   {poses.map((pose, idx) => (
                     <ListItem
                       key={idx}
+                      active={state.poseId === pose.uid}
                       onDoubleClick={handleDblClickPose}
                       onContextMenu={handlePoseContextMenu}
                       data-pose-id={pose.uid}
@@ -1543,7 +1793,7 @@ export default function Home() {
                   css={`
                     display: flex;
                     flex-flow: column;
-                    gap: 4px;
+                    gap: 8px;
                     margin-top: auto;
                   `}
                 >
@@ -1553,7 +1803,27 @@ export default function Home() {
                       setState({ poseName: currentTarget.value })
                     }
                   />
+
                   <Button onClick={handleClickSavePose}>ポーズを保存</Button>
+
+                  <Button
+                    kind="primary"
+                    disabled={!state.poseId}
+                    onClick={handleClickOverwritePose}
+                  >
+                    上書き保存
+                    {state.poseId && (
+                      <span
+                        css={css`
+                          width: 100%;
+                          display: block;
+                          font-size: 8px;
+                        `}
+                      >
+                        ({poses.find((p) => p.uid === state.poseId)?.name})
+                      </span>
+                    )}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -1606,10 +1876,10 @@ export default function Home() {
                     `}
                   >
                     {model?.avatar.kalidokit.isInitializing
-                      ? "起動中…"
+                      ? '起動中…'
                       : model?.avatar.kalidokit.isCaptureRunnging
-                      ? "有効"
-                      : "無効"}
+                      ? '有効'
+                      : '無効'}
                   </span>
                 </div>
               </MenuItem>
@@ -1632,8 +1902,8 @@ export default function Home() {
             `}
             style={{
               backgroundColor: menuOpened
-                ? rgba("#34c0b9", 0)
-                : rgba("#34c0b9", 0.8),
+                ? rgba('#34c0b9', 0)
+                : rgba('#34c0b9', 0.8),
             }}
             onClick={handleClickSidebarOpener}
           >
@@ -1644,7 +1914,7 @@ export default function Home() {
                 ${transitionCss}
               `}
               style={{
-                transform: menuOpened ? "rotate(0)" : "rotate(180deg)",
+                transform: menuOpened ? 'rotate(0)' : 'rotate(180deg)',
               }}
             />
           </div>
@@ -1657,7 +1927,7 @@ export default function Home() {
           height: 100%;
           margin: auto;
           vertical-align: bottom;
-          box-shadow: 0 0 5px ${rgba("#aaaa", 0.4)};
+          box-shadow: 0 0 5px ${rgba('#aaaa', 0.4)};
           user-select: none;
         `}
         ref={canvas}
@@ -1705,6 +1975,22 @@ export default function Home() {
         <ContextItem onClick={handleClickRemovePose}>削除</ContextItem>
       </ContextMenu>
 
+      <ContextMenu
+        css={`
+          padding: 4px;
+          font-size: 12px;
+        `}
+        id="resetMenu"
+        animation={false}
+      >
+        <ContextItem onClick={handleClickResetPoses}>
+          ポーズと表情をリセット
+        </ContextItem>
+        <ContextItem onClick={handleClickResetSelectBone}>
+          ボーンを選択してリセット
+        </ContextItem>
+      </ContextMenu>
+
       {/* <ContextMenu
         css={`
           padding: 4px;
@@ -1737,9 +2023,9 @@ const menuIconCss = css`
 `;
 
 const hiddenStyle: CSSProperties = {
-  display: "none",
-  pointerEvents: "none",
-  userSelect: "none",
+  display: 'none',
+  pointerEvents: 'none',
+  userSelect: 'none',
   opacity: 0,
 };
 
@@ -1757,8 +2043,8 @@ const MenuItem = styled.div`
   &:hover {
     background-image: linear-gradient(
       to right,
-      ${rgba("#fff", 0.5)},
-      ${rgba("#fff", 0)}
+      ${rgba('#fff', 0.5)},
+      ${rgba('#fff', 0)}
     );
   }
 `;
@@ -1831,7 +2117,7 @@ const Slider = memo(function Slider({
           onKeyDown={(e) => {
             const val = e.currentTarget.valueAsNumber;
             if (Number.isNaN(val)) return;
-            if (e.key === "Enter") onChange(val);
+            if (e.key === 'Enter') onChange(val);
           }}
           onFocus={(e) => {
             e.currentTarget.select();
@@ -1917,7 +2203,7 @@ const NavItem = styled.div<{ active: boolean }>`
 
   &:hover {
     color: #34c0b9;
-    background-color: ${rgba("#aaa", 0.3)};
+    background-color: ${rgba('#aaa', 0.3)};
   }
 
   ${({ active }) => styleWhen(active)`
@@ -1940,7 +2226,7 @@ const TabBar = styled.div`
 
 const Tab = styled.div.withConfig<{ active: boolean }>({
   shouldForwardProp(prop, valid) {
-    return prop !== "active" && valid(prop);
+    return prop !== 'active' && valid(prop);
   },
 })`
   flex: 1;
@@ -1986,7 +2272,7 @@ const Circle = ({
       position: absolute;
       width: 10px;
       height: 10px;
-      box-shadow: 0 4px 5px ${rgba("#aaaa", 0.5)};
+      box-shadow: 0 4px 5px ${rgba('#aaaa', 0.5)};
       border-radius: 100px;
       background-color: #fff;
       transform: translate(-50%, -50%);

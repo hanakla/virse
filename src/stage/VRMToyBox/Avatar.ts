@@ -7,7 +7,12 @@ import {
   Primitive as GLTFPrimitive,
 } from "@gltf-transform/core";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
-import { VRM, VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
+import {
+  VRM,
+  VRMExpressionPresetName,
+  VRMLoaderPlugin,
+  VRMUtils,
+} from "@pixiv/three-vrm";
 import { VrmIK } from "./IK";
 import { KalidokitCapture } from "../Kalidokit/capture";
 import { Bone, SkinnedMesh } from "three";
@@ -73,6 +78,14 @@ export class Avatar {
 
   public get kalidokit() {
     return (this.#kalidokit ??= new KalidokitCapture(this));
+  }
+
+  public get allBoneNames() {
+    return this.initialBones.map((b) => b.name);
+  }
+
+  public getInitialBoneState(name: string) {
+    return this.initialBones.find((b) => b.name === name);
   }
 
   // VRMの読み込み
@@ -153,6 +166,20 @@ export class Avatar {
       o.position.fromArray(bone.position);
       o.quaternion.fromArray(bone.quaternion);
     });
+  }
+
+  public resetExpressions() {
+    if (!this.blendshapes) return;
+
+    Object.keys(this.blendshapes ?? {}).forEach((name) => {
+      this.blendshapes![name].value = 0;
+    });
+
+    Object.values(VRMExpressionPresetName).forEach((name) => {
+      this.vrm.expressionManager?.setValue(name, 0);
+    });
+
+    console.log("reset", this.vrm.expressionManager, this.blendshapes);
   }
 
   private async buildGltfTargets() {

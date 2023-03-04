@@ -13,6 +13,7 @@ export const Button = styled.button.withConfig<{
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   width: 100%;
   padding: 8px;
   cursor: pointer;
@@ -22,6 +23,11 @@ export const Button = styled.button.withConfig<{
   border: none;
   border-radius: 100px;
   font-size: 14px;
+
+  &[disabled] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 
   ${({ size }) => styleWhen(size === "min")`
     padding: 4px;

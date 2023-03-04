@@ -1,6 +1,6 @@
-import * as THREE from "three";
-import { VRM, VRMHumanBoneName } from "@pixiv/three-vrm";
-import { ignoreBoneList, needDummyBoneList } from "./skeltonConfig";
+import * as THREE from 'three';
+import { VRM, VRMHumanBoneName } from '@pixiv/three-vrm';
+import { ignoreBoneList, needDummyBoneList } from './skeltonConfig';
 import {
   boneGeometry,
   defaultMaterial,
@@ -8,9 +8,9 @@ import {
   activeMaterial,
   defaultNonStandardMaterial,
   focusNonStandardMaterial,
-} from "./boneGizmo";
-import { InteractableObject } from "../interactableObject";
-import { Bone, Object3D } from "three";
+} from './boneGizmo';
+import { InteractableObject } from '../interactableObject';
+import { Bone, Object3D } from 'three';
 
 /**
  * FKの操作用の３DUIを生成する
@@ -34,7 +34,7 @@ export const createSkeltonHelper = (vrm: VRM): InteractableObject[] => {
     const stdBoneNode = standardBoneNodes.find((stdNode) => stdNode === bone);
 
     return {
-      type: stdBoneNode == null ? "nonStandard" : "standard",
+      type: stdBoneNode == null ? 'nonStandard' : 'standard',
       boneName: bone.name,
       vrmBoneName: stdBoneNode?.name as VRMHumanBoneName | undefined,
       node: bone,
@@ -58,10 +58,11 @@ export const createSkeltonHelper = (vrm: VRM): InteractableObject[] => {
     const boneUI = new InteractableObject(
       parentNode,
       boneGeometry,
-      type === "standard" ? defaultMaterial : defaultNonStandardMaterial,
-      type === "standard" ? focusMaterial : focusNonStandardMaterial,
+      type === 'standard' ? defaultMaterial : defaultNonStandardMaterial,
+      type === 'standard' ? focusMaterial : focusNonStandardMaterial,
       activeMaterial,
-      "rotate"
+      'rotate',
+      'fk'
     );
 
     // 移動 > 回転 > 拡大縮小 > 追加の順で行う
@@ -76,14 +77,16 @@ export const createSkeltonHelper = (vrm: VRM): InteractableObject[] => {
     boneUIObjects.push(boneUI);
 
     // 指先などの特定の末端ボーンに追加でGizmoを配置する
-    if (needDummyBoneList.includes(vrmBoneName)) {
+    // if (needDummyBoneList.includes(vrmBoneName)) {
+    if (childNode.children.findIndex((c) => c instanceof Bone) === -1) {
       const dummyBone = new InteractableObject(
         childNode,
         boneGeometry,
         defaultMaterial,
         focusMaterial,
         activeMaterial,
-        "rotate"
+        'rotate',
+        'fk'
       );
       dummyBone.position.copy(childWorldPos);
       dummyBone.rotation.copy(boneUI.rotation);

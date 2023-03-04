@@ -28,6 +28,12 @@ import { VrmPoseController } from "./VRMToyBox/vrmPoseController";
 
 export type CamModes = "perspective" | "orthographic";
 
+type Events = {
+  boneChanged: Bone | null;
+  boneHoverChanged: Bone | Object3D | null;
+  updated: void;
+};
+
 export class VirseStage {
   public renderer: WebGLRenderer;
   public pCam: THREE.PerspectiveCamera;
@@ -42,7 +48,7 @@ export class VirseStage {
   public enableEffect = false;
   #showBones = true;
 
-  public events = mitt<{ updated: void; boneChanged: Bone | null }>();
+  public events = mitt<Events>();
   private objects: Object3D[] = [];
   private passes: {
     render: RenderPass;
@@ -265,8 +271,8 @@ export class VirseStage {
     });
   }
 
-  public get boneControlMode() {
-    return Object.values(this.avatars)[0].ui.fkControlMode;
+  public get boneControlMode(): "rotate" | "translate" {
+    return this.activeAvatar.ui.fkControlMode;
   }
 
   public set boneControlMode(mode: string) {
@@ -280,7 +286,6 @@ export class VirseStage {
   }
 
   public setShowBones(visible: boolean) {
-    console.log({ visible });
     this.#showBones = visible;
 
     this.iterableAvatars.forEach((avatar) => {
@@ -360,6 +365,11 @@ export class VirseStage {
       this.events.emit("updated");
     });
 
+    avatar.ui.events.on("boneHoverChanged", ({ bone }) => {
+      this.events.emit("boneHoverChanged", bone);
+      this.events.emit("updated");
+    });
+
     avatar.ui.events.on("dragChange", ({ dragging }) => {
       this.orbitControls.enabled = !dragging;
     });
@@ -382,9 +392,8 @@ export class VirseStage {
   }
 
   public resetCamera() {
-    this.pCam.position.set(0.0, 1.4, 0.7);
-    this.pCam.rotation.set(0, 0, 0, "XYZ");
-    this.pCam.position.set(0.0, 1.4, 0.7);
+    this.pCam.position.set(0.0, 1.3, 3);
+    this.pCam.rotation.set(0.0, Math.PI, 0);
     this.pCam.zoom = 1;
 
     this.oCam.position.set(0.0, 1.4, 0);
@@ -395,7 +404,7 @@ export class VirseStage {
     this.pCam.updateProjectionMatrix();
     this.oCam.updateProjectionMatrix();
 
-    this.orbitControls.target.set(0.0, 1.4, 0.0);
+    this.orbitControls.target.set(0.0, 1.0, 0.0);
     this.orbitControls.update();
   }
 

@@ -3,9 +3,9 @@ import {
   defaultMaterial,
   focusMaterial,
   activeMaterial,
-} from './effectorGizmo';
-import {InteractableObject} from '../interactableObject';
-import {VrmIK} from '../../vrmIk';
+} from "./effectorGizmo";
+import { InteractableObject } from "../interactableObject";
+import { VrmIK } from "../../vrmIk";
 
 /**
  * IK操作用の3DUIを生成する
@@ -13,7 +13,7 @@ import {VrmIK} from '../../vrmIk';
  * @returns
  */
 export const createVrmIkHelper = (vrmIk: VrmIK): InteractableObject[] => {
-  const ikHelper = vrmIk.ikChains.map(ikChain => {
+  const ikHelper = vrmIk.ikChains.map((ikChain) => {
     const ikGoalHelper = createIkGoalHelper(ikChain.goal);
     ikChain.effector.add(ikGoalHelper);
     return ikGoalHelper;
@@ -29,6 +29,7 @@ const createIkGoalHelper = (ikGoal: THREE.Object3D): InteractableObject => {
     defaultMaterial,
     focusMaterial,
     activeMaterial,
-    'translate'
+    "translate",
+    "ik"
   );
 };

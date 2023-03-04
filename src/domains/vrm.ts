@@ -26,6 +26,9 @@ const blendShapeProxiesMap = {
   Fcl_ALL_Neutral: "neutral",
   Fcl_ALL_Sorrow: "sad",
   Fcl_ALL_Surprised: "surprised",
+  Fcl_EYE_Close: "blink",
+  Fcl_EYE_Close_R: "blinkRight",
+  Fcl_EYE_Close_Left: "blinkLeft",
 };
 
 export function migrateV0PoseToV1(pose: VirsePose | null | undefined) {

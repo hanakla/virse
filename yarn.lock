@@ -209,6 +209,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@charlietango/use-focus-trap@npm:^1.4.0":
+  version: 1.4.0
+  resolution: "@charlietango/use-focus-trap@npm:1.4.0"
+  peerDependencies:
+    react: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
+    react-dom: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0
+  checksum: 16d1dcc3d8d2fdff353e51495d55425941518a0b51ae2cbdbf4048f26096d2903c49613039dbde0cb2a178a38a363799261959d2eb69c4570df093df728a270b
+  languageName: node
+  linkType: hard
+
 "@emotion/is-prop-valid@npm:^1.1.0":
   version: 1.2.0
   resolution: "@emotion/is-prop-valid@npm:1.2.0"
@@ -4155,6 +4165,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "virse@workspace:."
   dependencies:
+    "@charlietango/use-focus-trap": "npm:^1.4.0"
     "@fleur/fleur": "npm:^3.1.0-beta.7"
     "@fleur/mordred": "npm:^0.1.0-pre.3"
     "@fleur/next": "npm:^1.0.0"

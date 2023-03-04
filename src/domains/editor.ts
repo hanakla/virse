@@ -31,7 +31,7 @@ export type VirsePose = {
 
 export type UnsavedVirsePose = Omit<
   VirsePose,
-  "uid" | "updatedAt" | "schemaVersion"
+  "uid" | "createdAt" | "updatedAt" | "schemaVersion"
 >;
 
 export enum EditorMode {
@@ -39,7 +39,7 @@ export enum EditorMode {
   live = "live",
 }
 
-const STORE_NAME = "poses";
+const POSE_STORE_NAME = "poses";
 
 export const [EditorStore, editorOps] = minOps("Editor", {
   initialState: (): State => ({
@@ -127,8 +127,8 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       const db = await connectIdb();
       x.finally(() => db.close());
 
-      const poses = await db.getAll(STORE_NAME);
-      const keys = await db.getAllKeys(STORE_NAME);
+      const poses = await db.getAll(POSE_STORE_NAME);
+      const keys = await db.getAllKeys(POSE_STORE_NAME);
 
       const withIdPoses: VirsePose[] = poses.map((pose, idx) =>
         Object.assign(pose, { id: pose.uid ?? idx })
@@ -156,11 +156,11 @@ export const [EditorStore, editorOps] = minOps("Editor", {
       console.log(poseSet);
 
       if (clear) {
-        db.clear("poses");
+        db.clear(POSE_STORE_NAME);
       }
 
       for (const pose of poseSet) {
-        await db.add("poses", pose);
+        await db.add(POSE_STORE_NAME, pose);
       }
 
       await x.executeOperation(editorOps.loadPoses);
@@ -171,27 +171,40 @@ export const [EditorStore, editorOps] = minOps("Editor", {
 
       console.log(uid);
 
-      const id = await db.getKeyFromIndex("poses", "uid", uid);
+      const id = await db.getKeyFromIndex(POSE_STORE_NAME, "uid", uid);
       if (!id) return;
 
-      await db.delete(STORE_NAME, id);
+      await db.delete(POSE_STORE_NAME, id);
       db.close();
 
       await x.executeOperation(editorOps.loadPoses);
     },
-    async savePose(x, pose: UnsavedVirsePose | VirsePose) {
+    async savePose(
+      x,
+      pose: UnsavedVirsePose | VirsePose,
+      { overwrite }: { overwrite?: boolean } = {}
+    ) {
       const db = await connectIdb();
       x.finally(() => db.close());
 
-      const store = db.transaction(STORE_NAME, "readwrite");
-      await store.store.add({
-        ...pose,
-        uid: nanoid(),
-        createdAt: new Date(),
-        schemaVersion: 2,
-      });
-      await store.done;
-      db.close();
+      const tx = db.transaction(POSE_STORE_NAME, "readwrite");
+
+      if (overwrite && "uid" in pose) {
+        console.log("put");
+        await tx.store.put({
+          ...pose,
+          schemaVersion: 2,
+        });
+      } else {
+        await tx.store.add({
+          ...pose,
+          uid: nanoid(),
+          createdAt: new Date(),
+          schemaVersion: 2,
+        });
+      }
+
+      await tx.done;
 
       await x.executeOperation(editorOps.loadPoses);
     },
@@ -199,8 +212,8 @@ export const [EditorStore, editorOps] = minOps("Editor", {
 });
 
 interface VirseDBSchema extends DBSchema {
-  [STORE_NAME]: {
-    key: number;
+  [POSE_STORE_NAME]: {
+    key: string;
     value: UnsavedVirsePose & {
       uid: string;
       createdAt: Date;
@@ -225,10 +238,13 @@ interface VirseDBSchema extends DBSchema {
 type VirseDBModelIndex = { hash: string; name: string; version: string };
 
 const connectIdb = async () => {
-  const db = await openDB<VirseDBSchema>("virse", 3, {
-    upgrade(db, old, next, transaction) {
+  const db = await openDB<VirseDBSchema>("virse", 1, {
+    upgrade(db, old, next, tx) {
       if (old < 2) {
-        db.createObjectStore(STORE_NAME, { autoIncrement: true });
+        db.createObjectStore(POSE_STORE_NAME, {
+          autoIncrement: false,
+          keyPath: "uid",
+        });
 
         db.createObjectStore("modelIndex", {
           autoIncrement: false,
@@ -239,12 +255,6 @@ const connectIdb = async () => {
           autoIncrement: false,
           keyPath: "hash",
         });
-      }
-
-      if (old <= 3) {
-        transaction
-          .objectStore("poses")
-          .createIndex("uid", "uid", { unique: true });
       }
     },
   });
