@@ -49,12 +49,14 @@
   "loadPose/title": "Import pose set",
   "loadPose/deleteCurrentPoset": "Delete current pose set (all listed poses)",
 
+  "keyboardHelp/title": "Keyboard shortcuts",
   "keyboardHelp/showHelp": "Show this help",
   "keyboardHelp/boneControlMode": "Change bone control mode<br/>(move / rotate)",
   "keyboardHelp/changeDisplaySkeleton": "Change bones visibility",
   "keyboardHelp/selectSiblingBone": "Select sibling bone",
   "keyboardHelp/selectParentBone": "Select parent bone",
   "keyboardHelp/selectChildBone": "Select child bone",
+  "keyboardHelp/axisFilter": "(In bone selected)<br/> Display only {{axis}} rotation axis.<br/>Reset by pressing again.",
 
   "vrm/exprPreset/aa": "Aa",
   "vrm/exprPreset/ih": "Ih",
@@ -68,6 +70,7 @@
   "vrm/exprPreset/relaxed": "Relaxed",
   "vrm/exprPreset/lookUp": "Look up",
   "vrm/exprPreset/surprised": "Surprised",
+  "vrm/exprPreset/Surprised": "Surprised",
   "vrm/exprPreset/lookDown": "Look down",
   "vrm/exprPreset/lookLeft": "Look left",
   "vrm/exprPreset/lookRight": "Look right",

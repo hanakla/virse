@@ -111,7 +111,6 @@ export const useBindMousetrap = (
   const handlerRef = useStableLatestRef(handlerCallback);
 
   useEffect(() => {
-    console.log(ref.current);
     if (!ref.current) return;
 
     const trap = mousetrap(ref.current);

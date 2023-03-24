@@ -82,7 +82,6 @@ export const PhotoBooth = memo(function PhotoBooth({
   const rerender = useUpdate();
   const { openModal } = useModalOpener();
 
-  const [sidebarRef, sidebarBBox] = useMeasure();
   const shortcutBindElRef = useRef<HTMLDivElement>(
     typeof document !== 'undefined' ? document.getElementById('ui') : null
   );
@@ -875,10 +874,10 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   useEffect(() => {
     if (!stage) return;
-    stage.events.on('boneChanged', rerender);
+    stage.events.on('updated', rerender);
 
     return () => {
-      stage.events.off('boneChanged', rerender);
+      stage.events.off('updated', rerender);
     };
   }, [stage]);
 

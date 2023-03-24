@@ -46,7 +46,7 @@ export class InteractableObject extends THREE.Object3D {
     });
 
     this.addEventListener('hover', () => {
-      if (!this.enabled) return;
+      // if (!this.enabled) return;
       this._handleHover();
     });
 

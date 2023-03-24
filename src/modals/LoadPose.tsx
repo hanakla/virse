@@ -37,7 +37,7 @@ export function LoadPose({
   return (
     <ModalBase
       onClose={onClose}
-      header={t('loadPose/title')}
+      header={<h1>{t('loadPose/title')}</h1>}
       content={
         <div
           css={`

@@ -49,12 +49,14 @@
   "loadPose/title": "ポーズセットのインポート",
   "loadPose/deleteCurrentPoset": "現在のポーズセットをすべて削除する",
 
+  "keyboardHelp/title": "キーボードショートカット",
   "keyboardHelp/showHelp": "キーボードヘルプを表示",
   "keyboardHelp/boneControlMode": "ボーン操作モードの切り替え<br/>(移動・回転)",
   "keyboardHelp/changeDisplaySkeleton": "ボーン表示切り替え",
   "keyboardHelp/selectSiblingBone": "兄弟ボーンを選択",
   "keyboardHelp/selectParentBone": "親ボーンを選択",
   "keyboardHelp/selectChildBone": "子ボーンを選択",
+  "keyboardHelp/axisFilter": "(ボーン選択中) {{axis}}回転軸だけ表示 (再押下でリセット)",
 
   "vrm/exprPreset/aa": "あ",
   "vrm/exprPreset/ih": "い",
@@ -68,6 +70,7 @@
   "vrm/exprPreset/relaxed": "リラックス",
   "vrm/exprPreset/lookUp": "上を見る",
   "vrm/exprPreset/surprised": "驚く",
+  "vrm/exprPreset/Surprised": "驚く",
   "vrm/exprPreset/lookDown": "下を見る",
   "vrm/exprPreset/lookLeft": "左を見る",
   "vrm/exprPreset/lookRight": "右を見る",
