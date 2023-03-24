@@ -1,22 +1,38 @@
-import { StoreClass } from "@fleur/fleur";
-import { ExtractStateOfStoreClass } from "@fleur/fleur/dist/Store";
-import { useStore } from "@fleur/react";
-import mousetrap from "mousetrap";
+import { useInsertionEffect } from 'react';
+import { StoreClass } from '@fleur/fleur';
+import { ExtractStateOfStoreClass } from '@fleur/fleur/dist/Store';
+import { useStore } from '@fleur/react';
+import mousetrap from 'mousetrap';
 import {
+  MutableRefObject,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
-} from "react";
-import { shallowEquals } from "./object";
+} from 'react';
+import { shallowEquals } from './object';
+import useEvent from 'react-use-event-hook';
 
 export const useFunc = <T extends (...args: any[]) => any>(fn: T): T => {
   const ref = useRef<T | null>(null);
   ref.current = fn;
 
   return useCallback<any>((...args: any[]) => ref.current!(...args), []);
+};
+
+const useBrowserEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : () => {};
+
+export const useStableLatestRef = <T>(value: T) => {
+  const stableRef = useRef<T>(value);
+
+  useBrowserEffect(() => {
+    stableRef.current = value;
+  }, [value]);
+
+  return stableRef;
 };
 
 export const useStoreState = <T>(
@@ -33,7 +49,7 @@ export const useStoreState = <T>(
 };
 
 export const useIsomorphicLayoutEffect =
-  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 /** useState, but update state on original value changed */
 export const useBufferedState = <T, S = T>(
@@ -41,7 +57,7 @@ export const useBufferedState = <T, S = T>(
   transform?: (value: T) => S
 ): [S, (value: S | ((prevState: S) => S)) => S] => {
   const originalValue =
-    typeof original === "function" ? (original as any)() : original;
+    typeof original === 'function' ? (original as any)() : original;
   const [state, setState] = useState<S | T>(
     () => transform?.(originalValue) ?? originalValue
   );
@@ -61,25 +77,84 @@ export const useBufferedState = <T, S = T>(
   return [state as T, setState] as any;
 };
 
+type MousetrapCallback = (
+  e: mousetrap.ExtendedKeyboardEvent,
+  combo: string
+) => void;
+
 export const useMousetrap = (
   handlerKey: string,
-  handlerCallback: () => void,
+  handlerCallback: MousetrapCallback,
   evtType = undefined
 ) => {
-  let actionRef = useRef<(() => void) | null>(null);
-  actionRef.current = handlerCallback;
+  const handlerRef = useStableLatestRef(handlerCallback);
 
   useEffect(() => {
     mousetrap.bind(
       handlerKey,
-      (evt, combo) => {
-        typeof actionRef.current === "function" &&
-          actionRef.current(evt, combo);
-      },
+      (...args) => handlerRef.current(...args),
       evtType
     );
+
     return () => {
       mousetrap.unbind(handlerKey);
     };
   }, [handlerKey]);
+};
+
+export const useBindMousetrap = (
+  ref: MutableRefObject<HTMLElement | null>,
+  handlerKey: string,
+  handlerCallback: MousetrapCallback,
+  evtType = undefined
+) => {
+  const handlerRef = useStableLatestRef(handlerCallback);
+
+  useEffect(() => {
+    console.log(ref.current);
+    if (!ref.current) return;
+
+    const trap = mousetrap(ref.current);
+
+    trap.bind(handlerKey, (...args) => handlerRef.current(...args), evtType);
+
+    return () => {
+      trap.reset();
+    };
+  }, [ref.current, handlerKey]);
+};
+
+export const useFocusRestore = ({
+  restoreOnUnmount,
+}: {
+  restoreOnUnmount?: boolean;
+}) => {
+  const prevFocusElementRef = useRef<HTMLElement | null>(
+    typeof document !== 'undefined'
+      ? (document.activeElement as HTMLElement)
+      : null
+  );
+
+  console.log(
+    typeof document !== 'undefined'
+      ? (document.activeElement as HTMLElement)
+      : null
+  );
+
+  useInsertionEffect(() => {
+    console.log(prevFocusElementRef.current);
+  });
+
+  useLayoutEffect(() => {
+    const restoreFocusTarget = prevFocusElementRef.current;
+    console.log(restoreFocusTarget);
+
+    return () => {
+      if (restoreOnUnmount) {
+        setTimeout(() => {
+          restoreFocusTarget?.focus();
+        });
+      }
+    };
+  });
 };

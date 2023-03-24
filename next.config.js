@@ -1,4 +1,4 @@
-const withTM = require("next-transpile-modules")(["kalidokit"]);
+const withTM = require('next-transpile-modules')(['kalidokit']);
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -14,7 +14,7 @@ const config = {
   webpack(config) {
     config.module.rules.push({
       test: /.wasm$/,
-      type: "asset/resource",
+      type: 'asset/resource',
     });
 
     // (config.experiments ??= {}).syncWebAssembly = true;

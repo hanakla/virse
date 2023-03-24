@@ -1,11 +1,11 @@
-import { ModalComponentType } from "@fleur/mordred";
-import { ModalProps } from "@fleur/mordred/dist/react-bind";
-import escapeStringRegexp from "escape-string-regexp";
-import { ChangeEvent, useState } from "react";
-import { Button } from "../components/Button";
-import { Input } from "../components/Input";
-import { ModalBase } from "../components/ModalBase";
-import { useFunc } from "../utils/hooks";
+import { ModalComponentType } from '@fleur/mordred';
+import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import escapeStringRegexp from 'escape-string-regexp';
+import { ChangeEvent, useState } from 'react';
+import { Button } from '../components/Button';
+import { Input } from '../components/Input';
+import { ModalBase } from '../components/ModalBase';
+import { useFunc } from '../utils/hooks';
 
 export function SelectBones({
   boneNames,
@@ -26,7 +26,7 @@ export function SelectBones({
 
   const handleChangeFilter = useFunc(
     ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
-      const matcher = new RegExp(escapeStringRegexp(currentTarget.value), "i");
+      const matcher = new RegExp(escapeStringRegexp(currentTarget.value), 'i');
       setFiltered(boneNames.filter((boneName) => matcher.test(boneName)));
     }
   );

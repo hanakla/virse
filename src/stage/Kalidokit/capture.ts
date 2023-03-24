@@ -1,6 +1,10 @@
 // SEE: https://glitch.com/edit/#!/kalidokit?path=script.js%3A263%3A0
 import * as THREE from "three";
-import { VRM, VRMSchema } from "@pixiv/three-vrm";
+import {
+  VRM,
+  VRMHumanBoneName,
+  VRMExpressionPresetName,
+} from "@pixiv/three-vrm";
 import * as Kalidokit from "kalidokit";
 import { Camera } from "@mediapipe/camera_utils";
 import { Holistic, Results, ResultsListener } from "@mediapipe/holistic";
@@ -80,7 +84,7 @@ export class KalidokitCapture {
 
   // Animate Rotation Helper function
   private rigRotation = (
-    name: keyof typeof VRMSchema.HumanoidBoneName,
+    name: keyof typeof VRMHumanBoneName,
     rotation = { x: 0, y: 0, z: 0 },
     dampener = 1,
     lerpAmount = 0.3
@@ -89,9 +93,7 @@ export class KalidokitCapture {
     //   return;
     // }
 
-    const Part = this.vrm.humanoid!.getBoneNode(
-      VRMSchema.HumanoidBoneName[name]
-    );
+    const Part = this.vrm.humanoid!.getRawBoneNode(VRMHumanBoneName[name]);
     if (!Part) {
       return;
     }
@@ -107,7 +109,7 @@ export class KalidokitCapture {
 
   // Animate Position Helper Function
   private rigPosition = (
-    name: keyof typeof VRMSchema.HumanoidBoneName,
+    name: keyof typeof VRMHumanBoneName,
     position = { x: 0, y: 0, z: 0 },
     dampener = 1,
     lerpAmount = 0.3
@@ -115,9 +117,7 @@ export class KalidokitCapture {
     // if (!currentVrm) {
     //   return;
     // }
-    const Part = this.vrm.humanoid!.getBoneNode(
-      VRMSchema.HumanoidBoneName[name]
-    );
+    const Part = this.vrm.humanoid!.getRawBoneNode(VRMHumanBoneName[name]);
     if (!Part) {
       return;
     }
@@ -138,8 +138,8 @@ export class KalidokitCapture {
     this.rigRotation("Neck", riggedFace.head, 0.7);
 
     // Blendshapes and Preset Name Schema
-    const Blendshape = this.vrm.blendShapeProxy!;
-    const PresetName = VRMSchema.BlendShapePresetName;
+    const Blendshape = this.vrm.expressionManager!;
+    const PresetName = VRMExpressionPresetName;
 
     // Simple example without winking. Interpolate based on old blendshape, then stabilize blink with `Kalidokit` helper function.
     // for VRM, 1 is closed, 0 is open.
@@ -161,42 +161,42 @@ export class KalidokitCapture {
 
     // Interpolate and set mouth blendshapes
     Blendshape.setValue(
-      PresetName.I,
+      PresetName.Ih,
       lerp(
         riggedFace.mouth.shape.I,
-        Blendshape.getValue(PresetName.I)!,
+        Blendshape.getValue(PresetName.Ih)!,
         0.5
       ) as number
     );
     Blendshape.setValue(
-      PresetName.A,
+      PresetName.Aa,
       lerp(
         riggedFace.mouth.shape.A,
-        Blendshape.getValue(PresetName.A)!,
+        Blendshape.getValue(PresetName.Aa)!,
         0.5
       ) as number
     );
     Blendshape.setValue(
-      PresetName.E,
+      PresetName.Ee,
       lerp(
         riggedFace.mouth.shape.E,
-        Blendshape.getValue(PresetName.E)!,
+        Blendshape.getValue(PresetName.Ee)!,
         0.5
       ) as number
     );
     Blendshape.setValue(
-      PresetName.O,
+      PresetName.Ou,
       lerp(
         riggedFace.mouth.shape.O,
-        Blendshape.getValue(PresetName.O)!,
+        Blendshape.getValue(PresetName.Ou)!,
         0.5
       ) as number
     );
     Blendshape.setValue(
-      PresetName.U,
+      PresetName.Oh,
       lerp(
         riggedFace.mouth.shape.U,
-        Blendshape.getValue(PresetName.U)!,
+        Blendshape.getValue(PresetName.Oh)!,
         0.5
       ) as number
     );
@@ -210,7 +210,7 @@ export class KalidokitCapture {
       "XYZ"
     );
     this.oldLookTarget.copy(lookTarget);
-    this.vrm.lookAt!.applyer!.lookAt(lookTarget);
+    this.vrm.lookAt!.applier!.lookAt(lookTarget);
   };
 
   private onResults: ResultsListener = (results) => {

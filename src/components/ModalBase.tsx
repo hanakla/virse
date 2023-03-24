@@ -1,22 +1,28 @@
-import { rgba } from "polished";
-import { MouseEvent, ReactNode } from "react";
-import { useFunc } from "../utils/hooks";
+import { rgba } from 'polished';
+import { forwardRef, MouseEvent, ReactNode } from 'react';
+import { css } from 'styled-components';
+import { useFunc } from '../utils/hooks';
 
 type Props = {
   header?: ReactNode;
   content: ReactNode;
   footer?: ReactNode;
+  className?: string;
   onClose: (value: null) => void;
 };
 
-export const ModalBase = ({ header, content, footer, onClose }: Props) => {
+export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
+  { className, header, content, footer, onClose },
+  ref
+) {
   const onBackdropClick = useFunc((e: MouseEvent) => {
     if (e.target === e.currentTarget) onClose(null);
   });
 
   return (
     <div
-      css={`
+      ref={ref}
+      css={css`
         position: fixed;
         top: 0;
         left: 0;
@@ -25,8 +31,9 @@ export const ModalBase = ({ header, content, footer, onClose }: Props) => {
         height: 100%;
         justify-content: center;
         z-index: 1;
-        background-color: ${rgba("#000", 0.5)};
+        background-color: ${rgba('#000', 0.5)};
       `}
+      className={className}
       onClick={onBackdropClick}
     >
       <div
@@ -37,6 +44,7 @@ export const ModalBase = ({ header, content, footer, onClose }: Props) => {
           margin: auto;
           border-radius: 8px;
           background-color: #fff;
+          box-shadow: 0 0 16px ${rgba('#222', 0.2)};
         `}
       >
         {header && (
@@ -74,4 +82,4 @@ export const ModalBase = ({ header, content, footer, onClose }: Props) => {
       </div>
     </div>
   );
-};
+});
