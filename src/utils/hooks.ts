@@ -1,3 +1,4 @@
+import { useInsertionEffect } from 'react';
 import { StoreClass } from '@fleur/fleur';
 import { ExtractStateOfStoreClass } from '@fleur/fleur/dist/Store';
 import { useStore } from '@fleur/react';
@@ -110,6 +111,7 @@ export const useBindMousetrap = (
   const handlerRef = useStableLatestRef(handlerCallback);
 
   useEffect(() => {
+    console.log(ref.current);
     if (!ref.current) return;
 
     const trap = mousetrap(ref.current);
@@ -120,4 +122,39 @@ export const useBindMousetrap = (
       trap.reset();
     };
   }, [ref.current, handlerKey]);
+};
+
+export const useFocusRestore = ({
+  restoreOnUnmount,
+}: {
+  restoreOnUnmount?: boolean;
+}) => {
+  const prevFocusElementRef = useRef<HTMLElement | null>(
+    typeof document !== 'undefined'
+      ? (document.activeElement as HTMLElement)
+      : null
+  );
+
+  console.log(
+    typeof document !== 'undefined'
+      ? (document.activeElement as HTMLElement)
+      : null
+  );
+
+  useInsertionEffect(() => {
+    console.log(prevFocusElementRef.current);
+  });
+
+  useLayoutEffect(() => {
+    const restoreFocusTarget = prevFocusElementRef.current;
+    console.log(restoreFocusTarget);
+
+    return () => {
+      if (restoreOnUnmount) {
+        setTimeout(() => {
+          restoreFocusTarget?.focus();
+        });
+      }
+    };
+  });
 };

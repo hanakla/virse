@@ -148,8 +148,8 @@ export class VrmPoseController {
   }
 
   public set fkControlMode(mode: 'rotate' | 'translate') {
-    if (this._selectedObject?.targetType === 'fk')
-      this._transformController.setMode(mode);
+    // if (this._selectedObject?.targetType === 'fk')
+    this._transformController.setMode(mode);
   }
 
   public update = () => {

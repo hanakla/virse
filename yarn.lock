@@ -276,13 +276,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fleur/mordred@npm:^0.1.0-pre.3":
-  version: 0.1.0-pre.3
-  resolution: "@fleur/mordred@npm:0.1.0-pre.3"
+"@fleur/mordred@npm:^1.0.0-beta.6":
+  version: 1.0.0-beta.6
+  resolution: "@fleur/mordred@npm:1.0.0-beta.6"
+  dependencies:
+    focus-trap: "npm:^6.2.3"
   peerDependencies:
     react: 16
     react-dom: ^17.0.1
-  checksum: 4bff3c4bcdbf55bfad6be820d8eae6707de9afda808a1a529f42e68bf2a7dfcf2a0308491f662a294c8ac712dfbee99f2d5200fdf390b91cedcc93b36cbaf0ec
+  checksum: e99722b2cef6e95c4ea6ed7fad7f0f73c6efdd2be53f9fdac9029b2dce8812bbdf2011d5a9cd5c62214d43e393a341ddec55fc993b22c6c3d07ca02c3820c967
   languageName: node
   linkType: hard
 
@@ -789,6 +791,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/react-dom@npm:^18.0.11":
+  version: 18.0.11
+  resolution: "@types/react-dom@npm:18.0.11"
+  dependencies:
+    "@types/react": "npm:*"
+  checksum: 429119548045bb8ca6f34522c2698973fb92a0ebb1f1b2afa061e41ae9d091d10d0cc9bbbfd52b3cfe948486898cfaaf29d3721650a6d52dc0d3ab81c0245b82
+  languageName: node
+  linkType: hard
+
 "@types/react-hook-mousetrap@npm:^2.0.0":
   version: 2.0.0
   resolution: "@types/react-hook-mousetrap@npm:2.0.0"
@@ -796,7 +807,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:*, @types/react@npm:17.0.40":
+"@types/react@npm:*":
   version: 17.0.40
   resolution: "@types/react@npm:17.0.40"
   dependencies:
@@ -804,6 +815,17 @@ __metadata:
     "@types/scheduler": "npm:*"
     csstype: "npm:^3.0.2"
   checksum: 1b93d16851c8a7e694a34518790d738c3d78804521e5d0f112851ea96fd8273408a332684eb6e974e3293497a96e3159f5118166d65a968e6f2b74703538fd8d
+  languageName: node
+  linkType: hard
+
+"@types/react@npm:^18.0.28":
+  version: 18.0.28
+  resolution: "@types/react@npm:18.0.28"
+  dependencies:
+    "@types/prop-types": "npm:*"
+    "@types/scheduler": "npm:*"
+    csstype: "npm:^3.0.2"
+  checksum: 5a43d1f81da064da91d0be3a676fbd2380d3bdff7491e0dae49e9ccdecf8fdf07e1bf7054d5fdd79266bf90a813384bd6898c678aca44e041a9e19df5fa690b3
   languageName: node
   linkType: hard
 
@@ -2020,6 +2042,15 @@ __metadata:
   version: 3.2.5
   resolution: "flatted@npm:3.2.5"
   checksum: a191869af08aca8af3788f981f64aede2fcaea7e3f28bd241f82f4bdfa62a8b7cd3927979e8c93229e3411a5a53f399f71f013c66ae9a7386bfa585b60fa069a
+  languageName: node
+  linkType: hard
+
+"focus-trap@npm:^6.2.3":
+  version: 6.9.4
+  resolution: "focus-trap@npm:6.9.4"
+  dependencies:
+    tabbable: "npm:^5.3.3"
+  checksum: 953d9032375783a00b3782fbf4ea121ec6e443cd1722bdcdc2e4e85b8133e5771b24efda7c7ab4c0c5d2c6705a583736d7d4ff36c625d9d97b4e1d0f93ee1934
   languageName: node
   linkType: hard
 
@@ -3285,16 +3316,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-dom@npm:17.0.2":
-  version: 17.0.2
-  resolution: "react-dom@npm:17.0.2"
+"react-dom@npm:^18.2.0":
+  version: 18.2.0
+  resolution: "react-dom@npm:18.2.0"
   dependencies:
     loose-envify: "npm:^1.1.0"
-    object-assign: "npm:^4.1.1"
-    scheduler: "npm:^0.20.2"
+    scheduler: "npm:^0.23.0"
   peerDependencies:
-    react: 17.0.2
-  checksum: 51a70345e6ce512d39789750b46524a2bd0bd8474fabcded2e9cd90dda77ae834fdb8481ca1e64265b91bacf8a1d760f17d6c0382bdfacf455362e617abbe5fa
+    react: ^18.2.0
+  checksum: 7c5b915fb793d63563cec1f721e059e6ff0e2855ac116ab5cb7450b6c59398f5e25f95c960ce5cb93504cc58ab724a75a78e99282354e702a0e667d0d787d028
   languageName: node
   linkType: hard
 
@@ -3382,13 +3412,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:^17.0.2":
-  version: 17.0.2
-  resolution: "react@npm:17.0.2"
+"react@npm:^18.2.0":
+  version: 18.2.0
+  resolution: "react@npm:18.2.0"
   dependencies:
     loose-envify: "npm:^1.1.0"
-    object-assign: "npm:^4.1.1"
-  checksum: c21b6ec9641b973afe3974e77d67d20df6e83c7e4de718af85d12389baa1077604560f086ae0e54e3c34ea87c60bd5d26080ba0cbad1c770307f53d6fa495e32
+  checksum: 8434e5782c52b3bf18a80b666348977924ee3827895fa03ec3ffb9faca90c460049f14130428dd1546bab6cf3b2c277f2c243d3c2a856501331d2e69c24b2bb9
   languageName: node
   linkType: hard
 
@@ -3581,13 +3610,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"scheduler@npm:^0.20.2":
-  version: 0.20.2
-  resolution: "scheduler@npm:0.20.2"
+"scheduler@npm:^0.23.0":
+  version: 0.23.0
+  resolution: "scheduler@npm:0.23.0"
   dependencies:
     loose-envify: "npm:^1.1.0"
-    object-assign: "npm:^4.1.1"
-  checksum: b3ec1f4367776c1e8632d9b6d594fdf0d4fe0aefd738a7f6902f60e9b910142e4997c4ad931f07a553de7bae7bfc2144e9966a9a35e8ef084fe6e48f5dcf94c6
+  checksum: f4022b95cdc282668643da4850f55fe70c899aa956d11819f196e2ca892271bdb253613e53997852094f9351f7c72d057eea8b28d9b4bcb93bcb1c6d09985c82
   languageName: node
   linkType: hard
 
@@ -3930,6 +3958,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"tabbable@npm:^5.3.3":
+  version: 5.3.3
+  resolution: "tabbable@npm:5.3.3"
+  checksum: 5713d20555c53433ba4adf99540098ebf0cf7c61b2b08569db11465274528342cb7cb1f15e0246c93811ddeb38d0161668bdd71ec4013fa4895fc5e14878b108
+  languageName: node
+  linkType: hard
+
 "tapable@npm:^2.2.0":
   version: 2.2.1
   resolution: "tapable@npm:2.2.1"
@@ -4167,7 +4202,7 @@ __metadata:
   dependencies:
     "@charlietango/use-focus-trap": "npm:^1.4.0"
     "@fleur/fleur": "npm:^3.1.0-beta.7"
-    "@fleur/mordred": "npm:^0.1.0-pre.3"
+    "@fleur/mordred": "npm:^1.0.0-beta.6"
     "@fleur/next": "npm:^1.0.0"
     "@fleur/react": "npm:^5.0.2"
     "@gltf-transform/core": "npm:^2.0.5"
@@ -4181,8 +4216,9 @@ __metadata:
     "@types/dom-webcodecs": "npm:^0.1.3"
     "@types/mousetrap": "npm:^1.6.11"
     "@types/node": "npm:17.0.21"
-    "@types/react": "npm:17.0.40"
+    "@types/react": "npm:^18.0.28"
     "@types/react-color": "npm:^3.0.6"
+    "@types/react-dom": "npm:^18.0.11"
     "@types/react-hook-mousetrap": "npm:^2.0.0"
     "@types/styled-components": "npm:^5.1.24"
     "@types/three": "npm:^0.138.0"
@@ -4202,10 +4238,10 @@ __metadata:
     next-transpile-modules: "npm:^9.0.0"
     object-fit-math: "npm:^1.0.0"
     polished: "npm:^4.1.4"
-    react: "npm:^17.0.2"
+    react: "npm:^18.2.0"
     react-color: "npm:^2.19.3"
     react-contexify: "npm:^5.0.0"
-    react-dom: "npm:17.0.2"
+    react-dom: "npm:^18.2.0"
     react-hook-mousetrap: "npm:^2.0.4"
     react-icons: "npm:^4.3.1"
     react-use: "npm:^17.4.0"

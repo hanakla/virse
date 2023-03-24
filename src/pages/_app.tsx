@@ -1,8 +1,10 @@
-import "../styles/globals.css";
-import type { AppProps } from "next/app";
-import { createGlobalStyle } from "styled-components";
-import { reset } from "styled-reset";
-import { appWithFleur } from "../lib/fleur";
+import '../styles/globals.css';
+import type { AppProps } from 'next/app';
+import { createGlobalStyle } from 'styled-components';
+import { reset } from 'styled-reset';
+import { appWithFleur } from '../lib/fleur';
+import { Mordred, MordredRenderer } from '@fleur/mordred';
+import { useMemo } from 'react';
 
 const GlobalStyle = createGlobalStyle`
   ${reset}
@@ -19,10 +21,17 @@ const GlobalStyle = createGlobalStyle`
 `;
 
 function MyApp({ Component, pageProps }: AppProps) {
+  useMemo(() => {
+    !Mordred._instance && Mordred.init();
+  }, []);
+
   return (
     <>
       <GlobalStyle />
       <Component {...pageProps} />
+      <MordredRenderer>
+        {(children) => <>{children.children}</>}
+      </MordredRenderer>
     </>
   );
 }

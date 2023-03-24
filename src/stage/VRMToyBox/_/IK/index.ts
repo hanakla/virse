@@ -1,1 +1,0 @@
-export { VrmIK } from "./VrmIK";

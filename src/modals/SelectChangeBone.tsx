@@ -17,7 +17,7 @@ import { css } from 'styled-components';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { ModalBase } from '../components/ModalBase';
-import { useFunc, useBindMousetrap } from '../utils/hooks';
+import { useFunc, useBindMousetrap, useFocusRestore } from '../utils/hooks';
 
 export function SelectChangeBones({
   boneNames,
@@ -27,9 +27,7 @@ export function SelectChangeBones({
   { boneNames: string[]; activeBoneName?: string },
   string | null
 >) {
-  const prevFocusElementRef = useRef<HTMLElement | null>(
-    document.activeElement as HTMLElement
-  );
+  useFocusRestore({ restoreOnUnmount: true });
 
   const focusTrapRef = useFocusTrap();
   const listRef = useRef<HTMLSelectElement | null>(null);
@@ -54,14 +52,19 @@ export function SelectChangeBones({
     onClose(null);
   });
 
-  useBindMousetrap(listRef, ';', (e: ExtendedKeyboardEvent) => {
+  useBindMousetrap(listRef, 's', (e: ExtendedKeyboardEvent) => {
     e.stopPropagation();
     setIndex((index) => (index - 1 + boneNames.length) % boneNames.length);
   });
 
-  useBindMousetrap(listRef, "'", (e: ExtendedKeyboardEvent) => {
+  useBindMousetrap(listRef, 'd', (e: ExtendedKeyboardEvent) => {
     e.stopPropagation();
     setIndex((index) => (index + 1) % boneNames.length);
+  });
+
+  useBindMousetrap(listRef, 'f', (e: ExtendedKeyboardEvent) => {
+    e.stopPropagation();
+    handleClickOk();
   });
 
   useBindMousetrap(listRef, 'enter', () => {
@@ -70,16 +73,6 @@ export function SelectChangeBones({
 
   useBindMousetrap(listRef, 'esc', () => {
     handleClickCancel();
-  });
-
-  useLayoutEffect(() => {
-    const restoreFocusTarget = prevFocusElementRef.current;
-
-    return () => {
-      setTimeout(() => {
-        restoreFocusTarget?.focus();
-      });
-    };
   });
 
   return (
@@ -122,7 +115,7 @@ export function SelectChangeBones({
       footer={
         <>
           <Button kind="primary" onClick={handleClickOk}>
-            OK
+            OK (F)
           </Button>
           <Button kind="default" onClick={handleClickCancel}>
             キャンセル

@@ -67,9 +67,13 @@ export class VirseStage {
   } = Object.create(null);
 
   constructor(public canvas: HTMLCanvasElement) {
+    canvas.clientWidth;
+
     this.#size = {
       width: window.innerWidth,
       height: window.innerHeight,
+      // width: canvas.clientWidth,
+      // height: canvas.clientHeight,
     };
 
     this.renderer = new THREE.WebGLRenderer({
@@ -107,10 +111,10 @@ export class VirseStage {
     this.activeCamera = this.pCam;
 
     this.oCam = new THREE.OrthographicCamera(
-      window.innerWidth / -2,
-      window.innerWidth / 2,
-      window.innerHeight / 2,
-      window.innerHeight / -2,
+      this.#size.width / -2,
+      this.#size.width / 2,
+      this.#size.height / 2,
+      this.#size.height / -2,
       1,
       10000
     );
@@ -270,6 +274,8 @@ export class VirseStage {
   }
 
   public get boneControlMode(): 'rotate' | 'translate' {
+    if (!this.activeAvatar) return 'rotate';
+
     return this.activeAvatar.ui.fkControlMode;
   }
 

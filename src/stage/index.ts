@@ -1,6 +1,6 @@
-import { RefObject, useRef } from "react";
-import { VirseStage, CamModes } from "./VirseStage";
-import { useIsomorphicLayoutEffect, useUpdate } from "react-use";
+import { RefObject, useRef } from 'react';
+import { VirseStage, CamModes } from './VirseStage';
+import { useIsomorphicLayoutEffect, useUpdate } from 'react-use';
 
 export const useVirseStage = (canvas: RefObject<HTMLCanvasElement | null>) => {
   const rerender = useUpdate();
@@ -11,12 +11,11 @@ export const useVirseStage = (canvas: RefObject<HTMLCanvasElement | null>) => {
     if (!current) return;
 
     const onUpdated = () => {
-      console.log("updated");
       rerender();
     };
 
-    current.events.on("updated", onUpdated);
-    return () => current.events.off("updated", onUpdated);
+    current.events.on('updated', onUpdated);
+    return () => current.events.off('updated', onUpdated);
   }, [stage.current]);
 
   useIsomorphicLayoutEffect(() => {

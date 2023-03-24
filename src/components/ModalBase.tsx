@@ -1,5 +1,6 @@
 import { rgba } from 'polished';
 import { forwardRef, MouseEvent, ReactNode } from 'react';
+import { css } from 'styled-components';
 import { useFunc } from '../utils/hooks';
 
 type Props = {
@@ -19,7 +20,7 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(
     return (
       <div
         ref={ref}
-        css={`
+        css={css`
           position: fixed;
           top: 0;
           left: 0;
@@ -41,6 +42,7 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(
             margin: auto;
             border-radius: 8px;
             background-color: #fff;
+            box-shadow: 0 0 16px ${rgba('#222', 0.2)};
           `}
         >
           {header && (
