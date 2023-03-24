@@ -1,8 +1,12 @@
-# Virse
+# _Virse_
 
-_Dance the verse, with Virse._
+[Preview Version]
 
-VRM Posing / Funny Live streaming app.
+Vrise. The expertly **VRM posing editor** and **live stream (motion capture)** app! 
+
+Are you ready? Let's visit https://virse-hanakla.vercel.app and Go!
 
 ![app](./.github/assets/main.png)
-<!--  -->
+
+
+Virse, based on [VRMお手軽ポーズ](https://www.vrmwebpose.app/), Thanks for [@Keshigom](https://github.com/Keshigom).  
