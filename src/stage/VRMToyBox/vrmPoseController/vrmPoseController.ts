@@ -129,6 +129,7 @@ export class VrmPoseController {
 
     this._transformController.attach(interactObj.controlTarget);
     this._transformController.setMode(interactObj.tag);
+    this.setAxis('all');
 
     this._selectedObject = interactObj;
     this.#activeBone = interactObj.controlTarget;
@@ -150,6 +151,22 @@ export class VrmPoseController {
   public set fkControlMode(mode: 'rotate' | 'translate') {
     // if (this._selectedObject?.targetType === 'fk')
     this._transformController.setMode(mode);
+  }
+
+  public setAxis(axis: 'X' | 'Y' | 'Z' | 'all') {
+    const c = this._transformController;
+
+    const isAllActive = c.showX && c.showY && c.showZ;
+    const activateAll =
+      axis === 'all' ||
+      (!isAllActive &&
+        ((c.showX && axis === 'X') ||
+          (c.showY && axis === 'Y') ||
+          (c.showZ && axis === 'Z')));
+
+    c.showX = axis === 'X' || activateAll;
+    c.showY = axis === 'Y' || activateAll;
+    c.showZ = axis === 'Z' || activateAll;
   }
 
   public update = () => {
@@ -287,6 +304,7 @@ export class VrmPoseController {
     if (interactObj.tag === 'rotate' || interactObj.tag === 'translate') {
       this._transformController.attach(interactObj.controlTarget);
       this._transformController.setMode(interactObj.tag);
+      this.setAxis('all');
 
       this.#activeBone = interactObj.controlTarget;
       this.events.emit('boneChanged', { bone: interactObj.controlTarget });

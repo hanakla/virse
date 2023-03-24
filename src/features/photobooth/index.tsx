@@ -817,6 +817,18 @@ export const PhotoBooth = memo(function PhotoBooth({
     stage!.boneControlMode = modes[(modes.indexOf(current) + 1) % modes.length];
   });
 
+  useBindMousetrap(shortcutBindElRef, 'x', (e) => {
+    stage?.activeAvatar.ui.setAxis('X');
+  });
+
+  useBindMousetrap(shortcutBindElRef, 'y', (e) => {
+    stage?.activeAvatar.ui.setAxis('Y');
+  });
+
+  useBindMousetrap(shortcutBindElRef, 'z', (e) => {
+    stage?.activeAvatar.ui.setAxis('Z');
+  });
+
   useBindMousetrap(shortcutBindElRef, 'h', (e) => {
     if (e.repeat) return;
 
