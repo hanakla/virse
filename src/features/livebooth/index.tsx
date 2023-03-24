@@ -1,4 +1,4 @@
-import { MouseEvent, useRef, useState } from 'react';
+import { memo, MouseEvent, useRef, useState } from 'react';
 import { rgba } from 'polished';
 import {
   RiArrowLeftSFill,
@@ -7,7 +7,7 @@ import {
   RiPaintFill,
 } from 'react-icons/ri';
 import useMeasure from 'react-use-measure';
-import { letDownload, styleWhen, useObjectState } from '@hanakla/arma';
+import { letDownload, useObjectState } from '@hanakla/arma';
 import styled, { css } from 'styled-components';
 import {
   useFunc,
@@ -37,10 +37,10 @@ import {
   ItemParams,
 } from 'react-contexify';
 import 'react-contexify/dist/ReactContexify.css';
-import { ColorChangeHandler } from 'react-color';
+import { ChromePicker, ColorChangeHandler } from 'react-color';
 import { useModalOpener } from '@fleur/mordred';
 import { SelectBones } from '../../modals/SelectBones';
-import { SelectPose } from '../../modals/SelectPose';
+import { LoadPose } from '../../modals/LoadPose';
 import { KeyboardHelp } from '../../modals/KeyboardHelp';
 import { nanoid } from 'nanoid';
 import { SelectExpressions } from '../../modals/SelectExpressions';
@@ -48,10 +48,7 @@ import { migrateV0PoseToV1 } from '../../domains/vrm';
 import useEvent from 'react-use-event-hook';
 import { CamModes } from '../../stage/VirseStage';
 import { VirseStage } from '../../stage/VirseStage';
-
-const replaceVRoidShapeNamePrefix = (name: string) => {
-  return name.replace(/^Fcl_/g, '');
-};
+import { useTranslation } from '../../hooks/useTranslation';
 
 type StashedCam = {
   mode: CamModes;
@@ -60,7 +57,12 @@ type StashedCam = {
   quaternion: number[];
 };
 
-export default function LiveBooth({ stage }: { stage: VirseStage | null }) {
+export const LiveBooth = memo(function LiveBooth({
+  stage,
+}: {
+  stage: VirseStage | null;
+}) {
+  const t = useTranslation('common');
   const rerender = useUpdate();
   const { openModal } = useModalOpener();
 
@@ -69,7 +71,7 @@ export default function LiveBooth({ stage }: { stage: VirseStage | null }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const padLRef = useRef<HTMLDivElement>(null);
   const padRRef = useRef<HTMLDivElement>(null);
-  const bgColoPaneRef = useRef<HTMLDivElement>(null);
+  const bgColorPaneRef = useRef<HTMLDivElement>(null);
   const padLMouse = useMouse(padLRef);
   const padRMouse = useMouse(padRRef);
 
@@ -129,7 +131,7 @@ export default function LiveBooth({ stage }: { stage: VirseStage | null }) {
     });
   });
 
-  useClickAway(bgColoPaneRef, ({ currentTarget }) => {
+  useClickAway(bgColorPaneRef, ({ currentTarget }) => {
     setState({ showColorPane: false });
   });
 
@@ -664,7 +666,7 @@ export default function LiveBooth({ stage }: { stage: VirseStage | null }) {
         const json = JSON.parse(await file.text());
 
         if (json.poseset) {
-          const result = await openModal(SelectPose, { poses: json.poseset });
+          const result = await openModal(LoadPose, { poses: json.poseset });
           if (!result) return;
 
           executeOperation(editorOps.installPoseSet, result.poses, {
@@ -798,52 +800,6 @@ export default function LiveBooth({ stage }: { stage: VirseStage | null }) {
   }, [state.syncEyes, padRMouse.clientX, padRMouse.clientY, padRMouse.isDown]);
 
   const model = stage ? Object.values(stage.avatars)[0] : null;
-  const cameraMenu = (
-    <MenuItem
-      onClick={(e) => {
-        if (e.target instanceof HTMLInputElement) return;
-        stage.setCamMode();
-      }}
-    >
-      <RiCameraSwitchFill css={menuIconCss} />
-      <div>
-        カメラ切り替え
-        <br />
-        <span
-          css={`
-            font-size: 12px;
-          `}
-        >
-          {stage?.camMode}
-        </span>
-      </div>
-
-      {stage?.camMode === 'perspective' && (
-        <div
-          css={`
-            display: flex;
-            align-items: center;
-          `}
-        >
-          <span>Fov: </span>
-          <Input
-            css={`
-              flex: 1;
-              margin-left: 4px;
-            `}
-            type="number"
-            size="min"
-            value={state.fov}
-            onChange={({ currentTarget }) => {
-              stage.camFov = currentTarget.valueAsNumber;
-              setState({ fov: currentTarget.valueAsNumber });
-              stage.pCam.updateProjectionMatrix();
-            }}
-          />
-        </div>
-      )}
-    </MenuItem>
-  );
 
   //// Render
   return (
@@ -889,15 +845,80 @@ export default function LiveBooth({ stage }: { stage: VirseStage | null }) {
               padding-top: 8px;
             `}
           >
-            <MenuItem>
+            <MenuItem onClick={handleClickBackgroundColor}>
               <RiPaintFill css={menuIconCss} />
-              背景色
+              {t('bgColor')}
+
+              <div
+                ref={bgColorPaneRef}
+                data-ignore-click
+                css={css`
+                  position: absolute;
+                  top: 0;
+                  left: 100%;
+                  z-index: 1;
+                  box-shadow: 0 4px 5px ${rgba('#aaaa', 0.1)};
+                `}
+                style={{ display: state.showColorPane ? 'block' : 'none' }}
+              >
+                <ChromePicker
+                  disableAlpha={false}
+                  color={{ ...state.color.rgb, a: state.color.alpha }}
+                  onChange={handleChangeBgColor}
+                  onChangeComplete={handleChangeBgColorComplete}
+                />
+              </div>
             </MenuItem>
-            {cameraMenu}
+
+            <MenuItem
+              onClick={(e) => {
+                if (e.target instanceof HTMLInputElement) return;
+                stage.setCamMode();
+              }}
+            >
+              <RiCameraSwitchFill css={menuIconCss} />
+              <div>
+                {t('camMode')}
+                <br />
+                <span
+                  css={`
+                    font-size: 12px;
+                  `}
+                >
+                  {t(`camMode/${stage?.camMode}`)}
+                </span>
+              </div>
+
+              {stage?.camMode === 'perspective' && (
+                <div
+                  css={`
+                    display: flex;
+                    align-items: center;
+                  `}
+                >
+                  <span>Fov: </span>
+                  <Input
+                    css={`
+                      flex: 1;
+                      margin-left: 4px;
+                    `}
+                    type="number"
+                    size="min"
+                    value={state.fov}
+                    onChange={({ currentTarget }) => {
+                      stage.camFov = currentTarget.valueAsNumber;
+                      setState({ fov: currentTarget.valueAsNumber });
+                      stage.pCam.updateProjectionMatrix();
+                    }}
+                  />
+                </div>
+              )}
+            </MenuItem>
+
             <MenuItem onClick={handleClickMotionCapture}>
               <RiBodyScanLine css={menuIconCss} />
               <div>
-                モーキャプ
+                {t('motionCapture')}
                 <br />
                 <span
                   css={css`
@@ -905,10 +926,10 @@ export default function LiveBooth({ stage }: { stage: VirseStage | null }) {
                   `}
                 >
                   {model?.avatar.kalidokit.isInitializing
-                    ? '起動中…'
+                    ? t('motionCapture/loading')
                     : model?.avatar.kalidokit.isCaptureRunnging
-                    ? '有効'
-                    : '無効'}
+                    ? t('motionCapture/enabled')
+                    : t('motionCapture/disabled')}
                 </span>
               </div>
             </MenuItem>
@@ -950,10 +971,10 @@ export default function LiveBooth({ stage }: { stage: VirseStage | null }) {
       </>
     </div>
   );
-}
+});
 
 const menuIconCss = css`
-  font-size: 28px;
+  font-size: 22px;
   color: #fff;
 `;
 

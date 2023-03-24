@@ -2,9 +2,13 @@ import { ModalProps } from '@fleur/mordred/dist/react-bind';
 import { ReactNode } from 'react';
 import styled, { css } from 'styled-components';
 import { ModalBase } from '../components/ModalBase';
+import { Trans } from '../components/Trans';
+import { useTranslation } from '../hooks/useTranslation';
 import { useFocusRestore } from '../utils/hooks';
 
 export function KeyboardHelp({ onClose }: ModalProps<{}, string[] | null>) {
+  const t = useTranslation('common');
+
   useFocusRestore({ restoreOnUnmount: true });
 
   return (
@@ -21,25 +25,18 @@ export function KeyboardHelp({ onClose }: ModalProps<{}, string[] | null>) {
             gap: 16px;
           `}
         >
-          <Entry keyCode={'H'} desc={'キーボードヘルプを表示'} />
+          <Entry keyCode={'H'} desc={t('keyboardHelp/showHelp')} />
           <Entry
             keyCode={'R'}
-            desc={
-              <>
-                IKボーン操作モードの切り替え
-                <br />
-                (移動・回転)
-              </>
-            }
+            desc={<Trans i18nKey="keyboardHelp/boneControlMode" />}
           />
-          <Entry keyCode={'B (Bone)'} desc={'ボーン表示切り替え'} />
-          <Entry keyCode={'A'} desc={'兄弟ボーン選択'} />
-          <Entry keyCode={'S'} desc={'親ボーン選択'} />
-          <Entry keyCode={'D'} desc={'子ボーン選択'} />
           <Entry
-            keyCode={"'"}
-            desc={'ボーンコントロールの切り替え(移動・回転)'}
+            keyCode={'B (Bone)'}
+            desc={t('keyboardHelp/changeDisplaySkeleton')}
           />
+          <Entry keyCode={'A'} desc={t('keyboardHelp/selectSiblingBone')} />
+          <Entry keyCode={'S'} desc={t('keyboardHelp/selectParentBone')} />
+          <Entry keyCode={'D'} desc={t('keyboardHelp/selectChildBone')} />
         </div>
       }
       footer={<></>}

@@ -1,22 +1,13 @@
 import useFocusTrap from '@charlietango/use-focus-trap';
-import { ModalComponentType } from '@fleur/mordred';
 import { ModalProps } from '@fleur/mordred/dist/react-bind';
-import { useCombineRef } from '@hanakla/arma';
-import escapeStringRegexp from 'escape-string-regexp';
 import { ExtendedKeyboardEvent } from 'mousetrap';
-import {
-  ChangeEvent,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
-import { useEffectOnce } from 'react-use';
+import { ChangeEvent, useRef, useState } from 'react';
 import useEvent from 'react-use-event-hook';
 import { css } from 'styled-components';
 import { Button } from '../components/Button';
-import { Input } from '../components/Input';
+
 import { ModalBase } from '../components/ModalBase';
+import { useTranslation } from '../hooks/useTranslation';
 import { useFunc, useBindMousetrap, useFocusRestore } from '../utils/hooks';
 
 export function SelectChangeBones({
@@ -27,6 +18,8 @@ export function SelectChangeBones({
   { boneNames: string[]; activeBoneName?: string },
   string | null
 >) {
+  const t = useTranslation('common');
+
   useFocusRestore({ restoreOnUnmount: true });
 
   const focusTrapRef = useFocusTrap();
@@ -115,10 +108,10 @@ export function SelectChangeBones({
       footer={
         <>
           <Button kind="primary" onClick={handleClickOk}>
-            OK (F)
+            {t('ok')} (F)
           </Button>
           <Button kind="default" onClick={handleClickCancel}>
-            キャンセル
+            {t('cancel')}
           </Button>
         </>
       }
