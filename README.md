@@ -4,7 +4,7 @@
 
 Vrise. The expertly **VRM posing editor** and **live stream (motion capture)** app! 
 
-Are you ready? Let's visit https://virse-hanakla.vercel.app and Go!
+Are you ready? Let's visit https://virse.hanakla.vercel.app/ and Go!
 
 ![app](./.github/assets/main.png)
 
