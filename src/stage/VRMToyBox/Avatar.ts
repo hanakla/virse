@@ -1,27 +1,23 @@
-import * as THREE from "three";
-import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import * as THREE from 'three';
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import {
   WebIO,
   JSONDocument as GLTFJson,
   GLTF as GLTFSchema,
   Primitive as GLTFPrimitive,
-} from "@gltf-transform/core";
-import { TransformControls } from "three/examples/jsm/controls/TransformControls";
+} from '@gltf-transform/core';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
 import {
   VRM,
   VRMExpressionPresetName,
   VRMLoaderPlugin,
   VRMUtils,
-} from "@pixiv/three-vrm";
-import { VrmIK } from "./IK";
-import { KalidokitCapture } from "../Kalidokit/capture";
-import { Bone, SkinnedMesh } from "three";
-import { AvatarController } from "./AvatarController";
-import { Emitter } from "../../lib/Emitter";
-import { v1IKConfig } from "./IK/v1IkConfig";
-import { VirseStage } from "../VirseStage";
-import mitt from "mitt";
-import { VrmPoseController } from "./vrmPoseController";
+} from '@pixiv/three-vrm';
+import { KalidokitCapture } from '../Kalidokit/capture';
+import { Bone, SkinnedMesh } from 'three';
+import { VirseStage } from '../VirseStage';
+import mitt from 'mitt';
+import { VrmPoseController } from './vrmPoseController';
 
 type Events = {
   boneChanged: Bone | null;
@@ -105,7 +101,7 @@ export class Avatar {
 
     const gltf = await loader.loadAsync(url);
     this.gltf = gltf;
-    this.gltfJson = await new WebIO({ credentials: "include" }).binaryToJSON(
+    this.gltfJson = await new WebIO({ credentials: 'include' }).binaryToJSON(
       new Uint8Array(await (await fetch(url)).arrayBuffer())
     );
 
@@ -146,8 +142,8 @@ export class Avatar {
       this._stage.orbitControls
     ));
 
-    ui.events.on("boneChanged", (b) => this.events.emit("boneChanged", b.bone));
-    ui.events.on("dragChange", (e) => this.events.emit("boneDragging", e));
+    ui.events.on('boneChanged', (b) => this.events.emit('boneChanged', b.bone));
+    ui.events.on('dragChange', (e) => this.events.emit('boneDragging', e));
 
     this.blendshapes = await this.buildGltfTargets();
   }
@@ -179,7 +175,7 @@ export class Avatar {
       this.vrm.expressionManager?.setValue(name, 0);
     });
 
-    console.log("reset", this.vrm.expressionManager, this.blendshapes);
+    console.log('reset', this.vrm.expressionManager, this.blendshapes);
   }
 
   private async buildGltfTargets() {
@@ -281,7 +277,7 @@ export async function gltfExtractPrimitivesFromNode(
   nodeIndex: number
 ): Promise<SkinnedMesh[] | null> {
   const node: THREE.Object3D = await gltf.parser.getDependency(
-    "node",
+    'node',
     nodeIndex
   );
   return extractPrimitivesInternal(gltf, nodeIndex, node);
