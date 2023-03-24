@@ -332,6 +332,7 @@ export class VrmPoseController {
       return;
     }
 
+    console.log('ok');
     interactObj.dispatchEvent({ type: 'hover' });
     this.events.emit('boneHoverChanged', { bone: interactObj.controlTarget });
   };

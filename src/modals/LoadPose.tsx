@@ -1,17 +1,20 @@
-import { ModalProps } from "@fleur/mordred/dist/react-bind";
-import { ChangeEvent, useState } from "react";
-import { Button } from "../components/Button";
-import { ModalBase } from "../components/ModalBase";
-import { VirsePose } from "../domains/editor";
-import { useFunc } from "../utils/hooks";
+import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import { ChangeEvent, useState } from 'react';
+import { Button } from '../components/Button';
+import { ModalBase } from '../components/ModalBase';
+import { VirsePose } from '../domains/editor';
+import { useTranslation } from '../hooks/useTranslation';
+import { useFunc } from '../utils/hooks';
 
-export function SelectPose({
+export function LoadPose({
   poses,
   onClose,
 }: ModalProps<
   { poses: VirsePose[] },
   { poses: VirsePose[]; clearPoseSet: boolean } | null
 >) {
+  const t = useTranslation('common');
+
   const [clearPoseSet, setClearPoseSet] = useState(false);
   const [selection, setSelection] = useState<string[]>([]);
 
@@ -34,7 +37,7 @@ export function SelectPose({
   return (
     <ModalBase
       onClose={onClose}
-      header="ポーズセットのインポート"
+      header={<h1>{t('loadPose/title')}</h1>}
       content={
         <div
           css={`
@@ -67,7 +70,7 @@ export function SelectPose({
                 setClearPoseSet(currentTarget.checked)
               }
             />
-            現在のポーズセットを削除する
+            {t('loadPose/deleteCurrentPoset')}
           </label>
 
           <Button
@@ -75,17 +78,17 @@ export function SelectPose({
               setSelection([...poses.map((p) => p.uid)]);
             }}
           >
-            すべて選択
+            {t('selectAll')}
           </Button>
         </div>
       }
       footer={
         <>
           <Button kind="primary" onClick={handleOk}>
-            OK
+            {t('ok')}
           </Button>
           <Button kind="default" onClick={() => onClose(null)}>
-            キャンセル
+            {t('cancel')}
           </Button>
         </>
       }

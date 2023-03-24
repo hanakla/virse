@@ -1,81 +1,29 @@
-import type { NextPage } from 'next';
-import {
-  CSSProperties,
-  memo,
-  MouseEvent,
-  ReactNode,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { MouseEvent, useRef } from 'react';
 import { rgba } from 'polished';
 import { useVirseStage } from '../stage';
-import {
-  RiArrowLeftSFill,
-  RiBodyScanLine,
-  RiCamera2Line,
-  RiCameraSwitchFill,
-  RiEyeLine,
-  RiFlashlightFill,
-  RiLiveLine,
-  RiMagicFill,
-  RiPaintFill,
-  RiRefreshLine,
-  RiSkullFill,
-} from 'react-icons/ri';
+import { RiCamera2Line, RiLiveLine } from 'react-icons/ri';
 import useMeasure from 'react-use-measure';
-import { letDownload, styleWhen, useObjectState } from '@hanakla/arma';
+import { styleWhen, useObjectState } from '@hanakla/arma';
 import styled, { css } from 'styled-components';
-import {
-  useBufferedState,
-  useFunc,
-  useBindMousetrap,
-  useStableLatestRef,
-  useStoreState,
-} from '../utils/hooks';
-import { Bone, MathUtils } from 'three';
+import { useFunc, useBindMousetrap, useStoreState } from '../utils/hooks';
+import { MathUtils } from 'three';
 import { useEffect } from 'react';
 import useMouse from '@react-hook/mouse-position';
-import { VRMExpressionPresetName, VRMHumanBoneName } from '@pixiv/three-vrm';
-import { useFleurContext, useStore } from '@fleur/react';
-import {
-  EditorMode,
-  editorOps,
-  EditorStore,
-  UnsavedVirsePose,
-} from '../domains/editor';
-import { Button } from '../components/Button';
-import { Checkbox } from '../components/Checkbox';
-import { Input } from '../components/Input';
+import { VRMHumanBoneName } from '@pixiv/three-vrm';
+import { useFleurContext } from '@fleur/react';
+import { EditorMode, editorOps, EditorStore } from '../domains/editor';
 import { transitionCss } from '../styles/mixins';
-import { Sidebar } from '../components/Sidebar';
-import { InputSection } from '../components/InputSection';
-import { useClickAway, useDrop, useMount, useUpdate } from 'react-use';
+import { useDrop, useMount, useUpdate } from 'react-use';
 import Head from 'next/head';
-import {
-  Menu as ContextMenu,
-  Item as ContextItem,
-  useContextMenu,
-  ItemParams,
-  animation,
-  Separator,
-} from 'react-contexify';
+import { useContextMenu } from 'react-contexify';
 import 'react-contexify/dist/ReactContexify.css';
-import { List, ListItem } from '../components/List';
-import { Recorder } from '../stage/Recorder';
-import { ChromePicker, ColorChangeHandler } from 'react-color';
-import { Mordred, MordredRenderer, useModalOpener } from '@fleur/mordred';
-import { SelectBones } from '../modals/SelectBones';
-import { SelectPose } from '../modals/SelectPose';
-import { KeyboardHelp } from '../modals/KeyboardHelp';
-import { nanoid } from 'nanoid';
-import { SelectExpressions } from '../modals/SelectExpressions';
-import { migrateV0PoseToV1 } from '../domains/vrm';
-import useEvent from 'react-use-event-hook';
-import { SelectChangeBones } from '../modals/SelectChangeBone';
+import { useModalOpener } from '@fleur/mordred';
+import { LoadPose } from '../modals/LoadPose';
 import { CamModes } from '../stage/VirseStage';
 import { PhotoBooth } from '../features/photobooth';
-import LiveBooth from '../features/livebooth';
+import { LiveBooth } from '../features/livebooth';
+import { useRouter } from 'next/router';
+import { Link } from '../components/Link';
 
 const replaceVRoidShapeNamePrefix = (name: string) => {
   return name.replace(/^Fcl_/g, '');
@@ -89,6 +37,7 @@ type StashedCam = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const rerender = useUpdate();
   const { openModal } = useModalOpener();
 
@@ -175,7 +124,7 @@ export default function Home() {
         const json = JSON.parse(await file.text());
 
         if (json.poseset) {
-          const result = await openModal(SelectPose, { poses: json.poseset });
+          const result = await openModal(LoadPose, { poses: json.poseset });
           if (!result) return;
 
           executeOperation(editorOps.installPoseSet, result.poses, {
@@ -330,7 +279,6 @@ export default function Home() {
       <div
         css={css`
           position: absolute;
-          z-index: 1;
           display: flex;
           flex-flow: column;
           width: 100%;
@@ -401,6 +349,26 @@ export default function Home() {
               font-size: 12px;
             `}
           >
+            <div
+              css={css`
+                margin-right: 16px;
+              `}
+            >
+              <Link href="/" aria-disabled={router.locale === 'ja'} locale="ja">
+                JA
+              </Link>
+              <span
+                css={css`
+                  display: inline-block;
+                  margin: 0 4px;
+                `}
+              >
+                ￤
+              </span>
+              <Link href="/" aria-disabled={router.locale === 'en'} locale="en">
+                EN
+              </Link>
+            </div>
             <span
               css={css`
                 padding: 4px;
@@ -458,178 +426,6 @@ export default function Home() {
   );
 }
 
-const menuIconCss = css`
-  font-size: 28px;
-  color: #fff;
-`;
-
-const hiddenStyle: CSSProperties = {
-  display: 'none',
-  pointerEvents: 'none',
-  userSelect: 'none',
-  opacity: 0,
-};
-
-const MenuItem = styled.div`
-  display: flex;
-  flex-flow: row wrap;
-  gap: 8px;
-  padding: 8px 16px;
-  align-items: center;
-  font-size: 14px;
-  color: white;
-  cursor: pointer;
-  user-select: none;
-
-  &:hover {
-    background-image: linear-gradient(
-      to right,
-      ${rgba('#fff', 0.5)},
-      ${rgba('#fff', 0)}
-    );
-  }
-`;
-
-const Slider = memo(function Slider({
-  label,
-  title,
-  min,
-  max,
-  step = 0.01,
-  value,
-  onChange,
-}: {
-  label: ReactNode;
-  title: string;
-  min: number;
-  max: number;
-  step?: number;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  const [bufferedValue, setValue] = useBufferedState(value);
-
-  return (
-    <div>
-      <div
-        css={`
-          display: flex;
-          margin-bottom: 8px;
-          font-size: 14px;
-        `}
-        title={title}
-      >
-        <div
-          css={`
-            flex: 1;
-            /* text-overflow: ellipsis; */
-            white-space: nowrap;
-            overflow: auto;
-            font-weight: bold;
-
-            &::-webkit-scrollbar {
-              width: 0;
-              height: 0;
-            }
-          `}
-        >
-          {label}
-        </div>
-
-        <Input
-          css={`
-            width: 4em;
-            margin: 0 4px;
-            padding: 2px;
-
-            &::-webkit-inner-spin-button {
-              display: none;
-            }
-          `}
-          type="number"
-          size="min"
-          step={step}
-          value={bufferedValue}
-          onChange={(e) => {
-            const val = e.currentTarget.valueAsNumber;
-            if (Number.isNaN(val)) return;
-            setValue(val);
-          }}
-          onKeyDown={(e) => {
-            const val = e.currentTarget.valueAsNumber;
-            if (Number.isNaN(val)) return;
-            if (e.key === 'Enter') onChange(val);
-          }}
-          onFocus={(e) => {
-            e.currentTarget.select();
-          }}
-          onBlur={(e) => {
-            onChange(e.currentTarget.valueAsNumber);
-          }}
-        />
-
-        <Button
-          css={`
-            margin-left: auto;
-            flex: 0;
-            line-height: 1;
-          `}
-          kind="default"
-          size="min"
-          onClick={() => onChange(0)}
-        >
-          <RiRefreshLine />
-        </Button>
-      </div>
-
-      <RangeInput
-        css={`
-          display: block;
-          width: calc(100% - 8px);
-          margin-left: 8px;
-        `}
-        min={min}
-        max={max}
-        step={step}
-        type="range"
-        value={bufferedValue}
-        onChange={(e) => {
-          setValue(e.currentTarget.valueAsNumber);
-          onChange(e.currentTarget.valueAsNumber);
-        }}
-      />
-    </div>
-  );
-});
-
-const RangeInput = styled.input`
-  display: block;
-  width: 100%;
-  height: 2px;
-  margin: 4px 0;
-
-  appearance: none;
-  --webkit-touch-callout: none;
-  outline: none;
-  line-height: 1;
-
-  /* &::-ms-fill-lower,
-  &::-moz-range-track,
-  &::-webkit-slider-runnable-track {
-    background: #28b8f1 !important;
-  } */
-
-  &::-webkit-slider-thumb {
-    width: 12px;
-    height: 12px;
-    appearance: none;
-    background: #fff;
-    border-radius: 100px;
-
-    box-shadow: 0 0 2px #aaa;
-  }
-`;
-
 const NavItem = styled.div<{ active: boolean }>`
   display: inline-flex;
   align-items: center;
@@ -657,71 +453,3 @@ const NavItem = styled.div<{ active: boolean }>`
     }
   `}
 `;
-
-const TabBar = styled.div`
-  display: flex;
-  padding: 4px;
-  background-color: #34c0b9;
-  border-radius: 100px;
-`;
-
-const Tab = styled.div.withConfig<{ active: boolean }>({
-  shouldForwardProp(prop, valid) {
-    return prop !== 'active' && valid(prop);
-  },
-})`
-  flex: 1;
-  padding: 4px;
-  border-radius: 100px;
-  text-align: center;
-  user-select: none;
-
-  ${transitionCss}
-
-  ${({ active }) => styleWhen(active)`
-    color: #34c0b9;
-    background-color: #fff;
-  `}
-
-  ${({ active }) => styleWhen(!active)`
-    &:hover {
-      color: #fff;
-      background-color: #23a8a2;
-    }
-  `}
-`;
-
-const ExprHead = styled.div`
-  display: flex;
-  align-items: center;
-  margin: 16px 0 16px;
-  font-size: 14px;
-  font-weight: bold;
-`;
-
-const Circle = ({
-  x,
-  y,
-  visible,
-}: {
-  x: number | null;
-  y: number | null;
-  visible: boolean;
-}) => (
-  <div
-    css={`
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      box-shadow: 0 4px 5px ${rgba('#aaaa', 0.5)};
-      border-radius: 100px;
-      background-color: #fff;
-      transform: translate(-50%, -50%);
-    `}
-    style={{
-      top: y ?? undefined,
-      left: x ?? undefined,
-      opacity: visible ? 1 : 0,
-    }}
-  />
-);

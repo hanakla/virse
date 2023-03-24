@@ -1,16 +1,19 @@
-import { ModalComponentType } from "@fleur/mordred";
-import { ModalProps } from "@fleur/mordred/dist/react-bind";
-import escapeStringRegexp from "escape-string-regexp";
-import { ChangeEvent, useState } from "react";
-import { Button } from "../components/Button";
-import { Input } from "../components/Input";
-import { ModalBase } from "../components/ModalBase";
-import { useFunc } from "../utils/hooks";
+import { ModalComponentType } from '@fleur/mordred';
+import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import escapeStringRegexp from 'escape-string-regexp';
+import { ChangeEvent, useState } from 'react';
+import { Button } from '../components/Button';
+import { Input } from '../components/Input';
+import { ModalBase } from '../components/ModalBase';
+import { useTranslation } from '../hooks/useTranslation';
+import { useFunc } from '../utils/hooks';
 
 export function SelectExpressions({
   expressionNames,
   onClose,
 }: ModalProps<{ expressionNames: string[] }, string[] | null>) {
+  const t = useTranslation('common');
+
   const [selection, setSelection] = useState<string[]>([]);
   const [filtered, setFiltered] = useState(expressionNames);
 
@@ -26,7 +29,7 @@ export function SelectExpressions({
 
   const handleChangeFilter = useFunc(
     ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
-      const matcher = new RegExp(escapeStringRegexp(currentTarget.value), "i");
+      const matcher = new RegExp(escapeStringRegexp(currentTarget.value), 'i');
       setFiltered(expressionNames.filter((name) => matcher.test(name)));
     }
   );
@@ -44,7 +47,7 @@ export function SelectExpressions({
         >
           <div>
             <Input
-              placeholder="フィルター"
+              placeholder={t('filter')}
               defaultValue=""
               onChange={handleChangeFilter}
             />
@@ -70,17 +73,17 @@ export function SelectExpressions({
               setSelection([...filtered]);
             }}
           >
-            すべて選択
+            {t('selectAll')}
           </Button>
         </div>
       }
       footer={
         <>
           <Button kind="primary" onClick={() => onClose(selection)}>
-            OK
+            {t('ok')}
           </Button>
           <Button kind="default" onClick={() => onClose(null)}>
-            キャンセル
+            {t('cancel')}
           </Button>
         </>
       }

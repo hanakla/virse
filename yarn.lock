@@ -2900,6 +2900,27 @@ __metadata:
   languageName: node
   linkType: hard
 
+"next-translate-plugin@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "next-translate-plugin@npm:2.0.3"
+  dependencies:
+    typescript: "npm:4.5.2"
+  peerDependencies:
+    next-translate: ">= 2.0.0-canary.1"
+  checksum: 3b9f0d54fd908563a8c2f2ed9bc3923cc47afc482ecdbb5bd51fe8d3cbaa7a5124f86d480c4015bb8351a960152c56a1a1ce5e54ca4db47d7fa6ae3ec1857259
+  languageName: node
+  linkType: hard
+
+"next-translate@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "next-translate@npm:2.0.3"
+  peerDependencies:
+    next: ">= 10.0.0"
+    react: ">= 16.8.0"
+  checksum: e77c993ae1a602acdb38fa8209266c6e03eb0dc2af070f12bcda1a4fcb63d0690c896dff39f7cb58441328e84fddde99d7321ae73c923623ecf41c6ea50e085f
+  languageName: node
+  linkType: hard
+
 "next-transpile-modules@npm:^9.0.0":
   version: 9.0.0
   resolution: "next-transpile-modules@npm:9.0.0"
@@ -4122,6 +4143,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typescript@npm:4.5.2":
+  version: 4.5.2
+  resolution: "typescript@npm:4.5.2"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 9adb4c2b6ef149f26d04f345eac3153dbec4aba50e2b0dfae2f5856ce72ba763f93e7081d8680d8a30afd51adaa55df65f33b042847cf685da210fd4f4d4f287
+  languageName: node
+  linkType: hard
+
 "typescript@npm:4.6.2":
   version: 4.6.2
   resolution: "typescript@npm:4.6.2"
@@ -4129,6 +4160,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 61b86ce7f0ed351db6c24092c9fe2b6c330edba8871f1a6ac88cdf08c5df237e1e79d8d6dd118ba0903d90426662b2ab623074a1ee1563de50a49114329a3c2c
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@npm%3A4.5.2#optional!builtin<compat/typescript>":
+  version: 4.5.2
+  resolution: "typescript@patch:typescript@npm%3A4.5.2#optional!builtin<compat/typescript>::version=4.5.2&hash=bcec9a"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 21a28e69a881e8a9da87ccf68d9410c17c9b83beae34bf9b19a9a97fb812f1efb9fd6393ceff2dd0ba77d312e94674e400e00c5e089f5c8839b95ddf22f5b860
   languageName: node
   linkType: hard
 
@@ -4235,6 +4276,8 @@ __metadata:
     mitt: "npm:^3.0.0"
     nanoid: "npm:^3.3.1"
     next: "npm:12.2.5"
+    next-translate: "npm:^2.0.3"
+    next-translate-plugin: "npm:^2.0.3"
     next-transpile-modules: "npm:^9.0.0"
     object-fit-math: "npm:^1.0.0"
     polished: "npm:^4.1.4"

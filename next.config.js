@@ -1,9 +1,11 @@
+const nextTranslate = require('next-translate-plugin');
 const withTM = require('next-transpile-modules')(['kalidokit']);
 
 /** @type {import('next').NextConfig} */
 const config = {
   experimental: {
     asyncWebAssembly: true,
+    newNextLinkBehavior: true,
   },
   compiler: {
     styledComponents: true,
@@ -23,4 +25,4 @@ const config = {
   },
 };
 
-module.exports = withTM(config);
+module.exports = nextTranslate(withTM(config));

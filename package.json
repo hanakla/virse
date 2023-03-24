@@ -31,6 +31,7 @@
     "mitt": "^3.0.0",
     "nanoid": "^3.3.1",
     "next": "12.2.5",
+    "next-translate": "^2.0.3",
     "object-fit-math": "^1.0.0",
     "polished": "^4.1.4",
     "react": "^18.2.0",
@@ -60,6 +61,7 @@
     "eslint": "8.11.0",
     "eslint-config-next": "12.1.0",
     "file-loader": "^6.2.0",
+    "next-translate-plugin": "^2.0.3",
     "next-transpile-modules": "^9.0.0",
     "typescript": "4.6.2",
     "url-loader": "^4.1.1"

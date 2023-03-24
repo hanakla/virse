@@ -1,16 +1,18 @@
-import { ModalComponentType } from '@fleur/mordred';
 import { ModalProps } from '@fleur/mordred/dist/react-bind';
 import escapeStringRegexp from 'escape-string-regexp';
 import { ChangeEvent, useState } from 'react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { ModalBase } from '../components/ModalBase';
+import { useTranslation } from '../hooks/useTranslation';
 import { useFunc } from '../utils/hooks';
 
 export function SelectBones({
   boneNames,
   onClose,
 }: ModalProps<{ boneNames: string[] }, string[] | null>) {
+  const t = useTranslation('common');
+
   const [selection, setSelection] = useState<string[]>([]);
   const [filtered, setFiltered] = useState(boneNames);
 
@@ -44,7 +46,7 @@ export function SelectBones({
         >
           <div>
             <Input
-              placeholder="フィルター"
+              placeholder={t('filter')}
               defaultValue=""
               onChange={handleChangeFilter}
             />
@@ -70,17 +72,17 @@ export function SelectBones({
               setSelection([...filtered]);
             }}
           >
-            すべて選択
+            {t('selectAll')}
           </Button>
         </div>
       }
       footer={
         <>
           <Button kind="primary" onClick={() => onClose(selection)}>
-            OK
+            {t('ok')}
           </Button>
           <Button kind="default" onClick={() => onClose(null)}>
-            キャンセル
+            {t('cancel')}
           </Button>
         </>
       }

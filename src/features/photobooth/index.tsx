@@ -16,12 +16,9 @@ import {
 } from 'react-contexify';
 import {
   RiArrowLeftSFill,
-  RiBodyScanLine,
   RiCamera2Line,
   RiCameraSwitchFill,
   RiFlashlightFill,
-  RiLiveLine,
-  RiMagicFill,
   RiPaintFill,
   RiRefreshLine,
   RiSkullFill,
@@ -29,6 +26,7 @@ import {
 import {
   useClickAway,
   useDrop,
+  useEffectOnce,
   useMeasure,
   useMount,
   useUpdate,
@@ -53,7 +51,7 @@ import { migrateV0PoseToV1 } from '../../domains/vrm';
 import { KeyboardHelp } from '../../modals/KeyboardHelp';
 import { SelectBones } from '../../modals/SelectBones';
 import { SelectChangeBones } from '../../modals/SelectChangeBone';
-import { SelectPose } from '../../modals/SelectPose';
+import { LoadPose } from '../../modals/LoadPose';
 import { CamModes, VirseStage } from '../../stage/VirseStage';
 import { transitionCss } from '../../styles/mixins';
 import {
@@ -62,6 +60,7 @@ import {
   useStableLatestRef,
   useStoreState,
 } from '../../utils/hooks';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type StashedCam = {
   mode: CamModes;
@@ -79,16 +78,16 @@ export const PhotoBooth = memo(function PhotoBooth({
 }: {
   stage: VirseStage | null;
 }) {
+  const t = useTranslation('common');
   const rerender = useUpdate();
   const { openModal } = useModalOpener();
 
-  const [sidebarRef, sidebarBBox] = useMeasure();
   const shortcutBindElRef = useRef<HTMLDivElement>(
     typeof document !== 'undefined' ? document.getElementById('ui') : null
   );
   const padLRef = useRef<HTMLDivElement>(null);
   const padRRef = useRef<HTMLDivElement>(null);
-  const bgColoPaneRef = useRef<HTMLDivElement>(null);
+  const bgColorPaneRef = useRef<HTMLDivElement>(null);
   const padLMouse = useMouse(padLRef);
   const padRMouse = useMouse(padRRef);
 
@@ -148,7 +147,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
   });
 
-  useClickAway(bgColoPaneRef, ({ currentTarget }) => {
+  useClickAway(bgColorPaneRef, ({ currentTarget }) => {
     setState({ showColorPane: false });
   });
 
@@ -171,18 +170,6 @@ export const PhotoBooth = memo(function PhotoBooth({
       s.rotation = !s.rotation;
       stage!.setControlMode(!s.rotation ? 'rotate' : 'translate');
     });
-  });
-
-  const handleClickMotionCapture = useFunc(() => {
-    const { avatar } = Object.values(stage.vrms)[0];
-
-    if (!avatar) return;
-
-    if (avatar.kalidokit.isCaptureRunnging) {
-      avatar.kalidokit.stop();
-    } else {
-      avatar.kalidokit.start();
-    }
   });
 
   const serializeCurrentPose = useStableLatestRef(() => {
@@ -389,28 +376,9 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
     stage.setSize(pose.canvas.width, pose.canvas.height);
 
-    // Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-    //   if (proxy[k]) proxy[k].value = value;
-    // });
-
-    // Object.entries(pose.blendShapeProxies).map(
-    //   ([name, value]: [string, number]) => {
-    //     vrm.blendShapeProxy?.setValue(name, value);
-    //   }
-    // );
-
-    // Object.entries(pose.bones).map(([name, bone]: [string, any]) => {
-    //   const o = vrm.scene.getObjectByName(name)!;
-    //   if (!o) return;
-
-    //   o.position.set(...(bone.position as any));
-    //   o.rotation.set(...(bone.rotation as any));
-    //   o.quaternion.set(...(bone.quaternion as any));
-    // });
-
     setState({
-      poseId: poseId!,
-      poseName: pose.name,
+      poseId: null,
+      poseName: undefined,
       captureCam: pose.camera,
       fov: pose.camera.fov,
       size: { width: pose.canvas.width, height: pose.canvas.height },
@@ -885,7 +853,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         const json = JSON.parse(await file.text());
 
         if (json.poseset) {
-          const result = await openModal(SelectPose, { poses: json.poseset });
+          const result = await openModal(LoadPose, { poses: json.poseset });
           if (!result) return;
 
           executeOperation(editorOps.installPoseSet, result.poses, {
@@ -906,33 +874,16 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   useEffect(() => {
     if (!stage) return;
-    stage.events.on('boneChanged', rerender);
+    stage.events.on('updated', rerender);
 
     return () => {
-      stage.events.off('boneChanged', rerender);
+      stage.events.off('updated', rerender);
     };
   }, [stage]);
 
   useEffect(() => {
-    if (!stage) return;
-
-    executeOperation(
-      editorOps.loadVrmBin,
-      '4b45a65eace31e24192c09717670a3a02a4ea16aa21b7a6a14ee9c9499ba9f0e',
-      (blob) => {
-        const url = URL.createObjectURL(blob);
-        stage.loadVRM(url);
-      }
-    );
-  }, [stage]);
-
-  useEffect(() => {
     const onResize = () => {
-      if (mode === EditorMode.photo) {
-        stage?.setSize(state.size.width, window.innerHeight);
-      } else {
-        stage?.setSize(window.innerWidth, window.innerHeight);
-      }
+      stage?.setSize(state.size.width, window.innerHeight);
     };
 
     window.addEventListener('resize', onResize);
@@ -953,23 +904,17 @@ export const PhotoBooth = memo(function PhotoBooth({
   }, []);
 
   // on mode changed
-  useEffect(() => {
-    if (mode === EditorMode.photo) {
-      stage?.setShowBones(photoModeState.visibleBones);
-      stage?.setSize(state.size.width, state.size.height);
-    }
+  useEffectOnce(() => {
+    stage?.setShowBones(photoModeState.visibleBones);
+    stage?.setSize(state.size.width, state.size.height);
+  });
 
-    if (mode === EditorMode.live) {
-      stage?.setShowBones(false);
-      stage?.setSize(window.innerWidth, window.innerHeight);
-    }
-  }, [mode]);
-
-  useEffect(() => {
+  useEffectOnce(() => {
     if (!stage) return;
     setState({ size: stage?.getSize() });
-  }, [stage]);
+  });
 
+  // Sync right eye position to Avatar
   useEffect(() => {
     const vrm = stage ? Object.values(stage.avatars)[0]?.vrm : null;
     if (!vrm || !padLMouse || !padLMouse.isDown) return;
@@ -996,6 +941,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   }, [state.syncEyes, padLMouse.clientX, padLMouse.clientY, padLMouse.isDown]);
 
+  // Sync left eye position to Avatar
   useEffect(() => {
     const vrm = stage ? Object.values(stage.avatars)[0]?.vrm : null;
     if (!vrm || !padRMouse || !padRMouse.isDown) return;
@@ -1023,52 +969,6 @@ export const PhotoBooth = memo(function PhotoBooth({
   }, [state.syncEyes, padRMouse.clientX, padRMouse.clientY, padRMouse.isDown]);
 
   const model = stage ? Object.values(stage.avatars)[0] : null;
-  const cameraMenu = (
-    <MenuItem
-      onClick={(e) => {
-        if (e.target instanceof HTMLInputElement) return;
-        stage.setCamMode();
-      }}
-    >
-      <RiCameraSwitchFill css={menuIconCss} />
-      <div>
-        カメラ切り替え
-        <br />
-        <span
-          css={`
-            font-size: 12px;
-          `}
-        >
-          {stage?.camMode}
-        </span>
-      </div>
-
-      {stage?.camMode === 'perspective' && (
-        <div
-          css={`
-            display: flex;
-            align-items: center;
-          `}
-        >
-          <span>Fov: </span>
-          <Input
-            css={`
-              flex: 1;
-              margin-left: 4px;
-            `}
-            type="number"
-            size="min"
-            value={state.fov}
-            onChange={({ currentTarget }) => {
-              stage.camFov = currentTarget.valueAsNumber;
-              setState({ fov: currentTarget.valueAsNumber });
-              stage.pCam.updateProjectionMatrix();
-            }}
-          />
-        </div>
-      )}
-    </MenuItem>
-  );
 
   //// Render
   return (
@@ -1079,7 +979,6 @@ export const PhotoBooth = memo(function PhotoBooth({
         right: 0;
         bottom: 0;
         left: 0;
-        z-index: 1;
         display: flex;
         flex-flow: column;
         pointer-events: none;
@@ -1114,90 +1013,86 @@ export const PhotoBooth = memo(function PhotoBooth({
               padding-top: 8px;
             `}
           >
-            {mode === EditorMode.photo && (
-              <>
-                <div
-                  css={css`
-                    position: absolute;
-                    right: -48px;
-                    top: 16px;
-                    transform: translateX(100%);
-                    user-select: none;
-                    cursor: default;
-                  `}
-                >
+            <div
+              css={css`
+                position: absolute;
+                right: -48px;
+                top: 16px;
+                transform: translateX(100%);
+                user-select: none;
+                cursor: default;
+              `}
+            >
+              <span
+                css={css`
+                  display: inline-block;
+                  padding: 4px;
+                  background-color: rgb(255 255 255 / 68%);
+                  font-weight: bold;
+                `}
+              >
+                {stage?.activeAvatar?.ui.activeBoneName ?? t('noBoneSelected')}
+              </span>
+
+              {stage?.activeAvatar?.ui.hoveredBone && (
+                <>
+                  <br />
                   <span
                     css={css`
                       display: inline-block;
                       padding: 4px;
                       background-color: rgb(255 255 255 / 68%);
-                      font-weight: bold;
+                      font-size: 14px;
+                      opacity: 0.8;
                     `}
                   >
-                    {stage?.activeAvatar?.ui.activeBoneName ?? '(None)'}
+                    {stage.activeAvatar?.ui.hoveredBone.name}
                   </span>
-
-                  {stage?.activeAvatar?.ui.hoveredBone && (
-                    <>
-                      <br />
-                      <span
-                        css={css`
-                          display: inline-block;
-                          padding: 4px;
-                          background-color: rgb(255 255 255 / 68%);
-                          font-size: 14px;
-                          opacity: 0.8;
-                        `}
-                      >
-                        {stage.activeAvatar?.ui.hoveredBone.name}
-                      </span>
-                    </>
-                  )}
-                </div>
-                <div
-                  css={css`
-                    position: absolute;
-                    right: -48px;
-                    bottom: 16px;
-                    transform: translateX(100%);
-                    display: flex;
-                    flex-flow: row;
-                    gap: 8px;
-                    user-select: none;
-                    cursor: default;
-                  `}
-                >
-                  <Button
-                    css={css`
-                      white-space: nowrap;
-                    `}
-                    style={
-                      state.currentCamKind === 'editorial'
-                        ? { boxShadow: '0 0 0 2px #34c0b9' }
-                        : {}
-                    }
-                    onClick={handleClickChangeCam}
-                    data-cam-mode="editorial"
-                  >
-                    Editorial cam
-                  </Button>
-                  <Button
-                    css={css`
-                      white-space: nowrap;
-                    `}
-                    style={
-                      state.currentCamKind === 'capture'
-                        ? { boxShadow: '0 0 0 2px #34c0b9' }
-                        : {}
-                    }
-                    onClick={handleClickChangeCam}
-                    data-cam-mode="capture"
-                  >
-                    Capture cam
-                  </Button>
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
+            <div
+              css={css`
+                position: absolute;
+                right: -48px;
+                bottom: 16px;
+                transform: translateX(100%);
+                display: flex;
+                flex-flow: row;
+                gap: 8px;
+                user-select: none;
+                cursor: default;
+              `}
+            >
+              <Button
+                css={css`
+                  white-space: nowrap;
+                `}
+                style={
+                  state.currentCamKind === 'editorial'
+                    ? { boxShadow: '0 0 0 2px #34c0b9' }
+                    : {}
+                }
+                onClick={handleClickChangeCam}
+                data-cam-mode="editorial"
+              >
+                {t('editorialCam')}
+              </Button>
+              <Button
+                css={css`
+                  white-space: nowrap;
+                `}
+                style={
+                  state.currentCamKind === 'capture'
+                    ? { boxShadow: '0 0 0 2px #34c0b9' }
+                    : {}
+                }
+                onClick={handleClickChangeCam}
+                data-cam-mode="capture"
+              >
+                {t('captureCam')}
+              </Button>
+            </div>
 
             <MenuItem
               css={`
@@ -1206,9 +1101,9 @@ export const PhotoBooth = memo(function PhotoBooth({
               onClick={handleClickBackgroundColor}
             >
               <RiPaintFill css={menuIconCss} />
-              背景色
+              {t('bgColor')}
               <div
-                ref={bgColoPaneRef}
+                ref={bgColorPaneRef}
                 data-ignore-click
                 css={`
                   position: absolute;
@@ -1227,11 +1122,59 @@ export const PhotoBooth = memo(function PhotoBooth({
                 />
               </div>
             </MenuItem>
-            {cameraMenu}
+
+            <MenuItem
+              onClick={(e) => {
+                if (e.target instanceof HTMLInputElement) return;
+                stage.setCamMode();
+              }}
+            >
+              <RiCameraSwitchFill css={menuIconCss} />
+              <div>
+                {t('camMode')}
+                <br />
+
+                {stage && (
+                  <span
+                    css={css`
+                      font-size: 12px;
+                    `}
+                  >
+                    {t(`camMode/${stage.camMode}`)}
+                  </span>
+                )}
+              </div>
+
+              {stage?.camMode === 'perspective' && (
+                <div
+                  css={`
+                    display: flex;
+                    align-items: center;
+                  `}
+                >
+                  <span>Fov: </span>
+                  <Input
+                    css={`
+                      flex: 1;
+                      margin-left: 4px;
+                    `}
+                    type="number"
+                    size="min"
+                    value={state.fov}
+                    onChange={({ currentTarget }) => {
+                      stage.camFov = currentTarget.valueAsNumber;
+                      setState({ fov: currentTarget.valueAsNumber });
+                      stage.pCam.updateProjectionMatrix();
+                    }}
+                  />
+                </div>
+              )}
+            </MenuItem>
+
             <MenuItem onClick={handleClickDisplayBones}>
               <RiSkullFill css={menuIconCss} />
               <div>
-                ボーン表示(B)
+                {t('showSkeleton')}(B)
                 <br />
                 <span
                   css={css`
@@ -1245,13 +1188,15 @@ export const PhotoBooth = memo(function PhotoBooth({
             <MenuItem onClick={handleClickTransform}>
               <RiRefreshLine css={menuIconCss} />
               <div>
-                ボーンモード(R) <br />
+                {t('boneMode')}(R) <br />
                 <span
                   css={css`
                     font-size: 12px;
                   `}
                 >
-                  {stage?.boneControlMode === 'rotate' ? '回転' : '移動'}
+                  {stage?.boneControlMode === 'rotate'
+                    ? t('boneMode/rotate')
+                    : t('boneMode/translate')}
                 </span>
               </div>
             </MenuItem>
@@ -1266,7 +1211,7 @@ export const PhotoBooth = memo(function PhotoBooth({
               onContextMenu={handleResetContextMenu}
             >
               <RiFlashlightFill css={menuIconCss} />
-              リセット
+              {t('resetPose')}
             </MenuItem>
 
             <div
@@ -1278,7 +1223,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                 color: #fff;
               `}
             >
-              <InputSection title="解像度(px)">
+              <InputSection title={t('resolutionPx')}>
                 <div
                   css={`
                     display: flex;
@@ -1336,36 +1281,38 @@ export const PhotoBooth = memo(function PhotoBooth({
                     stage.setSize(window.innerWidth, window.innerHeight);
                   }}
                 >
-                  画面サイズにリセット
+                  {t('resolution/resetToScreenSize')}
                 </Button>
               </InputSection>
 
-              <List
-                css={`
-                  flex: 1;
-                  overflow: auto;
-                `}
-              >
-                {modelIndex.map((entry) => (
-                  <ListItem
-                    key={entry.hash}
-                    data-model-id={entry.hash}
-                    onDoubleClick={handleDblClickModel}
-                    onContextMenu={handleModelsContextMenu}
-                  >
-                    <div>{entry.name}</div>
-                    <div
-                      css={`
-                        margin-top: 6px;
-                        font-size: 12px;
-                        color: ${rgba('#444', 0.8)};
-                      `}
+              <InputSection title={t('recentlyUsedModels')}>
+                <List
+                  css={`
+                    flex: 1;
+                    overflow: auto;
+                  `}
+                >
+                  {modelIndex.map((entry) => (
+                    <ListItem
+                      key={entry.hash}
+                      data-model-id={entry.hash}
+                      onDoubleClick={handleDblClickModel}
+                      onContextMenu={handleModelsContextMenu}
                     >
-                      {entry.version ? entry.version : '(バージョンなし)'}
-                    </div>
-                  </ListItem>
-                ))}
-              </List>
+                      <div>{entry.name}</div>
+                      <div
+                        css={`
+                          margin-top: 6px;
+                          font-size: 12px;
+                          color: ${rgba('#444', 0.8)};
+                        `}
+                      >
+                        {entry.version ? entry.version : t('noVersionInfo')}
+                      </div>
+                    </ListItem>
+                  ))}
+                </List>
+              </InputSection>
             </div>
           </div>
         </Sidebar>
@@ -1430,13 +1377,13 @@ export const PhotoBooth = memo(function PhotoBooth({
                 active={rightTab === 'expr'}
                 onClick={() => setRightTab('expr')}
               >
-                表情
+                {t('facial')}
               </Tab>
               <Tab
                 active={rightTab === 'poses'}
                 onClick={() => setRightTab('poses')}
               >
-                ポーズ
+                {t('pose')}
               </Tab>
             </TabBar>
 
@@ -1471,7 +1418,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                       setState({ syncEyes: currentTarget.checked })
                     }
                   />
-                  Sync eyes
+                  {t('facial/syncEyes')}
                 </label>
                 <div
                   css={`
@@ -1540,6 +1487,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
               <div
                 css={`
+                  margin-top: 16px;
                   padding-right: 8px;
                   flex: 1;
                   overflow: auto;
@@ -1559,8 +1507,12 @@ export const PhotoBooth = memo(function PhotoBooth({
                   }
                 `}
               >
-                <ExprHead>
-                  表情
+                <ExprHead
+                  css={css`
+                    margin-top: 0;
+                  `}
+                >
+                  {t('facial/presets')}
                   <Button
                     css={`
                       width: auto;
@@ -1572,7 +1524,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                     size="min"
                     onClick={handleClickResetStandardMorphs}
                   >
-                    リセット
+                    {t('facial/reset')}
                   </Button>
                 </ExprHead>
 
@@ -1588,7 +1540,13 @@ export const PhotoBooth = memo(function PhotoBooth({
                   ).map((name) => (
                     <Slider
                       key={name}
-                      label={<>{name}</>}
+                      label={
+                        <>
+                          {t(`vrm/exprPreset/${name}`, null, {
+                            fallback: name,
+                          })}
+                        </>
+                      }
                       title={name}
                       min={0}
                       max={1}
@@ -1601,7 +1559,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                 </div>
 
                 <ExprHead>
-                  カスタム表情
+                  {t('facial/customs')}
                   <Button
                     css={`
                       width: auto;
@@ -1613,7 +1571,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                     size="min"
                     onClick={handleClickResetUnsafeMorphs}
                   >
-                    リセット
+                    {t('facial/reset')}
                   </Button>
                 </ExprHead>
 
@@ -1648,7 +1606,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                       )
                     )
                   ) : (
-                    <div>カスタム表情はありません</div>
+                    <div>{t('facial/customs/noAvailable')}</div>
                   )}
                 </div>
               </div>
@@ -1716,14 +1674,16 @@ export const PhotoBooth = memo(function PhotoBooth({
                   }
                 />
 
-                <Button onClick={handleClickSavePose}>ポーズを保存</Button>
+                <Button onClick={handleClickSavePose}>
+                  {t('pose/savePose')}
+                </Button>
 
                 <Button
                   kind="primary"
                   disabled={!state.poseId}
                   onClick={handleClickOverwritePose}
                 >
-                  上書き保存
+                  {t('pose/overwrite')}
                   {state.poseId && (
                     <span
                       css={css`
@@ -1784,34 +1744,36 @@ export const PhotoBooth = memo(function PhotoBooth({
         animation={false}
       >
         <ContextItem onClick={handleClickLoadSceneAll}>
-          すべて読み込む
+          {t('posemenu/loadAll')}
         </ContextItem>
         <ContextItem onClick={handleClickLoadCamera}>
-          カメラを読み込む
+          {t('posemenu/loadCam')}
         </ContextItem>
         <ContextItem onClick={handleClickLoadScene}>
-          シーンを読み込む
+          {t('posemenu/loadScene')}
         </ContextItem>
         <ContextItem onClick={handleClickLoadBones}>
-          ボーンを読み込む
+          {t('posemenu/loadBones')}
         </ContextItem>
         <ContextItem onClick={handleClickLoadShapes}>
-          表情を読み込む
+          {t('posemenu/loadFacial')}
         </ContextItem>
 
         <Separator />
 
         <ContextItem onClick={handleClickDownloadPose}>
-          ダウンロード
+          {t('posemenu/download')}
         </ContextItem>
 
         <ContextItem onClick={handleClickDownloadPoseSet}>
-          ポーズセットを書き出す
+          {t('posemenu/downloadAll')}
         </ContextItem>
 
         <Separator />
 
-        <ContextItem onClick={handleClickRemovePose}>削除</ContextItem>
+        <ContextItem onClick={handleClickRemovePose}>
+          {t('posemenu/delete')}
+        </ContextItem>
       </ContextMenu>
 
       <ContextMenu
@@ -1823,10 +1785,10 @@ export const PhotoBooth = memo(function PhotoBooth({
         animation={false}
       >
         <ContextItem onClick={handleClickResetPoses}>
-          ポーズと表情をリセット
+          {t('resetmenu/resetPoseAndFacial')}
         </ContextItem>
         <ContextItem onClick={handleClickResetSelectBone}>
-          ボーンを選択してリセット
+          {t('resetmenu/resetSelectedBones')}
         </ContextItem>
       </ContextMenu>
 
@@ -1857,7 +1819,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 });
 
 const menuIconCss = css`
-  font-size: 28px;
+  font-size: 22px;
   color: #fff;
 `;
 
@@ -1952,7 +1914,7 @@ const Tab = styled.div.withConfig<{ active: boolean }>({
 const ExprHead = styled.div`
   display: flex;
   align-items: center;
-  margin: 16px 0 16px;
+  margin: 32px 0 12px;
   font-size: 14px;
   font-weight: bold;
 `;
