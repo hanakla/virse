@@ -561,6 +561,8 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickCapture = useEvent(async () => {
+    if (!stage) return;
+
     stage!.setShowBones(false);
 
     console.time('capture');
@@ -572,7 +574,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
 
     const blob = await new Promise<Blob>((resolve) => {
-      canvas.current?.toBlob((blob) => {
+      stage.canvas.toBlob((blob) => {
         resolve(blob!);
       }, 'image/png');
     });
