@@ -401,8 +401,6 @@ export class VirseStage {
       this.events.emit('updated');
     });
 
-    avatar.vrm.scene.position.set(Math.random() * 4, 0, Math.random() * 4);
-
     const uid = nanoid();
     this.avatars[uid] = {
       uid,
