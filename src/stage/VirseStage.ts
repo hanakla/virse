@@ -34,6 +34,13 @@ type Events = {
   updated: void;
 };
 
+type AvatarData = {
+  uid: string;
+  avatar: Avatar;
+  ui: VrmPoseController;
+  vrm: VRM;
+};
+
 export class VirseStage {
   public renderer: WebGLRenderer;
   public pCam: THREE.PerspectiveCamera;
@@ -57,13 +64,10 @@ export class VirseStage {
   };
 
   #size: { width: number; height: number };
+  #activeAvatarUid: string | null = null;
 
   public avatars: {
-    [K: string]: {
-      avatar: Avatar;
-      ui: VrmPoseController;
-      vrm: VRM;
-    };
+    [K: string]: AvatarData;
   } = Object.create(null);
 
   constructor(public canvas: HTMLCanvasElement) {
@@ -282,11 +286,22 @@ export class VirseStage {
   public set boneControlMode(mode: string) {
     Object.values(this.avatars).map((o) => {
       o.ui.fkControlMode = mode as any;
+      o.ui.setAxis('all');
     });
   }
 
   public get activeAvatar() {
-    return Object.values(this.avatars)[0];
+    return this.avatars[this.#activeAvatarUid ?? ''] ?? null;
+  }
+
+  public setActiveAvatar(uid: string) {
+    this.#activeAvatarUid = uid;
+
+    this.iterableAvatars.forEach((avatar) => {
+      avatar.ui.setEnableControll(avatar.uid === uid);
+    });
+
+    this.events.emit('updated');
   }
 
   public setShowBones(visible: boolean) {
@@ -351,14 +366,18 @@ export class VirseStage {
   }
 
   public async loadVRM(url: string) {
-    {
-      Object.values(this.avatars).forEach(({ avatar }) => {
-        this.rootScene.remove(avatar.vrm.scene);
-        VRMUtils.deepDispose(avatar.vrm.scene);
-      });
+    // {
+    //   Object.values(this.avatars).forEach(({ avatar }) => {
+    //     this.rootScene.remove(avatar.vrm.scene);
+    //     VRMUtils.deepDispose(avatar.vrm.scene);
+    //   });
 
-      this.avatars = {};
-    }
+    //   this.avatars = {};
+    // }
+
+    Object.values(this.avatars).forEach(({ avatar }) => {
+      avatar.ui.setEnableControll(false);
+    });
 
     const avatar = new Avatar(this);
     await avatar.loadVRM(url);
@@ -378,11 +397,15 @@ export class VirseStage {
       this.orbitControls.enabled = !dragging;
     });
 
-    avatar.kalidokit.events.on('statusChanged', () => {
+    avatar.kalidokit?.events.on('statusChanged', () => {
       this.events.emit('updated');
     });
 
-    this.avatars[nanoid()] = {
+    avatar.vrm.scene.position.set(Math.random() * 4, 0, Math.random() * 4);
+
+    const uid = nanoid();
+    this.avatars[uid] = {
+      uid,
       avatar,
       get ui() {
         return avatar.ui;
@@ -392,6 +415,7 @@ export class VirseStage {
       },
     };
 
+    this.#activeAvatarUid = uid;
     this.events.emit('updated');
   }
 

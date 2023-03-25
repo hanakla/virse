@@ -106,7 +106,10 @@ export const useBindMousetrap = (
   ref: MutableRefObject<HTMLElement | null>,
   handlerKey: string,
   handlerCallback: MousetrapCallback,
-  evtType = undefined
+  {
+    enableOnInput = false,
+    evtType = undefined,
+  }: { enableOnInput?: boolean; evtType?: string } = {}
 ) => {
   const handlerRef = useStableLatestRef(handlerCallback);
 
@@ -115,7 +118,20 @@ export const useBindMousetrap = (
 
     const trap = mousetrap(ref.current);
 
-    trap.bind(handlerKey, (...args) => handlerRef.current(...args), evtType);
+    trap.bind(
+      handlerKey,
+      (e, combo) => {
+        if (
+          !enableOnInput &&
+          (e.target as HTMLElement).matches('input, textarea, select')
+        ) {
+          return;
+        }
+
+        handlerRef.current(e, combo);
+      },
+      evtType
+    );
 
     return () => {
       trap.reset();
@@ -134,19 +150,8 @@ export const useFocusRestore = ({
       : null
   );
 
-  console.log(
-    typeof document !== 'undefined'
-      ? (document.activeElement as HTMLElement)
-      : null
-  );
-
-  useInsertionEffect(() => {
-    console.log(prevFocusElementRef.current);
-  });
-
   useLayoutEffect(() => {
     const restoreFocusTarget = prevFocusElementRef.current;
-    console.log(restoreFocusTarget);
 
     return () => {
       if (restoreOnUnmount) {

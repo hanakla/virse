@@ -44,6 +44,7 @@ export class VrmPoseController {
   private _needIkSolve = false;
 
   #activeBone: Object3D | null = null;
+  #enable: boolean = true;
   #visible: boolean = true;
 
   public readonly events = mitt<Events>();
@@ -169,6 +170,12 @@ export class VrmPoseController {
     c.showZ = axis === 'Z' || activateAll;
   }
 
+  public setEnableControll(enable: boolean) {
+    this.#enable = enable;
+    this._transformController.enabled = enable;
+    this._interactableObjects.forEach((obj) => (obj.visible = enable));
+  }
+
   public update = () => {
     if (this._needIkSolve) {
       this._vrmIk.solve(); // IKを解決
@@ -183,12 +190,14 @@ export class VrmPoseController {
 
   public setVisible = (visible: boolean): void => {
     this.#visible = visible;
-    this._interactableObjects.forEach((obj) => (obj.visible = visible));
+    this._interactableObjects.forEach((obj) => {
+      obj.visible = visible && this.#enable;
+    });
 
     // コントローラーが無効な状態の時に表示してしまうのを回避する
     const isControllerEnabled = visible && !!this._transformController.object;
     // this._transformController.enabled = isControllerEnabled;
-    this._transformController.visible = isControllerEnabled;
+    this._transformController.visible = isControllerEnabled && this.#enable;
   };
 
   // TODO: 負荷対策を考える

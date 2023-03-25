@@ -1,6 +1,6 @@
-import { Vector3 } from "three";
-import { VRMHumanBoneName } from "@pixiv/three-vrm";
-import { IKConfig } from "./ikSolver";
+import { Vector3 } from 'three';
+import { VRMHumanBoneName } from '@pixiv/three-vrm';
+import { IKConfig } from './ikSolver';
 
 /*
 example
@@ -37,19 +37,19 @@ export const defaultIKConfig: IKConfig = {
       jointConfigs: [
         {
           boneName: VRMHumanBoneName.Chest,
-          order: "XYZ",
+          order: 'XYZ',
           rotationMin: new Vector3(-Math.PI, -Math.PI, -Math.PI),
           rotationMax: new Vector3(Math.PI, Math.PI, Math.PI),
         },
         {
           boneName: VRMHumanBoneName.Spine,
-          order: "XYZ",
+          order: 'XYZ',
           rotationMin: new Vector3(-Math.PI, -Math.PI, -Math.PI),
           rotationMax: new Vector3(Math.PI, Math.PI, Math.PI),
         },
         {
           boneName: VRMHumanBoneName.Hips,
-          order: "XYZ",
+          order: 'XYZ',
           rotationMin: new Vector3(-Math.PI, -Math.PI, -Math.PI),
           rotationMax: new Vector3(Math.PI, Math.PI, Math.PI),
         },
@@ -61,19 +61,19 @@ export const defaultIKConfig: IKConfig = {
       jointConfigs: [
         {
           boneName: VRMHumanBoneName.LeftLowerArm,
-          order: "YZX",
+          order: 'YZX',
           rotationMin: new Vector3(0, -Math.PI, 0),
           rotationMax: new Vector3(0, -(0.1 / 180) * Math.PI, 0),
         },
         {
           boneName: VRMHumanBoneName.LeftUpperArm,
-          order: "ZXY",
+          order: 'ZXY',
           rotationMin: new Vector3(-Math.PI / 2, -Math.PI, -Math.PI),
           rotationMax: new Vector3(Math.PI / 2, Math.PI, Math.PI),
         },
         {
           boneName: VRMHumanBoneName.LeftShoulder,
-          order: "ZXY",
+          order: 'ZXY',
           rotationMin: new Vector3(
             0,
             -(45 / 180) * Math.PI,
@@ -89,19 +89,19 @@ export const defaultIKConfig: IKConfig = {
       jointConfigs: [
         {
           boneName: VRMHumanBoneName.RightLowerArm,
-          order: "YZX",
+          order: 'YZX',
           rotationMin: new Vector3(0, (0.1 / 180) * Math.PI, 0),
           rotationMax: new Vector3(0, Math.PI, 0),
         },
         {
           boneName: VRMHumanBoneName.RightUpperArm,
-          order: "ZXY",
+          order: 'ZXY',
           rotationMin: new Vector3(-Math.PI / 2, -Math.PI, -Math.PI),
           rotationMax: new Vector3(Math.PI / 2, Math.PI, Math.PI),
         },
         {
           boneName: VRMHumanBoneName.RightShoulder,
-          order: "ZXY",
+          order: 'ZXY',
           rotationMin: new Vector3(0, -(45 / 180) * Math.PI, 0),
           rotationMax: new Vector3(
             0,
@@ -117,13 +117,13 @@ export const defaultIKConfig: IKConfig = {
       jointConfigs: [
         {
           boneName: VRMHumanBoneName.LeftLowerLeg,
-          order: "XYZ",
+          order: 'XYZ',
           rotationMin: new Vector3(-Math.PI, 0, 0),
           rotationMax: new Vector3(0, 0, 0),
         },
         {
           boneName: VRMHumanBoneName.LeftUpperLeg,
-          order: "XYZ",
+          order: 'XYZ',
           rotationMin: new Vector3(-Math.PI, -Math.PI, -Math.PI),
           rotationMax: new Vector3(Math.PI, Math.PI, Math.PI),
         },
@@ -135,13 +135,13 @@ export const defaultIKConfig: IKConfig = {
       jointConfigs: [
         {
           boneName: VRMHumanBoneName.RightLowerLeg,
-          order: "XYZ",
+          order: 'XYZ',
           rotationMin: new Vector3(-Math.PI, 0, 0),
           rotationMax: new Vector3(0, 0, 0),
         },
         {
           boneName: VRMHumanBoneName.RightUpperLeg,
-          order: "XYZ",
+          order: 'XYZ',
           rotationMin: new Vector3(-Math.PI, -Math.PI, -Math.PI),
           rotationMax: new Vector3(Math.PI, Math.PI, Math.PI),
         },

@@ -13,7 +13,13 @@ import { VRMHumanBoneName } from '@pixiv/three-vrm';
 import { useFleurContext } from '@fleur/react';
 import { EditorMode, editorOps, EditorStore } from '../domains/editor';
 import { transitionCss } from '../styles/mixins';
-import { useDrop, useMount, useUpdate } from 'react-use';
+import {
+  useDrop,
+  useEffectOnce,
+  useLocalStorage,
+  useMount,
+  useUpdate,
+} from 'react-use';
 import Head from 'next/head';
 import { useContextMenu } from 'react-contexify';
 import 'react-contexify/dist/ReactContexify.css';
@@ -24,6 +30,7 @@ import { PhotoBooth } from '../features/photobooth';
 import { LiveBooth } from '../features/livebooth';
 import { useRouter } from 'next/router';
 import { Link } from '../components/Link';
+import { ConfirmAgreement } from '../modals/ConrirmAgreement';
 
 const replaceVRoidShapeNamePrefix = (name: string) => {
   return name.replace(/^Fcl_/g, '');
@@ -42,13 +49,12 @@ export default function Home() {
   const { openModal } = useModalOpener();
 
   const canvas = useRef<HTMLCanvasElement | null>(null);
-  const [sidebarRef, sidebarBBox] = useMeasure();
   const rootRef = useRef<HTMLDivElement>(null);
   const padLRef = useRef<HTMLDivElement>(null);
   const padRRef = useRef<HTMLDivElement>(null);
-  const bgColoPaneRef = useRef<HTMLDivElement>(null);
   const padLMouse = useMouse(padLRef);
   const padRMouse = useMouse(padRRef);
+  const [isAgreed, setAgreement] = useLocalStorage('virseAgreement', false);
 
   const { show: showContextMenu, hideAll } = useContextMenu({});
 
@@ -234,6 +240,14 @@ export default function Home() {
         ?.rotation.set(rateY, rateX, 0);
     }
   }, [state.syncEyes, padLMouse.clientX, padLMouse.clientY, padLMouse.isDown]);
+
+  useEffectOnce(() => {
+    if (isAgreed) return;
+
+    openModal(ConfirmAgreement, {}).then(() => {
+      setAgreement(true);
+    });
+  });
 
   useEffect(() => {
     const vrm = stage ? Object.values(stage.avatars)[0]?.vrm : null;

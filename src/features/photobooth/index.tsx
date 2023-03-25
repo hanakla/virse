@@ -16,10 +16,13 @@ import {
 } from 'react-contexify';
 import {
   RiArrowLeftSFill,
+  RiCamera2Fill,
   RiCamera2Line,
   RiCameraSwitchFill,
   RiFlashlightFill,
   RiPaintFill,
+  RiQuestionFill,
+  RiQuestionMark,
   RiRefreshLine,
   RiSkullFill,
 } from 'react-icons/ri';
@@ -61,6 +64,7 @@ import {
   useStoreState,
 } from '../../utils/hooks';
 import { useTranslation } from '../../hooks/useTranslation';
+import { rightHandShortcuts } from '../../domains/ui';
 
 type StashedCam = {
   mode: CamModes;
@@ -290,7 +294,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickResetStandardMorphs = useFunc(() => {
-    const { vrm } = Object.values(stage.vrms)[0];
+    const { vrm } = stage?.activeAvatar;
     if (!vrm) return;
 
     Object.keys(vrm.expressionManager?.expressionMap ?? {}).forEach((name) => {
@@ -299,7 +303,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickResetUnsafeMorphs = useFunc(() => {
-    const { avatar } = Object.values(stage.vrms)[0];
+    const avatar = stage?.activeAvatar.avatar;
     if (!avatar.blendshapes) return;
 
     Object.entries(avatar.blendshapes).forEach(([name, proxy]) => {
@@ -343,7 +347,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
-    const { avatar } = Object.values(stage.vrms)[0];
+    const avatar = stage?.activeAvatar.avatar;
     if (!avatar || !pose) return;
 
     Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
@@ -363,8 +367,8 @@ export const PhotoBooth = memo(function PhotoBooth({
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
-    const { avatar } = Object.values(stage.vrms)[0];
-    if (!avatar.vrm || !pose) return;
+    const avatar = stage?.activeAvatar.avatar;
+    if (!avatar?.vrm || !pose) return;
 
     stage.setCamMode(pose.camera.mode, {
       fov: pose.camera.fov,
@@ -389,7 +393,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
-    const { avatar } = Object.values(stage.vrms)[0];
+    const avatar = stage?.activeAvatar.avatar;
     if (!avatar.vrm || !pose) return;
 
     stage.setCamMode(pose.camera.mode, {
@@ -427,7 +431,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
-    const { avatar } = Object.values(stage.vrms)[0];
+    const avatar = stage?.activeAvatar.avatar;
     if (!avatar.vrm || !pose) return;
 
     const boneNames = Object.keys(pose.bones);
@@ -451,7 +455,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
-    const { avatar } = Object.values(stage.vrms)[0];
+    const avatar = stage?.activeAvatar.avatar;
     if (!avatar.vrm || !pose) return;
 
     const poseNames = [
@@ -552,6 +556,12 @@ export const PhotoBooth = memo(function PhotoBooth({
     showContextMenu(e, { id: 'modelmenu', props: { modelId } });
   });
 
+  const handleClickStagedModel = useEvent(
+    ({ currentTarget }: MouseEvent<HTMLLIElement>) => {
+      stage?.setActiveAvatar(currentTarget.dataset.uid!);
+    }
+  );
+
   const handleDblClickModel = useFunc((e: MouseEvent<HTMLElement>) => {
     handleClickLoadModel({
       event: e,
@@ -628,11 +638,13 @@ export const PhotoBooth = memo(function PhotoBooth({
         quaternion: stage.activeCamera.quaternion.toArray(),
       };
 
+      if (state.currentCamKind === nextMode) return;
+
       if (nextMode === 'capture') {
         // stash current to editorial cam, restore capture cam
         const next = state.captureCam ?? current;
 
-        stage.setCamMode(next.mode, next);
+        stage?.setCamMode(next.mode, next);
 
         setState({
           currentCamKind: 'capture',
@@ -643,7 +655,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         // stash current to capture cam, restore editorial cam
         const next = state.editorialCam ?? current;
 
-        stage.setCamMode(next.mode, next);
+        stage?.setCamMode(next.mode, next);
 
         setState({
           currentCamKind: 'editorial',
@@ -666,7 +678,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   );
 
   // const handleChangeHandMix = useFunc((_, v) => {
-  //   const { vrm } = Object.values(stage.vrms)[0];
+  //   const { vrm } = stage?.activeAvatar;
   //   if (!vrm) return;
 
   //   vrm.humanoid!.setRawPose({
@@ -702,6 +714,11 @@ export const PhotoBooth = memo(function PhotoBooth({
   //     },
   //   });
   // });
+
+  const handleClickHelp = useEvent(() => {
+    openModal(KeyboardHelp, { temporalyShow: false });
+  });
+
   // #endregion
   // endregion
 
@@ -717,101 +734,156 @@ export const PhotoBooth = memo(function PhotoBooth({
   //   });
   // });
 
-  useBindMousetrap(shortcutBindElRef, 'b', () => {
-    if (mode !== EditorMode.photo) return;
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.toggleDisplaySkeleton,
+    () => {
+      if (mode !== EditorMode.photo) return;
 
-    handleClickDisplayBones();
-  });
-
-  useBindMousetrap(shortcutBindElRef, 'a', async () => {
-    const avatar = stage?.activeAvatar;
-    const bone = avatar?.ui.activeBone;
-    if (!bone) return;
-
-    const siblBones = (bone.parent?.children ?? []).filter(
-      (o: any): o is Bone => o.isBone
-    );
-    if (siblBones.length === 0) return;
-    else if (siblBones.length === 1) avatar.ui.activeBone = siblBones[0];
-    else {
-      const targetBoneName = await openModal(SelectChangeBones, {
-        boneNames: siblBones.map((o) => o.name),
-        activeBoneName: bone.name,
-      });
-      if (!targetBoneName) return;
-
-      const targetBone = siblBones.find((o) => o.name === targetBoneName);
-      if (!targetBone) return;
-
-      avatar.ui.activeBone = targetBone;
+      handleClickDisplayBones();
     }
-  });
+  );
 
-  useBindMousetrap(shortcutBindElRef, 'd', async () => {
-    const avatar = stage?.activeAvatar;
-    const bone = avatar?.ui.activeBone;
-    if (!bone) return;
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.selectSiblingBone,
+    async () => {
+      const avatar = stage?.activeAvatar;
+      const bone = avatar?.ui.activeBone;
+      if (!bone) return;
 
-    const childBones = bone.children.filter((o: any): o is Bone => o.isBone);
-    if (childBones.length === 0) return;
-    else if (childBones.length === 1) avatar.ui.activeBone = childBones[0];
-    else {
-      const targetBoneName = await openModal(SelectChangeBones, {
-        boneNames: childBones.map((o) => o.name),
-      });
-      if (!targetBoneName) return;
+      const siblBones = (bone.parent?.children ?? []).filter(
+        (o: any): o is Bone => o.isBone
+      );
+      if (siblBones.length === 0) return;
+      else if (siblBones.length === 1) avatar.ui.activeBone = siblBones[0];
+      else {
+        const targetBoneName = await openModal(SelectChangeBones, {
+          boneNames: siblBones.map((o) => o.name),
+          activeBoneName: bone.name,
+        });
+        if (!targetBoneName) return;
 
-      const targetBone = childBones.find((o) => o.name === targetBoneName);
-      if (!targetBone) return;
+        const targetBone = siblBones.find((o) => o.name === targetBoneName);
+        if (!targetBone) return;
 
-      avatar.ui.activeBone = targetBone;
+        avatar.ui.activeBone = targetBone;
+      }
     }
+  );
+
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.selectChildBone,
+    async () => {
+      const avatar = stage?.activeAvatar;
+      const bone = avatar?.ui.activeBone;
+      if (!bone) return;
+
+      const childBones = bone.children.filter((o: any): o is Bone => o.isBone);
+      if (childBones.length === 0) return;
+      else if (childBones.length === 1) avatar.ui.activeBone = childBones[0];
+      else {
+        const targetBoneName = await openModal(SelectChangeBones, {
+          boneNames: childBones.map((o) => o.name),
+        });
+        if (!targetBoneName) return;
+
+        const targetBone = childBones.find((o) => o.name === targetBoneName);
+        if (!targetBone) return;
+
+        avatar.ui.activeBone = targetBone;
+      }
+    }
+  );
+
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.selectParentBone,
+    () => {
+      const avatar = stage?.activeAvatar;
+      if (!avatar) return;
+
+      const bone = avatar?.ui.activeBone;
+      if (!bone || !(bone.parent as any).isBone) return;
+
+      avatar.ui.activeBone = bone.parent;
+    }
+  );
+
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.toggleBoneControlMode,
+    () => {
+      if (mode !== EditorMode.photo) return;
+
+      const modes = ['translate', 'rotate'] as const;
+      const current = stage!.boneControlMode;
+
+      stage!.boneControlMode =
+        modes[(modes.indexOf(current) + 1) % modes.length];
+    }
+  );
+
+  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.previousAvatar, () => {
+    const currentUid = stage?.activeAvatar?.uid;
+    if (!stage || !currentUid) return;
+
+    const avatars = stage.iterableAvatars;
+    const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
+    if (currentIdx === -1) return;
+
+    const nextIdx = (currentIdx + 1) % avatars.length;
+    const nextAvatarUID = avatars[nextIdx].uid;
+    stage.setActiveAvatar(nextAvatarUID);
   });
 
-  useBindMousetrap(shortcutBindElRef, 's', () => {
-    const avatar = stage?.activeAvatar;
-    if (!avatar) return;
+  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.nextAvatar, () => {
+    const currentUid = stage?.activeAvatar?.uid;
+    if (!stage || !currentUid) return;
 
-    const bone = avatar?.ui.activeBone;
-    if (!bone || !(bone.parent as any).isBone) return;
+    const avatars = stage.iterableAvatars;
+    const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
+    if (currentIdx === -1) return;
 
-    avatar.ui.activeBone = bone.parent;
+    const nextIdx = (currentIdx + avatars.length - 1) % avatars.length;
+    const nextAvatarUID = avatars[nextIdx].uid;
+    stage.setActiveAvatar(nextAvatarUID);
   });
 
-  useBindMousetrap(shortcutBindElRef, '/', () => {
-    if (mode !== EditorMode.photo) return;
-
-    const modes = ['translate', 'rotate'] as const;
-    const current = stage!.boneControlMode;
-
-    stage!.boneControlMode = modes[(modes.indexOf(current) + 1) % modes.length];
+  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisX, (e) => {
+    stage?.activeAvatar?.ui?.setAxis('X');
   });
 
-  useBindMousetrap(shortcutBindElRef, 'x', (e) => {
-    stage?.activeAvatar.ui.setAxis('X');
+  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisY, (e) => {
+    stage?.activeAvatar?.ui?.setAxis('Y');
   });
 
-  useBindMousetrap(shortcutBindElRef, 'y', (e) => {
-    stage?.activeAvatar.ui.setAxis('Y');
+  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisZ, (e) => {
+    stage?.activeAvatar?.ui?.setAxis('Z');
   });
 
-  useBindMousetrap(shortcutBindElRef, 'z', (e) => {
-    stage?.activeAvatar.ui.setAxis('Z');
-  });
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.keyboardShortcutHelp,
+    (e) => {
+      if (e.repeat) return;
 
-  useBindMousetrap(shortcutBindElRef, 'h', (e) => {
-    if (e.repeat) return;
+      const abort = new AbortController();
 
-    const abort = new AbortController();
+      window.addEventListener(
+        'keyup',
+        () => !abort.signal.aborted && abort.abort(),
+        { once: true }
+      );
 
-    window.addEventListener(
-      'keyup',
-      () => !abort.signal.aborted && abort.abort(),
-      { once: true }
-    );
-
-    openModal(KeyboardHelp, {}, { signal: abort.signal });
-  });
+      openModal(
+        KeyboardHelp,
+        { temporalyShow: true },
+        { signal: abort.signal }
+      );
+    }
+  );
 
   useBindMousetrap(shortcutBindElRef, 'p', () => {
     setRightTab('poses');
@@ -822,19 +894,11 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   useBindMousetrap(shortcutBindElRef, 'c', () => {
-    if (!stage) return;
-
-    const camKinds = ['editorial', 'capture'] as const;
-    const nextCamKind =
-      camKinds[(camKinds.indexOf(state.currentCamKind) + 1) % camKinds.length];
-
-    changeCamKind.current(nextCamKind);
+    changeCamKind.current('editorial');
   });
 
   useBindMousetrap(shortcutBindElRef, 'shift+c', () => {
-    setState({
-      captureCam: null,
-    });
+    changeCamKind.current('capture');
   });
 
   // useEffect(() => {
@@ -970,7 +1034,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   }, [state.syncEyes, padRMouse.clientX, padRMouse.clientY, padRMouse.isDown]);
 
-  const model = stage ? Object.values(stage.avatars)[0] : null;
+  const activeAvatar = stage ? stage.activeAvatar : null;
 
   //// Render
   return (
@@ -1033,10 +1097,10 @@ export const PhotoBooth = memo(function PhotoBooth({
                   font-weight: bold;
                 `}
               >
-                {stage?.activeAvatar?.ui.activeBoneName ?? t('noBoneSelected')}
+                {activeAvatar?.ui.activeBoneName ?? t('noBoneSelected')}
               </span>
 
-              {stage?.activeAvatar?.ui.hoveredBone && (
+              {activeAvatar?.ui.hoveredBone && (
                 <>
                   <br />
                   <span
@@ -1048,7 +1112,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                       opacity: 0.8;
                     `}
                   >
-                    {stage.activeAvatar?.ui.hoveredBone.name}
+                    {activeAvatar?.ui.hoveredBone.name}
                   </span>
                 </>
               )}
@@ -1287,6 +1351,46 @@ export const PhotoBooth = memo(function PhotoBooth({
                 </Button>
               </InputSection>
 
+              <InputSection title={t('onStageModels')}>
+                <List
+                  css={`
+                    flex: 1;
+                    overflow: auto;
+                  `}
+                >
+                  {stage?.iterableAvatars.map(({ uid, avatar }) => (
+                    <ListItem
+                      key={uid}
+                      data-uid={uid}
+                      active={stage.activeAvatar?.uid === uid}
+                      onClick={handleClickStagedModel}
+                    >
+                      <div>{avatar.vrm.meta.title}</div>
+                      <div
+                        css={css`
+                          margin-top: 6px;
+                          font-size: 12px;
+                          opacity: 0.8;
+                        `}
+                      >
+                        {avatar.vrm.meta.version
+                          ? avatar.vrm.meta.version
+                          : t('noVersionInfo')}
+                      </div>
+                    </ListItem>
+                  ))}
+
+                  <ListItem
+                    css={css`
+                      margin-top: 6px;
+                      font-size: 12px;
+                    `}
+                  >
+                    Drop VRM to add on stage
+                  </ListItem>
+                </List>
+              </InputSection>
+
               <InputSection title={t('recentlyUsedModels')}>
                 <List
                   css={`
@@ -1306,7 +1410,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                         css={`
                           margin-top: 6px;
                           font-size: 12px;
-                          color: ${rgba('#444', 0.8)};
+                          opacity: 0.8;
                         `}
                       >
                         {entry.version ? entry.version : t('noVersionInfo')}
@@ -1334,12 +1438,42 @@ export const PhotoBooth = memo(function PhotoBooth({
           opened={menuOpened}
         >
           <div
-            id="hovers"
+            // Help button
+            css={`
+              position: absolute;
+              right: 100%;
+              top: 16px;
+              margin-right: 48px;
+              z-index: 2;
+            `}
+          >
+            <Button
+              kind="default"
+              css={`
+                padding: 8px;
+                box-shadow: 0 0 5px ${rgba('#aaaa', 0.5)};
+                ${transitionCss}
+              `}
+              style={{
+                transform: menuOpened ? 'translateX(0)' : 'translateX(-100%)',
+              }}
+              onClick={handleClickHelp}
+            >
+              <RiQuestionMark
+                css={`
+                  font-size: 20px;
+                `}
+              />
+            </Button>
+          </div>
+
+          <div
+            // Capture button
             css={`
               position: absolute;
               right: 100%;
               bottom: 16px;
-              margin-right: 32px;
+              margin-right: 48px;
               z-index: 2;
             `}
           >
@@ -1355,7 +1489,7 @@ export const PhotoBooth = memo(function PhotoBooth({
               }}
               onClick={handleClickCapture}
             >
-              <RiCamera2Line
+              <RiCamera2Fill
                 css={`
                   font-size: 32px;
                 `}
@@ -1538,7 +1672,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                   `}
                 >
                   {Object.keys(
-                    model?.vrm.expressionManager?.expressionMap ?? {}
+                    activeAvatar?.vrm.expressionManager?.expressionMap ?? {}
                   ).map((name) => (
                     <Slider
                       key={name}
@@ -1552,9 +1686,11 @@ export const PhotoBooth = memo(function PhotoBooth({
                       title={name}
                       min={0}
                       max={1}
-                      value={model?.vrm.expressionManager?.getValue(name) ?? 0}
+                      value={
+                        activeAvatar?.vrm.expressionManager?.getValue(name) ?? 0
+                      }
                       onChange={(v) =>
-                        model?.vrm.expressionManager?.setValue(name, v)
+                        activeAvatar?.vrm.expressionManager?.setValue(name, v)
                       }
                     />
                   ))}
@@ -1584,8 +1720,8 @@ export const PhotoBooth = memo(function PhotoBooth({
                     gap: 12px;
                   `}
                 >
-                  {model?.avatar.blendshapes ? (
-                    Object.entries(model.avatar.blendshapes).map(
+                  {activeAvatar?.avatar.blendshapes ? (
+                    Object.entries(activeAvatar.avatar.blendshapes).map(
                       ([name, proxy]) => (
                         <Slider
                           key={name}

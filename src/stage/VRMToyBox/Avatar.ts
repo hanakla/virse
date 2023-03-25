@@ -22,6 +22,7 @@ import { VrmPoseController } from './vrmPoseController';
 type Events = {
   boneChanged: Bone | null;
   boneDragging: { dragging: boolean };
+  kalidokitStatusChanged: { initialized: boolean; running: boolean };
 };
 
 type MorphProxy = {
@@ -73,7 +74,14 @@ export class Avatar {
   }
 
   public get kalidokit() {
-    return (this.#kalidokit ??= new KalidokitCapture(this));
+    if (this.#kalidokit) return this.#kalidokit;
+
+    this.#kalidokit = new KalidokitCapture(this);
+    this.#kalidokit.events.on('statusChanged', (status) => {
+      this.events.emit('kalidokitStatusChanged', status);
+    });
+
+    return;
   }
 
   public get allBoneNames() {

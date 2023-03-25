@@ -1,5 +1,5 @@
 {
-  "ok": "決定",
+  "ok": "OK",
   "cancel": "キャンセル",
   "selectAll": "すべて選択",
   "filter": "絞り込み",
@@ -19,6 +19,7 @@
   "resolutionPx": "解像度(px)",
   "resolution/resetToScreenSize": "画面サイズにリセット",
   "recentlyUsedModels": "最近使ったモデル",
+  "onStageModels": "ステージ上のモデル",
   "noVersionInfo": "(バージョンなし)",
   "facial": "表情",
   "facial/presets": "プリセット表情",
@@ -51,12 +52,21 @@
 
   "keyboardHelp/title": "キーボードショートカット",
   "keyboardHelp/showHelp": "キーボードヘルプを表示",
+  "keyboardHelp/previousAvatar": "上のアバターに切り替え",
+  "keyboardHelp/nextAvatar": "下のアバターに切り替え",
+  "keyboardHelp/camEditorial": "編集用カメラに切り替え",
+  "keyboardHelp/camCapture": "撮影用カメラに切り替え",
   "keyboardHelp/boneControlMode": "ボーン操作モードの切り替え<br/>(移動・回転)",
   "keyboardHelp/changeDisplaySkeleton": "ボーン表示切り替え",
   "keyboardHelp/selectSiblingBone": "兄弟ボーンを選択",
   "keyboardHelp/selectParentBone": "親ボーンを選択",
   "keyboardHelp/selectChildBone": "子ボーンを選択",
   "keyboardHelp/axisFilter": "(ボーン選択中) {{axis}}回転軸だけ表示 (再押下でリセット)",
+
+  "confirmAgreement/title": "利用規約",
+  "confirmAgreement/agree": "同意して利用する",
+  "confirmAgreement/disagree": "同意しない",
+  "confirmAgreement/invalid": "同意しないじゃねえ、同意するしかねえんだよ。",
 
   "vrm/exprPreset/aa": "あ",
   "vrm/exprPreset/ih": "い",

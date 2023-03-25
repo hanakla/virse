@@ -1,12 +1,12 @@
 import useFocusTrap from '@charlietango/use-focus-trap';
 import { ModalProps } from '@fleur/mordred/dist/react-bind';
-import { ExtendedKeyboardEvent } from 'mousetrap';
 import { ChangeEvent, useRef, useState } from 'react';
 import useEvent from 'react-use-event-hook';
 import { css } from 'styled-components';
 import { Button } from '../components/Button';
 
 import { ModalBase } from '../components/ModalBase';
+import { humanizeShortcutKey, rightHandShortcuts } from '../domains/ui';
 import { useTranslation } from '../hooks/useTranslation';
 import { useFunc, useBindMousetrap, useFocusRestore } from '../utils/hooks';
 
@@ -45,28 +45,54 @@ export function SelectChangeBones({
     onClose(null);
   });
 
-  useBindMousetrap(listRef, 's', (e: ExtendedKeyboardEvent) => {
-    e.stopPropagation();
-    setIndex((index) => (index - 1 + boneNames.length) % boneNames.length);
-  });
+  useBindMousetrap(
+    listRef,
+    rightHandShortcuts.boneListPrev,
+    (e) => {
+      e.stopPropagation();
+      setIndex((index) => (index - 1 + boneNames.length) % boneNames.length);
+    },
+    { enableOnInput: true }
+  );
 
-  useBindMousetrap(listRef, 'd', (e: ExtendedKeyboardEvent) => {
-    e.stopPropagation();
-    setIndex((index) => (index + 1) % boneNames.length);
-  });
+  useBindMousetrap(
+    listRef,
+    rightHandShortcuts.boneListNext,
+    (e) => {
+      e.stopPropagation();
+      setIndex((index) => (index + 1) % boneNames.length);
+    },
+    { enableOnInput: true }
+  );
 
-  useBindMousetrap(listRef, 'f', (e: ExtendedKeyboardEvent) => {
-    e.stopPropagation();
-    handleClickOk();
-  });
+  useBindMousetrap(
+    listRef,
+    rightHandShortcuts.boneListOk,
+    (e) => {
+      e.stopPropagation();
+      handleClickOk();
+    },
+    { enableOnInput: true }
+  );
 
-  useBindMousetrap(listRef, 'enter', () => {
-    handleClickOk();
-  });
+  useBindMousetrap(
+    listRef,
+    'enter',
+    (e) => {
+      e.stopPropagation();
+      handleClickOk();
+    },
+    { enableOnInput: true }
+  );
 
-  useBindMousetrap(listRef, 'esc', () => {
-    handleClickCancel();
-  });
+  useBindMousetrap(
+    listRef,
+    'esc',
+    () => {
+      handleClickCancel();
+    },
+    { enableOnInput: true }
+  );
 
   return (
     <ModalBase
@@ -108,7 +134,7 @@ export function SelectChangeBones({
       footer={
         <>
           <Button kind="primary" onClick={handleClickOk}>
-            {t('ok')} (F)
+            {t('ok')} ({humanizeShortcutKey(rightHandShortcuts.boneListOk)})
           </Button>
           <Button kind="default" onClick={handleClickCancel}>
             {t('cancel')}

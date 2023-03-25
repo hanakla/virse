@@ -8,14 +8,16 @@ type Props = {
   content: ReactNode;
   footer?: ReactNode;
   className?: string;
+  closeOnBackdropClick?: boolean;
   onClose: (value: null) => void;
 };
 
 export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
-  { className, header, content, footer, onClose },
+  { className, header, content, footer, onClose, closeOnBackdropClick = true },
   ref
 ) {
   const onBackdropClick = useFunc((e: MouseEvent) => {
+    if (!closeOnBackdropClick) return;
     if (e.target === e.currentTarget) onClose(null);
   });
 
