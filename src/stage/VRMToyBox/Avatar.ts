@@ -14,7 +14,7 @@ import {
   VRMUtils,
 } from '@pixiv/three-vrm';
 import { KalidokitCapture } from '../Kalidokit/capture';
-import { Bone, SkinnedMesh } from 'three';
+import { Bone, Group, Scene, SkinnedMesh } from 'three';
 import { VirseStage } from '../VirseStage';
 import mitt from 'mitt';
 import { VrmPoseController } from './vrmPoseController';
@@ -43,7 +43,9 @@ export class Avatar {
 
   public gltfJson!: GLTFJson;
   public gltf!: GLTF;
+  private _avatarScene!: Scene;
   private _vrm!: VRM;
+  private _positionBone!: Bone;
 
   // private _vrmIK!: VrmIK;
   public needIKSolve: boolean = false;
@@ -63,6 +65,9 @@ export class Avatar {
   constructor(stage: VirseStage) {
     this._stage = stage;
     // this._vrm = null;
+    this._avatarScene = new THREE.Scene();
+    this._positionBone = new THREE.Bone();
+    this._positionBone.name = 'ROOT_position';
   }
 
   public get vrm(): VRM {
@@ -86,6 +91,10 @@ export class Avatar {
 
   public get allBoneNames() {
     return this.initialBones.map((b) => b.name);
+  }
+
+  public get positionBone() {
+    return this._positionBone;
   }
 
   public getInitialBoneState(name: string) {
@@ -123,7 +132,14 @@ export class Avatar {
     VRMUtils.rotateVRM0(vrm);
 
     this._vrm = vrm;
-    this._stage.rootScene.add(vrm.scene);
+    this._positionBone.add(vrm.scene);
+    this._avatarScene.add(this._positionBone);
+    this._stage.rootScene.add(this._avatarScene);
+
+    // this._stage.rootScene.add(this._positionRoot);
+    // this._stage.rootScene.add(vrm.scene);
+
+    // this._positionRoot.position.x = 0.3;
 
     const bones: Bone[] = [];
     vrm.scene.traverse((o) => {
@@ -145,6 +161,8 @@ export class Avatar {
 
     const ui = (this.#controller = new VrmPoseController(
       vrm,
+      this._positionBone,
+      this._avatarScene,
       this._stage.activeCamera,
       this._stage.canvas,
       this._stage.orbitControls
@@ -170,6 +188,9 @@ export class Avatar {
       o.position.fromArray(bone.position);
       o.quaternion.fromArray(bone.quaternion);
     });
+
+    this.positionBone.position.set(0, 0, 0);
+    this.positionBone.quaternion.set(0, 0, 0, 1);
   }
 
   public resetExpressions() {

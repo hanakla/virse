@@ -435,20 +435,24 @@ export class VirseStage {
   }
 
   public render() {
-    // Update model to render physics
-    Object.values(this.avatars).map(({ avatar }) => {
-      avatar.update();
-      avatar.ui.update();
-      avatar.vrm.update(0);
-    });
+    try {
+      // Update model to render physics
+      Object.values(this.avatars).map(({ avatar }) => {
+        avatar.update();
+        avatar.ui.update();
+        avatar.vrm.update(0);
+      });
 
-    // this.passes.distortion.enabled = this.enableEffect;
+      // this.passes.distortion.enabled = this.enableEffect;
 
-    // if (this.enableEffect) {
-    // this.composer.render(this.clock.getDelta());
-    // } else {
-    this.renderer.render(this.rootScene, this.activeCamera);
-    // }
+      // if (this.enableEffect) {
+      // this.composer.render(this.clock.getDelta());
+      // } else {
+      this.renderer.render(this.rootScene, this.activeCamera);
+      // }
+    } catch (e) {
+      console.error(e);
+    }
   }
 }
 

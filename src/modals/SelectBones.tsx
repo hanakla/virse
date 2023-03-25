@@ -1,6 +1,7 @@
 import { ModalProps } from '@fleur/mordred/dist/react-bind';
 import escapeStringRegexp from 'escape-string-regexp';
 import { ChangeEvent, useState } from 'react';
+import useEvent from 'react-use-event-hook';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { ModalBase } from '../components/ModalBase';
@@ -10,10 +11,14 @@ import { useFunc } from '../utils/hooks';
 export function SelectBones({
   boneNames,
   onClose,
-}: ModalProps<{ boneNames: string[] }, string[] | null>) {
+}: ModalProps<
+  { boneNames: string[] },
+  { bones: string[]; restorePosition: boolean } | null
+>) {
   const t = useTranslation('common');
 
   const [selection, setSelection] = useState<string[]>([]);
+  const [restorePosition, setRestorePosition] = useState<boolean>(true);
   const [filtered, setFiltered] = useState(boneNames);
 
   const onChange = useFunc(
@@ -30,6 +35,12 @@ export function SelectBones({
     ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
       const matcher = new RegExp(escapeStringRegexp(currentTarget.value), 'i');
       setFiltered(boneNames.filter((boneName) => matcher.test(boneName)));
+    }
+  );
+
+  const handleChangeRestorePosition = useEvent(
+    ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
+      setRestorePosition(currentTarget.checked);
     }
   );
 
@@ -67,6 +78,15 @@ export function SelectBones({
             ))}
           </select>
 
+          <label>
+            <input
+              type="checkbox"
+              checked={restorePosition}
+              onChange={handleChangeRestorePosition}
+            />
+            {t('selectBones/restorePosition')}
+          </label>
+
           <Button
             onClick={() => {
               setSelection([...filtered]);
@@ -78,7 +98,10 @@ export function SelectBones({
       }
       footer={
         <>
-          <Button kind="primary" onClick={() => onClose(selection)}>
+          <Button
+            kind="primary"
+            onClick={() => onClose({ bones: selection, restorePosition })}
+          >
             {t('ok')}
           </Button>
           <Button kind="default" onClick={() => onClose(null)}>

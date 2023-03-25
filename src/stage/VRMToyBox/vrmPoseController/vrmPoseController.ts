@@ -3,6 +3,7 @@ import { VRM, VRMPose } from '@pixiv/three-vrm';
 import { TransformControls } from './TransformControls';
 import { VrmIK } from '../vrmIk';
 import { createSkeltonHelper } from './vrmSkeltonHelper';
+import { createPosGroupHelper } from './vrmSkeltonHelper/posGroupHelper';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { InteractableObject } from './interactableObject';
 import { createVrmIkHelper } from './vrmIkHelper/vrmIkHelper';
@@ -51,6 +52,8 @@ export class VrmPoseController {
 
   constructor(
     vrm: VRM,
+    positionGroup: THREE.Group,
+    controllerScene: THREE.Scene,
     camera: THREE.Camera,
     canvas: HTMLCanvasElement,
     orbitControls: OrbitControls,
@@ -65,8 +68,13 @@ export class VrmPoseController {
 
     const skeltonHelper = createSkeltonHelper(vrm);
     const ikHelper = createVrmIkHelper(this._vrmIk);
+    const positionGroupHelper = createPosGroupHelper(positionGroup);
 
-    this._interactableObjects = [...skeltonHelper, ...ikHelper];
+    this._interactableObjects = [
+      ...skeltonHelper,
+      ...ikHelper,
+      positionGroupHelper,
+    ];
 
     this._interactableObjects.map((obj) => {
       obj.addEventListener('click', this._handleUiClick);
@@ -76,7 +84,7 @@ export class VrmPoseController {
     this._transformController = createTransformController(
       camera,
       canvas,
-      vrm.scene
+      controllerScene
     );
 
     this._transformController.addEventListener('dragging-changed', (event) => {
@@ -308,7 +316,7 @@ export class VrmPoseController {
     }
 
     this._dispatchUnselect();
-    this._selectedObject = interactObj;
+    // this._selectedObject = interactObj;
 
     if (interactObj.tag === 'rotate' || interactObj.tag === 'translate') {
       this._transformController.attach(interactObj.controlTarget);

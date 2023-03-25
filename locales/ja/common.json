@@ -44,11 +44,13 @@
   "posemenu/downloadAll": "すべてのポーズをダウンロード",
   "posemenu/delete": "削除",
 
-  "resetmenu/resetPoseAndFacial": "ポーズと表情をリセット",
   "resetmenu/resetSelectedBones": "ボーンを選択してリセット",
+  "resetmenu/resetCamera": "カメラをリセット",
 
   "loadPose/title": "ポーズセットのインポート",
   "loadPose/deleteCurrentPoset": "現在のポーズセットをすべて削除する",
+
+  "selectBones/restorePosition": "Load avatar position in this pose",
 
   "keyboardHelp/title": "キーボードショートカット",
   "keyboardHelp/showHelp": "キーボードヘルプを表示",

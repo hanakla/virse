@@ -24,7 +24,17 @@ export type VirsePose = {
   blendShapeProxies: Record<string, number>;
   morphs: Record<string, { value: number }>;
   vrmPose: VRMPose;
-  bones: any;
+  bones: {
+    [boneName: string]: {
+      position: number[];
+      rotation: number[];
+      quaternion: number[];
+    };
+  };
+  rootPosition: {
+    position: number[];
+    quaternion: number[];
+  };
   createdAt: Date;
   schemaVersion: number | void;
 };
@@ -185,17 +195,16 @@ export const [EditorStore, editorOps] = minOps('Editor', {
       const tx = db.transaction(POSE_STORE_NAME, 'readwrite');
 
       if (overwrite && 'uid' in pose) {
-        console.log('put');
         await tx.store.put({
           ...pose,
-          schemaVersion: 2,
+          schemaVersion: 3,
         });
       } else {
         await tx.store.add({
           ...pose,
           uid: nanoid(),
           createdAt: new Date(),
-          schemaVersion: 2,
+          schemaVersion: 3,
         });
       }
 

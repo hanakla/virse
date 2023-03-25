@@ -44,11 +44,13 @@
   "posemenu/downloadAll": "Download all poses as JSON",
   "posemenu/delete": "Delete",
 
-  "resetmenu/resetPoseAndFacial": "Reset pose and facial",
   "resetmenu/resetSelectedBones": "Reset selecting bones",
+  "resetmenu/resetCamera": "Reset camera",
 
   "loadPose/title": "Import pose set",
   "loadPose/deleteCurrentPoset": "Delete current pose set (all listed poses)",
+
+  "selectBones/restorePosition": "Load avatar position in this pose",
 
   "keyboardHelp/title": "Keyboard shortcuts",
   "keyboardHelp/showHelp": "Show this help",

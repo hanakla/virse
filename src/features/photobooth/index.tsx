@@ -65,6 +65,7 @@ import {
 } from '../../utils/hooks';
 import { useTranslation } from '../../hooks/useTranslation';
 import { rightHandShortcuts } from '../../domains/ui';
+import { SelectExpressions } from '../../modals/SelectExpressions';
 
 type StashedCam = {
   mode: CamModes;
@@ -218,6 +219,10 @@ export const PhotoBooth = memo(function PhotoBooth({
         }, Object.create(null)),
       },
       vrmPose,
+      rootPosition: {
+        position: avatar.positionBone.position.toArray(),
+        quaternion: avatar.positionBone.quaternion.toArray(),
+      },
       bones: {
         ...original?.bones,
         ...bones.reduce((a, b) => {
@@ -258,7 +263,6 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     avatar.resetPose();
     avatar.resetExpressions();
-    stage.resetCamera();
 
     setState({
       poseId: null,
@@ -266,12 +270,9 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
   });
 
-  const handleClickResetPoses = useEvent(() => {
-    const avatar = stage?.activeAvatar?.avatar;
-    if (!avatar) return;
-
-    avatar.resetPose();
-    avatar.resetExpressions();
+  const handleClickResetCamera = useEvent(() => {
+    if (!stage) return;
+    stage.resetCamera();
   });
 
   const handleClickResetSelectBone = useEvent(async () => {
@@ -360,6 +361,9 @@ export const PhotoBooth = memo(function PhotoBooth({
       }
     );
 
+    avatar.positionBone.position.fromArray(pose.rootPosition.position);
+    avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
+
     avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
   });
 
@@ -368,7 +372,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const avatar = stage?.activeAvatar.avatar;
-    if (!avatar?.vrm || !pose) return;
+    if (!stage || !avatar?.vrm || !pose) return;
 
     stage.setCamMode(pose.camera.mode, {
       fov: pose.camera.fov,
@@ -394,7 +398,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const avatar = stage?.activeAvatar.avatar;
-    if (!avatar.vrm || !pose) return;
+    if (!stage || !avatar?.vrm || !pose) return;
 
     stage.setCamMode(pose.camera.mode, {
       fov: pose.camera.fov,
@@ -416,6 +420,9 @@ export const PhotoBooth = memo(function PhotoBooth({
       }
     );
 
+    avatar.positionBone.position.fromArray(pose.rootPosition.position);
+    avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
+
     avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
 
     setState({
@@ -432,16 +439,17 @@ export const PhotoBooth = memo(function PhotoBooth({
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const avatar = stage?.activeAvatar.avatar;
-    if (!avatar.vrm || !pose) return;
+    if (!stage || !avatar?.vrm || !pose) return;
 
     const boneNames = Object.keys(pose.bones);
-    const bones = await openModal(SelectBones, {
+    const result = await openModal(SelectBones, {
       boneNames,
       clickBackdropToClose: true,
     });
-    if (!bones) return;
 
-    bones.map((name) => {
+    if (!result) return;
+
+    result.bones.map((name) => {
       const bone = pose.bones[name];
       const o = avatar.vrm.scene.getObjectByName(name)!;
       if (!o) return;
@@ -449,6 +457,11 @@ export const PhotoBooth = memo(function PhotoBooth({
       o.position.set(...(bone.position as any));
       o.quaternion.set(...(bone.quaternion as any));
     });
+
+    if (result.restorePosition) {
+      avatar.positionBone.position.fromArray(pose.rootPosition.position);
+      avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
+    }
   });
 
   const handleClickLoadShapes = useFunc(async (params: ItemParams) => {
@@ -456,7 +469,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const avatar = stage?.activeAvatar.avatar;
-    if (!avatar.vrm || !pose) return;
+    if (!stage || !avatar?.vrm || !pose) return;
 
     const poseNames = [
       ...Object.keys(pose.blendShapeProxies),
@@ -502,7 +515,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           {
             poseset: (poses ?? []).map(({ ...pose }) => {
               pose.uid ??= nanoid();
-              return pose;
+              return migrateV0PoseToV1(pose);
             }),
           },
           null,
@@ -522,7 +535,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
-    if (!pose) return;
+    if (!stage || !pose) return;
 
     stage.setCamMode(pose.camera.mode, {
       fov: pose.camera.fov,
@@ -982,7 +995,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   // Sync right eye position to Avatar
   useEffect(() => {
-    const vrm = stage ? Object.values(stage.avatars)[0]?.vrm : null;
+    const vrm = stage?.activeAvatar?.vrm;
     if (!vrm || !padLMouse || !padLMouse.isDown) return;
 
     const rateX = MathUtils.lerp(
@@ -1009,7 +1022,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   // Sync left eye position to Avatar
   useEffect(() => {
-    const vrm = stage ? Object.values(stage.avatars)[0]?.vrm : null;
+    const vrm = stage?.activeAvatar?.vrm;
     if (!vrm || !padRMouse || !padRMouse.isDown) return;
 
     const rateX = MathUtils.lerp(
@@ -1922,11 +1935,12 @@ export const PhotoBooth = memo(function PhotoBooth({
         id="resetMenu"
         animation={false}
       >
-        <ContextItem onClick={handleClickResetPoses}>
-          {t('resetmenu/resetPoseAndFacial')}
-        </ContextItem>
         <ContextItem onClick={handleClickResetSelectBone}>
           {t('resetmenu/resetSelectedBones')}
+        </ContextItem>
+
+        <ContextItem onClick={handleClickResetCamera}>
+          {t('resetmenu/resetCamera')}
         </ContextItem>
       </ContextMenu>
 
