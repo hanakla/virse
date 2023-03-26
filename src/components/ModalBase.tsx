@@ -49,6 +49,7 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
           background-color: #fff;
           box-shadow: 0 0 16px ${rgba('#222', 0.2)};
         `}
+        className="modal-content"
       >
         {header && (
           <div

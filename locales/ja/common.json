@@ -47,6 +47,10 @@
   "resetmenu/resetSelectedBones": "ボーンを選択してリセット",
   "resetmenu/resetCamera": "カメラをリセット",
 
+  "stagedModelMenu/removeStagedModel": "ステージから下ろす",
+  "stagedModelMenu/removeAvatarConfirm": "この操作は元に戻せません。<br/>アバターのポーズを保存せずステージから下ろしますか？",
+  "stagedModelMenu/removeAvatarConfirm/continue": "下ろす",
+
   "loadPose/title": "ポーズセットのインポート",
   "loadPose/deleteCurrentPoset": "現在のポーズセットをすべて削除する",
 
@@ -70,6 +74,7 @@
   "confirmAgreement/disagree": "同意しない",
   "confirmAgreement/invalid": "同意しないじゃねえ、同意するしかねえんだよ。",
 
+  "vrmLicense/title": "ライセンス情報",
   "vrmLicense/metadata": "メタデータ",
   "vrmLicense/avatarName": "アバターの名前",
   "vrmLicense/version": "アバターのバージョン",

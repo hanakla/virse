@@ -13,7 +13,6 @@ export function VRMLicense({
 }: ModalProps<{ meta: VRMMeta }, void>) {
   const t = useTranslation('common');
 
-  console.log(meta);
   const body =
     meta.metaVersion === '0' ? (
       <VRM0License meta={meta} />
@@ -24,7 +23,7 @@ export function VRMLicense({
   return (
     <ModalBase
       onClose={onClose}
-      header={<h1>License</h1>}
+      header={<h1>{t('vrmLicense/title')}</h1>}
       content={<div>{body}</div>}
       footer={
         <>
@@ -45,19 +44,19 @@ function VRM0License({ meta }: { meta: VRM0Meta }) {
       <Heading>{t('vrmLicense/metadata')}</Heading>
       <TableLike>
         <Row>
-          <Cell>Avatar name</Cell>
+          <Cell>{t('vrmLicense/avatarName')}</Cell>
           <Cell>{emptyCoalesce(meta.title, <Unknown />)}</Cell>
         </Row>
         <Row>
-          <Cell>Avatar version</Cell>
+          <Cell>{t('vrmLicense/version')}</Cell>
           <Cell>{emptyCoalesce(meta.version, <Unknown />)}</Cell>
         </Row>
         <Row>
-          <Cell>Avatar reference</Cell>
+          <Cell>{t('vrmLicense/reference')}</Cell>
           <Cell>{emptyCoalesce(meta.reference, <Unknown />)}</Cell>
         </Row>
         <Row>
-          <Cell>Author</Cell>
+          <Cell>{t('vrmLicense/author')}</Cell>
           <Cell>{emptyCoalesce(meta.author, <Unknown />)}</Cell>
         </Row>
         <Row>

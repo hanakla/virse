@@ -62,6 +62,13 @@ export class KalidokitCapture {
     });
   }
 
+  public dispose() {
+    this.events.all.clear();
+    this.stop().then(() => {
+      this.holistic.close();
+    });
+  }
+
   public async start() {
     this.#isInitializing = true;
     this.events.emit('statusChanged', { initialized: false, running: false });

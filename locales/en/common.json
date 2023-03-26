@@ -47,6 +47,10 @@
   "resetmenu/resetSelectedBones": "Reset selecting bones",
   "resetmenu/resetCamera": "Reset camera",
 
+  "stagedModelMenu/removeStagedAvatar": "Remove from stage",
+  "stagedModelMenu/removeAvatarConfirm": "This operation cannot be undone.<br/>Do you want to drop an avatar from the stage without saving its pose?",
+  "stagedModelMenu/removeAvatarConfirm/continue": "Continue bring down",
+
   "loadPose/title": "Import pose set",
   "loadPose/deleteCurrentPoset": "Delete current pose set (all listed poses)",
 
@@ -70,6 +74,7 @@
   "confirmAgreement/disagree": "Disagree",
   "confirmAgreement/invalid": "You can't disagree, you can only agree.",
 
+  "vrmLicense/title": "License information",
   "vrmLicense/metadata": "Meta",
   "vrmLicense/avatarName": "Avatar name",
   "vrmLicense/version": "Avater version",

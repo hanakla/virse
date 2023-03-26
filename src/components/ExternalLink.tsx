@@ -1,10 +1,7 @@
-import { AnchorHTMLAttributes, DetailedHTMLProps, forwardRef } from 'react';
+import { ComponentProps, forwardRef } from 'react';
 import styled from 'styled-components';
 
-type Props = DetailedHTMLProps<
-  AnchorHTMLAttributes<HTMLAnchorElement>,
-  HTMLAnchorElement
->;
+type Props = ComponentProps<'a'>;
 
 export const ExternalLink = forwardRef<HTMLAnchorElement, Props>(
   (props, ref) => {

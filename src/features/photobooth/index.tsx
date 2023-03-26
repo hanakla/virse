@@ -68,6 +68,8 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { rightHandShortcuts } from '../../domains/ui';
 import { SelectExpressions } from '../../modals/SelectExpressions';
 import { VRMLicense } from '../../modals/VRMLicense';
+import { ConfirmModal } from '../../modals/ConfirmModal';
+import { Trans } from '../../components/Trans';
 
 type StashedCam = {
   mode: CamModes;
@@ -566,6 +568,29 @@ export const PhotoBooth = memo(function PhotoBooth({
   //// Models UI Event Handlers
   /////
   // #region Models UI Event Handlers
+  const handleStagedModelsContextMenu = useEvent(
+    (e: MouseEvent<HTMLElement>) => {
+      const uid = e.currentTarget.dataset.uid!;
+      showContextMenu(e, { id: 'stagedModelMenu', props: { uid } });
+    }
+  );
+
+  const handleClickRemoveStagedModel = useEvent(
+    async (params: ItemParams<{ uid: string }>) => {
+      const uid = params.props!.uid;
+
+      const result = await openModal(ConfirmModal, {
+        message: <Trans i18nKey="stagedModelMenu/removeAvatarConfirm" />,
+        primaryButtonKind: 'danger',
+        okText: t('stagedModelMenu/removeAvatarConfirm/continue'),
+      });
+
+      if (result !== true) return;
+
+      stage?.removeAvatar(uid);
+    }
+  );
+
   const handleModelsContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
     const modelId = e.currentTarget.dataset.modelId!;
     showContextMenu(e, { id: 'modelmenu', props: { modelId } });
@@ -1392,6 +1417,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                       data-uid={uid}
                       active={stage.activeAvatar?.uid === uid}
                       onClick={handleClickStagedModel}
+                      onContextMenu={handleStagedModelsContextMenu}
                     >
                       <div
                         css={css`
@@ -1979,6 +2005,19 @@ export const PhotoBooth = memo(function PhotoBooth({
 
         <ContextItem onClick={handleClickResetCamera}>
           {t('resetmenu/resetCamera')}
+        </ContextItem>
+      </ContextMenu>
+
+      <ContextMenu
+        css={`
+          padding: 4px;
+          font-size: 12px;
+        `}
+        id="stagedModelMenu"
+        animation={false}
+      >
+        <ContextItem onClick={handleClickRemoveStagedModel}>
+          {t('stagedModelMenu/removeStagedModel')}
         </ContextItem>
       </ContextMenu>
 

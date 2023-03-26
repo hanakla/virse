@@ -43,6 +43,7 @@ export class VrmPoseController {
   private _selectedObject: InteractableObject | null = null;
   private _interactableObjects: InteractableObject[];
   private _needIkSolve = false;
+  private disposeSignal: AbortController | null = null;
 
   #activeBone: Object3D | null = null;
   #enable: boolean = true;
@@ -52,10 +53,10 @@ export class VrmPoseController {
 
   constructor(
     vrm: VRM,
-    positionGroup: THREE.Group,
+    positionGroup: THREE.Bone,
     controllerScene: THREE.Scene,
     camera: THREE.Camera,
-    canvas: HTMLCanvasElement,
+    private canvas: HTMLCanvasElement,
     orbitControls: OrbitControls,
     onPoseChange?: (vrmPose: VRMPose) => void
   ) {
@@ -64,7 +65,9 @@ export class VrmPoseController {
     } else {
       this._vrmIk = new VrmIK(vrm, v1IKConfig);
     }
+
     this._camera = camera;
+    this.disposeSignal = new AbortController();
 
     const skeltonHelper = createSkeltonHelper(vrm);
     const ikHelper = createVrmIkHelper(this._vrmIk);
@@ -112,9 +115,20 @@ export class VrmPoseController {
       }
     });
 
-    canvas.addEventListener('mousedown', this._handleMouseDown);
-    canvas.addEventListener('dblclick', this._dispatchUnselect);
-    canvas.addEventListener('mousemove', this._handleMouseMove);
+    canvas.addEventListener('mousedown', this._handleMouseDown, {
+      signal: this.disposeSignal.signal,
+    });
+    canvas.addEventListener('dblclick', this._dispatchUnselect, {
+      signal: this.disposeSignal.signal,
+    });
+    canvas.addEventListener('mousemove', this._handleMouseMove, {
+      signal: this.disposeSignal.signal,
+    });
+  }
+
+  public dispose() {
+    this.events.all.clear();
+    this.disposeSignal?.abort();
   }
 
   public get activeBone(): Object3D | null {

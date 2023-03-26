@@ -365,6 +365,16 @@ export class VirseStage {
     this.renderer.setClearAlpha(a);
   }
 
+  public removeAvatar(uid: string) {
+    const avatar = this.avatars[uid];
+    if (!avatar) return;
+
+    avatar.avatar.dispose();
+    delete this.avatars[uid];
+
+    this.events.emit('updated');
+  }
+
   public async loadVRM(url: string) {
     // {
     //   Object.values(this.avatars).forEach(({ avatar }) => {

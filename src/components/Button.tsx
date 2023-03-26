@@ -2,8 +2,10 @@ import { styleWhen } from '@hanakla/arma';
 import styled from 'styled-components';
 import { transitionCss } from '../styles/mixins';
 
+export type ButtonKind = 'default' | 'primary' | 'danger';
+
 export const Button = styled.button.withConfig<{
-  kind?: 'default' | 'primary';
+  kind?: ButtonKind;
   size?: 'min';
   blocked?: boolean;
 }>({
@@ -24,6 +26,7 @@ export const Button = styled.button.withConfig<{
   border: none;
   border-radius: 100px;
   font-size: 14px;
+  outline: none;
 
   ${transitionCss}
 
@@ -31,8 +34,11 @@ export const Button = styled.button.withConfig<{
     background-color: #f5f5f5;
   }
 
-  &:active {
+  &:active,
+  &:focus {
+    color: #fff;
     background-color: #d5d5d5;
+    box-shadow: 0 0 0 3px #cbcbcb;
   }
 
   &[disabled] {
@@ -53,8 +59,21 @@ export const Button = styled.button.withConfig<{
       background-color: #2ea89e;
     }
 
-    &:active {
+    &:active, &:focus {
       background-color: #238981;
+    }
+  `}
+
+  ${({ kind }) => styleWhen(kind === 'danger')`
+    color: #fff;
+    background-color: #f44336;
+
+    &:hover {
+      background-color: #e53935;
+    }
+
+    &:active, &:focus {
+      background-color: #c62828;
     }
   `}
 

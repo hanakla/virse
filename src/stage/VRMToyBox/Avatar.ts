@@ -174,6 +174,13 @@ export class Avatar {
     this.blendshapes = await this.buildGltfTargets();
   }
 
+  public dispose() {
+    this.ui.dispose();
+    this.#kalidokit?.dispose();
+    this._stage.rootScene.remove(this._avatarScene);
+    VRMUtils.deepDispose(this._vrm.scene);
+  }
+
   public update() {
     this.#controller.update();
 
@@ -204,7 +211,7 @@ export class Avatar {
       this.vrm.expressionManager?.setValue(name, 0);
     });
 
-    console.log('reset', this.vrm.expressionManager, this.blendshapes);
+    // console.log('reset', this.vrm.expressionManager, this.blendshapes);
   }
 
   private async buildGltfTargets() {

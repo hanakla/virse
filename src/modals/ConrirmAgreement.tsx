@@ -52,7 +52,6 @@ export function ConfirmAgreement({ onClose }: ModalProps<{}, void>) {
         <div
           css={css`
             display: flex;
-            /* flex-flow: frow; */
             gap: 8px;
           `}
         >
