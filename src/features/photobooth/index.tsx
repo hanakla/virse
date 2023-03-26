@@ -281,13 +281,13 @@ export const PhotoBooth = memo(function PhotoBooth({
     const avatar = stage?.activeAvatar?.avatar;
     if (!avatar) return;
 
-    const bones = await openModal(SelectBones, {
+    const result = await openModal(SelectBones, {
       boneNames: avatar.allBoneNames,
     });
 
-    if (!bones) return;
+    if (!result) return;
 
-    bones.forEach((name) => {
+    result.bones.forEach((name) => {
       const obj = avatar.vrm.scene.getObjectByName(name);
       const init = avatar.getInitialBoneState(name);
 
@@ -850,11 +850,11 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.previousAvatar, () => {
+  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.nextAvatar, () => {
     const currentUid = stage?.activeAvatar?.uid;
     if (!stage || !currentUid) return;
 
-    const avatars = stage.iterableAvatars;
+    const avatars = stage.avatarsIterator;
     const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
     if (currentIdx === -1) return;
 
@@ -863,11 +863,11 @@ export const PhotoBooth = memo(function PhotoBooth({
     stage.setActiveAvatar(nextAvatarUID);
   });
 
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.nextAvatar, () => {
+  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.previousAvatar, () => {
     const currentUid = stage?.activeAvatar?.uid;
     if (!stage || !currentUid) return;
 
-    const avatars = stage.iterableAvatars;
+    const avatars = stage.avatarsIterator;
     const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
     if (currentIdx === -1) return;
 
@@ -1383,7 +1383,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                     overflow: auto;
                   `}
                 >
-                  {stage?.iterableAvatars.map(({ uid, avatar }) => (
+                  {stage?.avatarsIterator.map(({ uid, avatar }) => (
                     <ListItem
                       key={uid}
                       css={css`

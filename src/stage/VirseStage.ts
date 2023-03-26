@@ -190,7 +190,7 @@ export class VirseStage {
     };
   }
 
-  public get iterableAvatars() {
+  public get avatarsIterator() {
     return Object.values(this.avatars);
   }
 
@@ -297,7 +297,7 @@ export class VirseStage {
   public setActiveAvatar(uid: string) {
     this.#activeAvatarUid = uid;
 
-    this.iterableAvatars.forEach((avatar) => {
+    this.avatarsIterator.forEach((avatar) => {
       avatar.ui.setEnableControll(avatar.uid === uid);
     });
 
@@ -307,7 +307,7 @@ export class VirseStage {
   public setShowBones(visible: boolean) {
     this.#showBones = visible;
 
-    this.iterableAvatars.forEach((avatar) => {
+    this.avatarsIterator.forEach((avatar) => {
       avatar.ui.setVisible(visible);
     });
 

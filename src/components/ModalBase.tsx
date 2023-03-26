@@ -34,6 +34,7 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
         justify-content: center;
         z-index: 1;
         background-color: ${rgba('#000', 0.5)};
+        overflow: auto;
       `}
       className={className}
       onClick={onBackdropClick}
@@ -75,6 +76,7 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
         {footer && (
           <div
             css={`
+              margin-top: 8px;
               padding: 0 16px 16px;
             `}
           >
