@@ -20,6 +20,7 @@ import {
   RiCamera2Line,
   RiCameraSwitchFill,
   RiFlashlightFill,
+  RiInformationLine,
   RiPaintFill,
   RiQuestionFill,
   RiQuestionMark,
@@ -66,6 +67,7 @@ import {
 import { useTranslation } from '../../hooks/useTranslation';
 import { rightHandShortcuts } from '../../domains/ui';
 import { SelectExpressions } from '../../modals/SelectExpressions';
+import { VRMLicense } from '../../modals/VRMLicense';
 
 type StashedCam = {
   mode: CamModes;
@@ -572,6 +574,16 @@ export const PhotoBooth = memo(function PhotoBooth({
   const handleClickStagedModel = useEvent(
     ({ currentTarget }: MouseEvent<HTMLLIElement>) => {
       stage?.setActiveAvatar(currentTarget.dataset.uid!);
+    }
+  );
+
+  const handleClickStagedModelLicense = useEvent(
+    ({ currentTarget }: MouseEvent<HTMLElement>) => {
+      const uid = currentTarget.dataset.uid!;
+      const entry = stage?.avatarsIterator.find((m) => m.uid === uid);
+      if (!stage || !entry) return;
+
+      openModal(VRMLicense, { meta: entry.avatar.vrm?.meta });
     }
   );
 
@@ -1374,21 +1386,47 @@ export const PhotoBooth = memo(function PhotoBooth({
                   {stage?.iterableAvatars.map(({ uid, avatar }) => (
                     <ListItem
                       key={uid}
+                      css={css`
+                        display: flex;
+                      `}
                       data-uid={uid}
                       active={stage.activeAvatar?.uid === uid}
                       onClick={handleClickStagedModel}
                     >
-                      <div>{avatar.vrm.meta.title}</div>
                       <div
                         css={css`
-                          margin-top: 6px;
-                          font-size: 12px;
-                          opacity: 0.8;
+                          flex: 1;
                         `}
                       >
-                        {avatar.vrm.meta.version
-                          ? avatar.vrm.meta.version
-                          : t('noVersionInfo')}
+                        <div>
+                          {avatar.vrm.meta.metaVersion === '0'
+                            ? avatar.vrm.meta.title
+                            : avatar.vrm.meta.name}
+                        </div>
+                        <div
+                          css={css`
+                            margin-top: 6px;
+                            font-size: 12px;
+                            opacity: 0.8;
+                          `}
+                        >
+                          {avatar.vrm.meta.version
+                            ? avatar.vrm.meta.version
+                            : t('noVersionInfo')}
+                        </div>
+                      </div>
+                      <div
+                        css={css`
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                        `}
+                      >
+                        <RiInformationLine
+                          fontSize={16}
+                          onClick={handleClickStagedModelLicense}
+                          data-uid={uid}
+                        />
                       </div>
                     </ListItem>
                   ))}
