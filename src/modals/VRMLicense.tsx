@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { ExternalLink } from '../components/ExternalLink';
 import { ModalBase } from '../components/ModalBase';
 import { useTranslation } from '../hooks/useTranslation';
+import { emptyCoalesce, isEmpty } from '../utils/lang';
 
 export function VRMLicense({
   meta,
@@ -419,15 +420,6 @@ const OkNg = ({
     {children}
   </span>
 );
-
-const emptyCoalesce = function <T1, T2>(a: T1, b: T2) {
-  if (isEmpty(a)) return b;
-  return a;
-};
-
-const isEmpty = function (a: any): a is void | null | '' | never[] {
-  return a == null || a === '' || (Array.isArray(a) && a.length === 0);
-};
 
 const Heading = styled.h1`
   margin: 24px 0 16px;

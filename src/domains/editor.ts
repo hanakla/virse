@@ -1,9 +1,10 @@
 import { minOps } from '@fleur/fleur';
 import { DBSchema, openDB } from 'idb';
 import blobToHash from 'blob-to-hash';
-import { VRM, VRMPose, VRMSchema } from '@pixiv/three-vrm';
+import { VRMPose } from '@pixiv/three-vrm';
 import { WebIO } from '@gltf-transform/core';
 import { nanoid } from 'nanoid';
+import { Vector3Tuple, Vector4Tuple } from 'three';
 
 type State = {
   mode: EditorMode;
@@ -26,9 +27,9 @@ export type VirsePose = {
   vrmPose: VRMPose;
   bones: {
     [boneName: string]: {
-      position: number[];
-      rotation: number[];
-      quaternion: number[];
+      position: Vector3Tuple;
+      rotation: Vector3Tuple;
+      quaternion: Vector4Tuple;
     };
   };
   rootPosition: {

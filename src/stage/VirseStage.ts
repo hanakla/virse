@@ -425,6 +425,8 @@ export class VirseStage {
 
     this.#activeAvatarUid = uid;
     this.events.emit('updated');
+
+    return this.avatars[uid];
   }
 
   public resetCamera() {

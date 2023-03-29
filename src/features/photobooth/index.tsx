@@ -5,7 +5,14 @@ import { VRMExpressionPresetName, VRMHumanBoneName } from '@pixiv/three-vrm';
 import useMouse from '@react-hook/mouse-position';
 import { nanoid } from 'nanoid';
 import { rgba } from 'polished';
-import { memo, MouseEvent, useEffect, useRef, useState } from 'react';
+import {
+  ChangeEvent,
+  memo,
+  MouseEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { ChromePicker, ColorChangeHandler } from 'react-color';
 import {
   ItemParams,
@@ -37,7 +44,7 @@ import {
 } from 'react-use';
 import useEvent from 'react-use-event-hook';
 import styled, { css, CSSProperties } from 'styled-components';
-import { Bone, MathUtils } from 'three';
+import { Bone, MathUtils, Vector3Tuple, Vector4Tuple } from 'three';
 import { Button } from '../../components/Button';
 import { Checkbox } from '../../components/Checkbox';
 import { Input } from '../../components/Input';
@@ -70,12 +77,13 @@ import { SelectExpressions } from '../../modals/SelectExpressions';
 import { VRMLicense } from '../../modals/VRMLicense';
 import { ConfirmModal } from '../../modals/ConfirmModal';
 import { Trans } from '../../components/Trans';
+import { emptyCoalesce } from '../../utils/lang';
 
 type StashedCam = {
   mode: CamModes;
-  target: number[];
-  position: number[];
-  quaternion: number[];
+  target: Vector3Tuple;
+  position: Vector3Tuple;
+  quaternion: Vector4Tuple;
 };
 
 const replaceVRoidShapeNamePrefix = (name: string) => {
@@ -91,7 +99,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   const rerender = useUpdate();
   const { openModal } = useModalOpener();
 
-  const shortcutBindElRef = useRef<HTMLDivElement>(
+  const shortcutBindElRef = useRef<HTMLElement | null>(
     typeof document !== 'undefined' ? document.getElementById('ui') : null
   );
   const padLRef = useRef<HTMLDivElement>(null);
@@ -104,8 +112,14 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   const [rightTab, setRightTab] = useState<'expr' | 'poses'>('expr');
   const [state, setState] = useObjectState({
-    poseId: null as string | null,
-    poseName: '',
+    loadedPoses: {
+      '': {
+        poseId: null,
+        poseName: '',
+      },
+    } as {
+      [avatarUid: string]: { poseId: string | null; poseName: string };
+    },
     rotation: false,
     syncEyes: true,
     eyeLeft: { x: 0, y: 0 },
@@ -143,14 +157,16 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleChangeBgColor = useFunc<ColorChangeHandler>((color) => {
-    stage.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
+    stage?.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
+
     setState({
       color: { hex: color.hex, rgb: color.rgb, alpha: color.rgb.a! },
     });
   });
 
   const handleChangeBgColorComplete = useFunc<ColorChangeHandler>((color) => {
-    stage.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
+    stage?.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
+
     setState({
       color: { hex: color.hex, rgb: color.rgb, alpha: color.rgb.a! },
     });
@@ -184,7 +200,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   const serializeCurrentPose = useStableLatestRef(() => {
     if (!stage?.activeAvatar) return;
 
-    const { vrm, avatar } = stage.activeAvatar;
+    const { uid, vrm, avatar } = stage.activeAvatar;
     const bones: Bone[] = [];
 
     vrm.scene.traverse((o) => {
@@ -192,12 +208,12 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
     const vrmPose = vrm.humanoid!.getPose();
 
-    const original = state.poseId
-      ? poses.find((p) => p.uid === state.poseId!)
+    const original = state.loadedPoses[uid]
+      ? poses.find((p) => p.uid === state.loadedPoses[uid]?.poseId)
       : null;
 
     const pose: UnsavedVirsePose = {
-      name: state.poseName,
+      name: emptyCoalesce(state.loadedPoses[uid]?.poseName, 'New Pose'),
       canvas: state.size,
       camera: {
         mode: stage.camMode,
@@ -244,12 +260,15 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickOverwritePose = useEvent(() => {
+    const { activeAvatar } = stage!;
     const pose = serializeCurrentPose.current();
-    if (!pose || !state.poseId) return;
+
+    const originalPoseId = state.loadedPoses[activeAvatar.uid].poseId;
+    if (!pose || !originalPoseId) return;
 
     executeOperation(
       editorOps.savePose,
-      { ...pose, uid: state.poseId },
+      { ...pose, uid: originalPoseId },
       { overwrite: true }
     );
   });
@@ -262,15 +281,17 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickResetPose = useFunc(() => {
-    const avatar = stage?.activeAvatar?.avatar;
-    if (!avatar) return;
+    const activeAvatar = stage?.activeAvatar;
+    if (!activeAvatar) return;
 
-    avatar.resetPose();
-    avatar.resetExpressions();
+    activeAvatar.avatar.resetPose();
+    activeAvatar.avatar.resetExpressions();
 
-    setState({
-      poseId: null,
-      poseName: '',
+    setState((next) => {
+      next.loadedPoses[activeAvatar.uid] = {
+        poseId: null,
+        poseName: '',
+      };
     });
   });
 
@@ -309,7 +330,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   const handleClickResetUnsafeMorphs = useFunc(() => {
     const avatar = stage?.activeAvatar.avatar;
-    if (!avatar.blendshapes) return;
+    if (!avatar || !avatar.blendshapes) return;
 
     Object.entries(avatar.blendshapes).forEach(([name, proxy]) => {
       proxy.value = 0;
@@ -329,6 +350,16 @@ export const PhotoBooth = memo(function PhotoBooth({
       },
     });
   });
+
+  const handleChangePoseName = useEvent(
+    ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
+      if (!stage?.activeAvatar) return;
+
+      setState((next) => {
+        next.loadedPoses[stage.activeAvatar.uid].poseName = currentTarget.value;
+      });
+    }
+  );
 
   const handlePoseContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
     const poseId = e.currentTarget.dataset.poseId!;
@@ -389,8 +420,6 @@ export const PhotoBooth = memo(function PhotoBooth({
     stage.setSize(pose.canvas.width, pose.canvas.height);
 
     setState({
-      poseId: null,
-      poseName: undefined,
       captureCam: pose.camera,
       fov: pose.camera.fov,
       size: { width: pose.canvas.width, height: pose.canvas.height },
@@ -402,7 +431,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const avatar = stage?.activeAvatar.avatar;
-    if (!stage || !avatar?.vrm || !pose) return;
+    if (!stage || !pose) return;
 
     stage.setCamMode(pose.camera.mode, {
       fov: pose.camera.fov,
@@ -414,24 +443,31 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
     stage.setSize(pose.canvas.width, pose.canvas.height);
 
-    Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-      if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
-    });
+    if (avatar) {
+      Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
+        if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
+      });
 
-    Object.entries(pose.blendShapeProxies).map(
-      ([name, value]: [string, number]) => {
-        avatar.vrm.expressionManager?.setValue(name, value);
-      }
-    );
+      Object.entries(pose.blendShapeProxies).map(
+        ([name, value]: [string, number]) => {
+          avatar.vrm.expressionManager?.setValue(name, value);
+        }
+      );
 
-    avatar.positionBone.position.fromArray(pose.rootPosition.position);
-    avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
+      avatar.positionBone.position.fromArray(pose.rootPosition.position);
+      avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
 
-    avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
+      avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
+
+      setState((next) => {
+        next.loadedPoses[stage.activeAvatar.uid] = {
+          poseId,
+          poseName: pose.name,
+        };
+      });
+    }
 
     setState({
-      poseId: poseId!,
-      poseName: pose.name,
       captureCam: pose.camera,
       fov: pose.camera.fov,
       size: { width: pose.canvas.width, height: pose.canvas.height },
@@ -458,8 +494,8 @@ export const PhotoBooth = memo(function PhotoBooth({
       const o = avatar.vrm.scene.getObjectByName(name)!;
       if (!o) return;
 
-      o.position.set(...(bone.position as any));
-      o.quaternion.set(...(bone.quaternion as any));
+      o.position.set(...bone.position);
+      o.quaternion.set(...bone.quaternion);
     });
 
     if (result.restorePosition) {
@@ -468,7 +504,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   });
 
-  const handleClickLoadShapes = useFunc(async (params: ItemParams) => {
+  const handleClickLoadBlendShapes = useFunc(async (params: ItemParams) => {
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
@@ -643,10 +679,10 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     const url = URL.createObjectURL(blob);
 
-    letDownload(
-      url,
-      `${state.poseName !== '' ? state.poseName : 'Untitled'}.png`
-    );
+    const poseName =
+      state.loadedPoses[stage.activeAvatar?.uid ?? ''].poseName ?? 'Untitled';
+
+    letDownload(url, `${poseName !== '' ? poseName : 'Untitled'}.png`);
 
     const cam =
       state.currentCamKind === 'capture'
@@ -666,7 +702,14 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       executeOperation(editorOps.loadVrmBin, modelId, (blob) => {
         const url = URL.createObjectURL(blob);
-        stage?.loadVRM(url);
+        stage?.loadVRM(url).then((avatar) => {
+          setState((next) => {
+            next.loadedPoses[avatar.uid] = {
+              poseId: null,
+              poseName: '',
+            };
+          });
+        });
       });
     }
   );
@@ -685,7 +728,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         mode: stage.camMode,
         target: stage.orbitControls.target.toArray(),
         position: stage.activeCamera.position.toArray(),
-        quaternion: stage.activeCamera.quaternion.toArray(),
+        quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
       };
 
       if (state.currentCamKind === nextMode) return;
@@ -1864,7 +1907,10 @@ export const PhotoBooth = memo(function PhotoBooth({
                 {poses.map((pose, idx) => (
                   <ListItem
                     key={idx}
-                    active={state.poseId === pose.uid}
+                    active={
+                      state.loadedPoses[activeAvatar?.uid ?? '']?.poseId ===
+                      pose.uid
+                    }
                     onDoubleClick={handleDblClickPose}
                     onContextMenu={handlePoseContextMenu}
                     data-pose-id={pose.uid}
@@ -1883,10 +1929,8 @@ export const PhotoBooth = memo(function PhotoBooth({
                 `}
               >
                 <Input
-                  value={state.poseName}
-                  onChange={({ currentTarget }) =>
-                    setState({ poseName: currentTarget.value })
-                  }
+                  value={state.loadedPoses[activeAvatar?.uid ?? '']?.poseName}
+                  onChange={handleChangePoseName}
                 />
 
                 <Button onClick={handleClickSavePose}>
@@ -1895,11 +1939,11 @@ export const PhotoBooth = memo(function PhotoBooth({
 
                 <Button
                   kind="primary"
-                  disabled={!state.poseId}
+                  disabled={!state.loadedPoses[activeAvatar?.uid ?? '']?.poseId}
                   onClick={handleClickOverwritePose}
                 >
                   {t('pose/overwrite')}
-                  {state.poseId && (
+                  {state.loadedPoses[activeAvatar?.uid ?? '']?.poseId && (
                     <span
                       css={css`
                         width: 100%;
@@ -1907,7 +1951,15 @@ export const PhotoBooth = memo(function PhotoBooth({
                         font-size: 8px;
                       `}
                     >
-                      ({poses.find((p) => p.uid === state.poseId)?.name})
+                      (
+                      {
+                        poses.find(
+                          (p) =>
+                            p.uid ===
+                            state.loadedPoses[activeAvatar?.uid ?? '']?.poseId
+                        )?.name
+                      }
+                      )
                     </span>
                   )}
                 </Button>
@@ -1970,7 +2022,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         <ContextItem onClick={handleClickLoadBones}>
           {t('posemenu/loadBones')}
         </ContextItem>
-        <ContextItem onClick={handleClickLoadShapes}>
+        <ContextItem onClick={handleClickLoadBlendShapes}>
           {t('posemenu/loadFacial')}
         </ContextItem>
 
