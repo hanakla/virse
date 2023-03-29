@@ -1,13 +1,10 @@
 import * as THREE from 'three';
-import { VRM, VRMUtils } from '@pixiv/three-vrm';
+import { Packr } from 'msgpackr';
+import { VRM, VRMExpressionPresetName, VRMUtils } from '@pixiv/three-vrm';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import {
-  EffectComposer,
-  Pass,
-} from 'three/examples/jsm/postprocessing/EffectComposer';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
-// import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import {
   Bone,
   Color,
@@ -15,11 +12,11 @@ import {
   Object3D,
   OrthographicCamera,
   PerspectiveCamera,
-  SkeletonHelper,
+  Vector3Tuple,
+  Vector4Tuple,
   WebGLRenderer,
 } from 'three';
 import { nanoid } from 'nanoid';
-// import { AvatarController } from "./VRMToyBox/AvatarController";
 import { Avatar } from './VRMToyBox/Avatar';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { fit } from 'object-fit-math';
@@ -39,6 +36,37 @@ type AvatarData = {
   avatar: Avatar;
   ui: VrmPoseController;
   vrm: VRM;
+};
+
+type VirseScene = {
+  vrms: Record<string, Uint8Array>;
+  canvas: { width: number; height: number };
+  camera: {
+    mode: 'perspective' | 'orthographic';
+    fov: number;
+    zoom: number;
+    target: Vector3Tuple;
+    position: Vector3Tuple;
+    quaternion: Vector4Tuple;
+  };
+  poses: Record<
+    string,
+    {
+      rootPosition: {
+        position: Vector3Tuple;
+        quaternion: Vector4Tuple;
+      };
+      vrmExpressions: Record<string, number>;
+      morphs: Record<string, number>;
+      bones: Record<
+        string,
+        {
+          position: Vector3Tuple;
+          quaternion: Vector4Tuple;
+        }
+      >;
+    }
+  >;
 };
 
 export class VirseStage {
@@ -198,6 +226,168 @@ export class VirseStage {
     return this.avatars;
   }
 
+  public get zRotation() {
+    return this.#zRotation;
+  }
+
+  public set zRotation(value: number) {
+    this.#zRotation = value;
+    this.activeCamera.rotation.z = value;
+    this.activeCamera.updateMatrix();
+    this.activeCamera.updateProjectionMatrix();
+    this.events.emit('updated');
+  }
+
+  public async serializeScene() {
+    // msgpackr
+    const msgpackr = new Packr({ structuredClone: true });
+
+    const size = this.renderer.getSize(new THREE.Vector2());
+
+    const scene: VirseScene = {
+      vrms: Object.fromEntries(
+        await Promise.all(
+          Object.entries(this.avatars).map(async ([uid, { avatar }]) => [
+            uid,
+            new Uint8ClampedArray(await avatar.vrmBin!.arrayBuffer()),
+          ])
+        )
+      ),
+      canvas: {
+        width: size.x,
+        height: size.y,
+      },
+      camera: {
+        mode: this.camMode,
+        fov: this.pCam.fov,
+        zoom: this.activeCamera.zoom,
+        target: this.orbitControls.target.toArray(),
+        position: this.activeCamera.position.toArray(),
+        quaternion: this.activeCamera.quaternion.toArray() as Vector4Tuple,
+      },
+      poses: Object.fromEntries(
+        Object.entries(this.avatars).map(([uid, { avatar }]) => [
+          uid,
+          {
+            rootPosition: {
+              position: avatar.positionBone.position.toArray(),
+              quaternion:
+                avatar.positionBone.quaternion.toArray() as Vector4Tuple,
+            },
+            vrmExpressions: Object.values(VRMExpressionPresetName).reduce(
+              (ac, name) => {
+                ac[name] = avatar.vrm.expressionManager!.getValue(name);
+                return ac;
+              },
+              Object.create(null)
+            ),
+            morphs: Object.entries(avatar.blendshapes ?? {}).reduce(
+              (ac, [name, proxy]) => {
+                ac[name] = proxy.value;
+                return ac;
+              },
+              Object.create(null)
+            ),
+            bones: (() => {
+              const bones: Bone[] = [];
+
+              avatar.vrm.scene.traverse((o) => {
+                if ((o as any).isBone) bones.push(o as any);
+              });
+
+              return bones.reduce((ac, b) => {
+                ac[b.name] = {
+                  position: b.position.toArray(),
+                  quaternion: b.quaternion.toArray(),
+                };
+                return ac;
+              }, Object.create(null));
+            })(),
+          },
+        ])
+      ),
+    };
+
+    const data = msgpackr.pack(scene);
+    return data;
+  }
+
+  public async loadScene(virseBin: Uint8Array) {
+    Object.values(this.avatars).map((avatar) => {
+      avatar.avatar.dispose();
+      delete this.avatars[avatar.uid];
+    });
+
+    const msgpackr = new Packr({ structuredClone: true });
+
+    const data = msgpackr.unpack(virseBin) as VirseScene;
+    console.info('🧘‍♀️ Load virse scene', data);
+
+    const { vrms, canvas, camera, poses } = data;
+
+    this.renderer.setSize(canvas.width, canvas.height);
+
+    this.setCamMode(camera.mode, camera);
+    this.#zRotation = this.activeCamera.rotation.z;
+
+    const uidMap: { [old: string]: string } = {};
+
+    await Promise.all(
+      Object.entries(vrms).map(async ([uid, vrmBin]) => {
+        const blob = new Blob([vrmBin], { type: 'model/gltf+json' });
+        const url = URL.createObjectURL(blob);
+        const avatar = await this.loadVRM(url);
+        URL.revokeObjectURL(url);
+
+        uidMap[uid] = avatar.uid;
+
+        avatar.avatar.positionBone.position.fromArray(
+          poses[uid].rootPosition.position
+        );
+        avatar.avatar.positionBone.quaternion.fromArray(
+          poses[uid].rootPosition.quaternion
+        );
+      })
+    );
+
+    Object.entries(poses).forEach(([uid, pose]) => {
+      const avatar = this.avatars[uidMap[uid]].avatar;
+
+      avatar.positionBone.position.fromArray(pose.rootPosition.position);
+      avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
+
+      Object.entries(pose.vrmExpressions as Record<string, number>).forEach(
+        ([name, value]) => {
+          avatar.vrm.expressionManager!.setValue(name as any, value);
+        }
+      );
+
+      Object.entries(pose.morphs as Record<string, number>).forEach(
+        ([name, value]) => {
+          avatar.blendshapes![name]!.value = value;
+        }
+      );
+
+      Object.entries(
+        pose.bones as Record<
+          string,
+          {
+            position: Vector3Tuple;
+            quaternion: Vector4Tuple;
+          }
+        >
+      ).forEach(([name, { position, quaternion }]) => {
+        const bone = avatar.vrm.scene.getObjectByName(name) as Bone;
+        bone.position.fromArray(position);
+        bone.quaternion.fromArray(quaternion);
+      });
+    });
+
+    this.events.emit('updated');
+
+    return { canvas, camera };
+  }
+
   public dispose() {
     Object.values(this.avatars).map((avatar) => {
       // avatar.ui.dispose();
@@ -213,10 +403,11 @@ export class VirseStage {
     opt: {
       fov?: number;
       zoom?: number;
-      position?: [number, number, number];
-      target?: [number, number, number];
-      rotation?: [number, number, number];
-      quaternion?: [number, number, number, number];
+      position?: Vector3Tuple;
+      target?: Vector3Tuple;
+      position0?: Vector3Tuple;
+      rotation?: Vector3Tuple;
+      quaternion?: Vector4Tuple;
     } = {}
   ) {
     this.orbitControls.dispose();

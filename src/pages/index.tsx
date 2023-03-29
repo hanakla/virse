@@ -126,6 +126,10 @@ export default function Home() {
       if (file.name.endsWith('.vrm')) {
         executeOperation(editorOps.addVrm, file);
         stage!.loadVRM(url);
+      } else if (file.name.endsWith('.virse')) {
+        const buf = await file.arrayBuffer();
+        const bin = new Uint8Array(buf);
+        stage?.loadScene(bin);
       } else if (file.name.endsWith('.json')) {
         const json = JSON.parse(await file.text());
 

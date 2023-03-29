@@ -21,7 +21,6 @@ export const createSkeltonHelper = (vrm: VRM): InteractableObject[] => {
   const bones: Bone[] = [];
   vrm.scene.traverse((object) => {
     if (!object.isBone) return;
-    console.log(object.name);
     bones.push(object);
   });
 
