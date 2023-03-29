@@ -21,27 +21,19 @@ import {
   Item as ContextItem,
   Separator,
 } from 'react-contexify';
+import { useLongPress } from 'use-long-press';
 import {
   RiArrowLeftSFill,
   RiCamera2Fill,
-  RiCamera2Line,
   RiCameraSwitchFill,
   RiFlashlightFill,
   RiInformationLine,
   RiPaintFill,
-  RiQuestionFill,
   RiQuestionMark,
   RiRefreshLine,
   RiSkullFill,
 } from 'react-icons/ri';
-import {
-  useClickAway,
-  useDrop,
-  useEffectOnce,
-  useMeasure,
-  useMount,
-  useUpdate,
-} from 'react-use';
+import { useClickAway, useEffectOnce, useMount, useUpdate } from 'react-use';
 import useEvent from 'react-use-event-hook';
 import styled, { css, CSSProperties } from 'styled-components';
 import { Bone, MathUtils, Vector3Tuple, Vector4Tuple } from 'three';
@@ -62,7 +54,6 @@ import { migrateV0PoseToV1 } from '../../domains/vrm';
 import { KeyboardHelp } from '../../modals/KeyboardHelp';
 import { SelectBones } from '../../modals/SelectBones';
 import { SelectChangeBones } from '../../modals/SelectChangeBone';
-import { LoadPose } from '../../modals/LoadPose';
 import { CamModes, VirseStage } from '../../stage/VirseStage';
 import { transitionCss } from '../../styles/mixins';
 import {

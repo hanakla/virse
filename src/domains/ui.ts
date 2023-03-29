@@ -4,6 +4,7 @@ export const rightHandShortcuts = {
   selectParentBone: 's',
   selectChildBone: 'd',
   toggleBoneControlMode: 'r',
+  resetCurrentBone: 'shift+r',
   axisX: 'x',
   axisY: 'y',
   axisZ: 'z',

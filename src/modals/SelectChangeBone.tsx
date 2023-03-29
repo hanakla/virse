@@ -67,7 +67,7 @@ export function SelectChangeBones({
 
   useBindMousetrap(
     listRef,
-    rightHandShortcuts.boneListOk,
+    [rightHandShortcuts.boneListOk, rightHandShortcuts.boneListOk2],
     (e) => {
       e.stopPropagation();
       handleClickOk();
@@ -134,7 +134,8 @@ export function SelectChangeBones({
       footer={
         <>
           <Button kind="primary" onClick={handleClickOk}>
-            {t('ok')} ({humanizeShortcutKey(rightHandShortcuts.boneListOk)})
+            {t('ok')} ({humanizeShortcutKey(rightHandShortcuts.boneListOk)} or{' '}
+            {humanizeShortcutKey(rightHandShortcuts.boneListOk2)})
           </Button>
           <Button kind="default" onClick={handleClickCancel}>
             {t('cancel')}
