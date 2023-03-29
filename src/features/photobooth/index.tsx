@@ -48,7 +48,7 @@ import { Bone, MathUtils, Vector3Tuple, Vector4Tuple } from 'three';
 import { Button } from '../../components/Button';
 import { Checkbox } from '../../components/Checkbox';
 import { Input } from '../../components/Input';
-import { InputSection } from '../../components/InputSection';
+import { InputSection, InputSectionDiv } from '../../components/InputSection';
 import { List, ListItem } from '../../components/List';
 import { Sidebar } from '../../components/Sidebar';
 import { Slider } from '../../components/Slider';
@@ -383,8 +383,8 @@ export const PhotoBooth = memo(function PhotoBooth({
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
-    const avatar = stage?.activeAvatar.avatar;
-    if (!avatar || !pose) return;
+    const { avatar, uid } = stage?.activeAvatar ?? {};
+    if (!avatar || !uid || !pose) return;
 
     Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
       if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
@@ -400,6 +400,13 @@ export const PhotoBooth = memo(function PhotoBooth({
     avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
 
     avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
+
+    setState((next) => {
+      next.loadedPoses[uid] = {
+        poseId,
+        poseName: pose.name,
+      };
+    });
   });
 
   const handleClickLoadScene = useFunc((params: ItemParams) => {
@@ -569,6 +576,28 @@ export const PhotoBooth = memo(function PhotoBooth({
     const url = URL.createObjectURL(json);
 
     letDownload(url, `poseset.json`);
+  });
+
+  const handleClickOverwritePoseMenu = useEvent((params: ItemParams) => {
+    if (!stage?.activeAvatar) return;
+
+    const poseId = params.props.poseId;
+
+    const pose = serializeCurrentPose.current();
+    if (!pose) return;
+
+    executeOperation(
+      editorOps.savePose,
+      { ...pose, uid: poseId },
+      { overwrite: true }
+    );
+
+    setState((next) => {
+      next.loadedPoses[stage.activeAvatar.uid] = {
+        poseId,
+        poseName: pose.name,
+      };
+    });
   });
 
   const handleClickLoadCamera = useFunc((params: ItemParams) => {
@@ -2035,6 +2064,12 @@ export const PhotoBooth = memo(function PhotoBooth({
 
         <ContextItem onClick={handleClickDownloadPoseSet}>
           {t('posemenu/downloadAll')}
+        </ContextItem>
+
+        <Separator />
+
+        <ContextItem onClick={handleClickOverwritePoseMenu}>
+          {t('posemenu/overwriteToThis')}
         </ContextItem>
 
         <Separator />
