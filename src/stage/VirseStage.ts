@@ -226,18 +226,6 @@ export class VirseStage {
     return this.avatars;
   }
 
-  public get zRotation() {
-    return this.#zRotation;
-  }
-
-  public set zRotation(value: number) {
-    this.#zRotation = value;
-    this.activeCamera.rotation.z = value;
-    this.activeCamera.updateMatrix();
-    this.activeCamera.updateProjectionMatrix();
-    this.events.emit('updated');
-  }
-
   public async serializeScene() {
     // msgpackr
     const msgpackr = new Packr({ structuredClone: true });
@@ -328,7 +316,6 @@ export class VirseStage {
     this.renderer.setSize(canvas.width, canvas.height);
 
     this.setCamMode(camera.mode, camera);
-    this.#zRotation = this.activeCamera.rotation.z;
 
     const uidMap: { [old: string]: string } = {};
 
