@@ -1001,30 +1001,6 @@ export const PhotoBooth = memo(function PhotoBooth({
   /////
   //// Another
   /////
-  useDrop({
-    onFiles: async ([file]) => {
-      const url = URL.createObjectURL(file);
-
-      if (file.name.endsWith('.vrm')) {
-        executeOperation(editorOps.addVrm, file);
-        stage!.loadVRM(url);
-      } else if (file.name.endsWith('.json')) {
-        const json = JSON.parse(await file.text());
-
-        if (json.poseset) {
-          const result = await openModal(LoadPose, { poses: json.poseset });
-          if (!result) return;
-
-          executeOperation(editorOps.installPoseSet, result.poses, {
-            clear: result.clearPoseSet,
-          });
-        } else {
-          executeOperation(editorOps.savePose, json);
-        }
-      }
-    },
-  });
-
   useMount(async () => {
     executeOperation(editorOps.loadPoses);
     executeOperation(editorOps.loadVrms);
