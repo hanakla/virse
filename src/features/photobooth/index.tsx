@@ -1,6 +1,11 @@
 import { useModalOpener } from '@fleur/mordred';
 import { useFleurContext } from '@fleur/react';
-import { letDownload, styleWhen, useObjectState } from '@hanakla/arma';
+import {
+  letDownload,
+  selectFile,
+  styleWhen,
+  useObjectState,
+} from '@hanakla/arma';
 import { VRMExpressionPresetName, VRMHumanBoneName } from '@pixiv/three-vrm';
 import useMouse from '@react-hook/mouse-position';
 import { nanoid } from 'nanoid';
