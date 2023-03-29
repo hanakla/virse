@@ -648,6 +648,21 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  const handleClickSelectVRM = useEvent(async () => {
+    const files = await selectFile({ extensions: ['.vrm'], multiple: true });
+
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      const url = URL.createObjectURL(file);
+
+      executeOperation(editorOps.addVrm, file);
+      await stage!.loadVRM(url);
+
+      URL.revokeObjectURL(url);
+    }
+  });
+
   const handleDblClickModel = useFunc((e: MouseEvent<HTMLElement>) => {
     handleClickLoadModel({
       event: e,
@@ -1420,7 +1435,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                 </Button>
               </InputSection>
 
-              <InputSection title={t('onStageModels')}>
+              <InputSectionDiv title={t('onStageModels')}>
                 <List
                   css={`
                     flex: 1;
@@ -1482,10 +1497,20 @@ export const PhotoBooth = memo(function PhotoBooth({
                       font-size: 12px;
                     `}
                   >
-                    Drop VRM to add on stage
+                    <div
+                      css={css`
+                        margin-bottom: 8px;
+                      `}
+                    >
+                      {t('dropVRM')}
+                    </div>
+
+                    <Button size="min" onClick={handleClickSelectVRM}>
+                      {t('dropVRM/button')}
+                    </Button>
                   </ListItem>
                 </List>
-              </InputSection>
+              </InputSectionDiv>
 
               <InputSection title={t('recentlyUsedModels')}>
                 <List

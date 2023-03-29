@@ -21,6 +21,8 @@
   "recentlyUsedModels": "Recently used models",
   "onStageModels": "Models on stage",
   "noVersionInfo": "(No versioned)",
+  "dropVRM": "Drop VRM to add on stage",
+  "dropVRM/button": "Or select VRM",
   "facial": "Facial",
   "facial/presets": "Presets",
   "facial/customs": "Etc expression",
@@ -42,12 +44,13 @@
   "posemenu/loadFacial": "Load facial expression",
   "posemenu/download": "Download as JSON",
   "posemenu/downloadAll": "Download all poses as JSON",
+  "posemenu/overwriteToThis": "Save pose to this pose (overwrite)",
   "posemenu/delete": "Delete",
 
   "resetmenu/resetSelectedBones": "Reset selecting bones",
   "resetmenu/resetCamera": "Reset camera",
 
-  "stagedModelMenu/removeStagedAvatar": "Remove from stage",
+  "stagedModelMenu/removeStagedModel": "Remove from stage",
   "stagedModelMenu/removeAvatarConfirm": "This operation cannot be undone.<br/>Do you want to drop an avatar from the stage without saving its pose?",
   "stagedModelMenu/removeAvatarConfirm/continue": "Continue bring down",
 

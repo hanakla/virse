@@ -15,6 +15,7 @@ export const rightHandShortcuts = {
   boneListPrev: 's',
   boneListNext: 'd',
   boneListOk: 'f',
+  boneListOk2: 'space',
 } as const;
 
 export function humanizeShortcutKey(key: string) {

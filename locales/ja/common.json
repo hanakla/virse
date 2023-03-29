@@ -21,6 +21,8 @@
   "recentlyUsedModels": "最近使ったモデル",
   "onStageModels": "ステージ上のモデル",
   "noVersionInfo": "(バージョンなし)",
+  "dropVRM": "画面にVRMファイルをドロップして読み込む",
+  "dropVRM/button": "もしくはファイルを選択",
   "facial": "表情",
   "facial/presets": "プリセット表情",
   "facial/customs": "そのほかの表情",
@@ -42,6 +44,7 @@
   "posemenu/loadFacial": "表情を読み込む",
   "posemenu/download": "JSONでダウンロード",
   "posemenu/downloadAll": "すべてのポーズをダウンロード",
+  "posemenu/overwriteToThis": "ポーズをこのポーズに上書き保存",
   "posemenu/delete": "削除",
 
   "resetmenu/resetSelectedBones": "ボーンを選択してリセット",
