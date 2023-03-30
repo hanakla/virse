@@ -53,6 +53,7 @@
   "stagedModelMenu/removeStagedModel": "Remove from stage",
   "stagedModelMenu/removeAvatarConfirm": "This operation cannot be undone.<br/>Do you want to drop an avatar from the stage without saving its pose?",
   "stagedModelMenu/removeAvatarConfirm/continue": "Continue bring down",
+  "stagedModelMenu/replaceModel": "Replace avatar",
 
   "loadPose/title": "Import pose set",
   "loadPose/deleteCurrentPoset": "Delete current pose set (all listed poses)",

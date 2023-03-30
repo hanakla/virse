@@ -76,6 +76,7 @@ import { ConfirmModal } from '../../modals/ConfirmModal';
 import { Trans } from '../../components/Trans';
 import { emptyCoalesce } from '../../utils/lang';
 import { fit } from 'object-fit-math';
+import { SelectModel } from '../../modals/SelectModel';
 
 type StashedCam = {
   mode: CamModes;
@@ -198,7 +199,14 @@ export const PhotoBooth = memo(function PhotoBooth({
   const serializeCurrentPose = useStableLatestRef(() => {
     if (!stage?.activeAvatar) return;
 
-    const { uid, vrm, avatar } = stage.activeAvatar;
+    return serializeAvatarPose.current(stage.activeAvatar.uid);
+  });
+
+  const serializeAvatarPose = useStableLatestRef((uid: string) => {
+    const avatarData = stage?.getAvatar(uid);
+    if (!stage || !avatarData) return;
+
+    const { vrm, avatar } = avatarData;
     const bones: Bone[] = [];
 
     vrm.scene.traverse((o) => {
@@ -377,6 +385,61 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
   });
 
+  const applyPoseToActiveAvatar = useStableLatestRef(
+    (
+      pose: UnsavedVirsePose,
+      {
+        camera,
+        presetExpressions,
+        extraBlendShapes,
+        nonStandardBones,
+      }: {
+        camera: boolean;
+        presetExpressions: boolean;
+        extraBlendShapes: boolean;
+        nonStandardBones: boolean | string[];
+      }
+    ) => {
+      if (!stage?.activeAvatar) return;
+
+      const { avatar } = stage.activeAvatar;
+
+      if (extraBlendShapes) {
+        Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
+          if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
+        });
+      }
+
+      if (presetExpressions) {
+        Object.entries(pose.blendShapeProxies).map(
+          ([name, value]: [string, number]) => {
+            avatar.vrm.expressionManager?.setValue(name, value);
+          }
+        );
+      }
+
+      if (nonStandardBones) {
+        if (nonStandardBones === true) {
+          nonStandardBones = Object.keys(pose.bones);
+        }
+
+        nonStandardBones.map((name) => {
+          const bone = pose.bones[name];
+          const o = avatar.vrm.scene.getObjectByName(name)!;
+          if (!bone || !o) return;
+
+          o.position.set(...bone.position);
+          o.quaternion.set(...bone.quaternion);
+        });
+      }
+
+      avatar.positionBone.position.fromArray(pose.rootPosition.position);
+      avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
+
+      avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
+    }
+  );
+
   const handleClickLoadPoseOnly = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
@@ -384,20 +447,12 @@ export const PhotoBooth = memo(function PhotoBooth({
     const { avatar, uid } = stage?.activeAvatar ?? {};
     if (!avatar || !uid || !pose) return;
 
-    Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-      if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
+    applyPoseToActiveAvatar.current(pose, {
+      camera: false,
+      presetExpressions: true,
+      extraBlendShapes: true,
+      nonStandardBones: false,
     });
-
-    Object.entries(pose.blendShapeProxies).map(
-      ([name, value]: [string, number]) => {
-        avatar.vrm.expressionManager?.setValue(name, value);
-      }
-    );
-
-    avatar.positionBone.position.fromArray(pose.rootPosition.position);
-    avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
-
-    avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
 
     setState((next) => {
       next.loadedPoses[uid] = {
@@ -664,14 +719,57 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   const handleStagedModelsContextMenu = useEvent(
     (e: MouseEvent<HTMLElement>) => {
-      const uid = e.currentTarget.dataset.uid!;
-      showContextMenu(e, { id: 'stagedModelMenu', props: { uid } });
+      const avatarUid = e.currentTarget.dataset.avatarUid!;
+      showContextMenu(e, { id: 'stagedModelMenu', props: { avatarUid } });
+    }
+  );
+
+  const handleClickReplaceModel = useEvent(
+    async (params: ItemParams<{ avatarUid: string }>) => {
+      if (!stage) return;
+
+      const prevAvatarUid = params.props!.avatarUid;
+      const pose = serializeAvatarPose.current(prevAvatarUid);
+      console.log(params);
+      console.log({ pose });
+      if (!pose) return;
+
+      const result = await openModal(SelectModel, {
+        clickBackdropToClose: true,
+      });
+      if (!result) return;
+
+      executeOperation(editorOps.addVrm, result.file);
+
+      const url = URL.createObjectURL(result.file);
+      const avatar = await stage.loadVRM(url);
+      URL.revokeObjectURL(url);
+
+      stage.setActiveAvatar(avatar.uid);
+
+      applyPoseToActiveAvatar.current(pose, {
+        camera: false,
+        nonStandardBones: true,
+        extraBlendShapes: true,
+        presetExpressions: true,
+      });
+
+      stage.removeAvatar(prevAvatarUid);
+
+      setState((next) => {
+        next.loadedPoses[avatar.uid] = {
+          poseId: next.loadedPoses[prevAvatarUid]?.poseId ?? null,
+          poseName: next.loadedPoses[prevAvatarUid]?.poseName ?? '',
+        };
+
+        delete next.loadedPoses[prevAvatarUid];
+      });
     }
   );
 
   const handleClickRemoveStagedModel = useEvent(
-    async (params: ItemParams<{ uid: string }>) => {
-      const uid = params.props!.uid;
+    async (params: ItemParams<{ avatarUid: string }>) => {
+      const uid = params.props!.avatarUid;
 
       const result = await openModal(ConfirmModal, {
         message: <Trans i18nKey="stagedModelMenu/removeAvatarConfirm" />,
@@ -1498,7 +1596,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                       css={css`
                         display: flex;
                       `}
-                      data-uid={uid}
+                      data-avatar-uid={uid}
                       active={stage.activeAvatar?.uid === uid}
                       onClick={handleClickStagedModel}
                       onContextMenu={handleStagedModelsContextMenu}
@@ -2125,6 +2223,9 @@ export const PhotoBooth = memo(function PhotoBooth({
         id="stagedModelMenu"
         animation={false}
       >
+        <ContextItem onClick={handleClickReplaceModel}>
+          {t('stagedModelMenu/replaceModel')}
+        </ContextItem>
         <ContextItem onClick={handleClickRemoveStagedModel}>
           {t('stagedModelMenu/removeStagedModel')}
         </ContextItem>

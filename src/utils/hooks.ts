@@ -139,11 +139,15 @@ export const useBindMousetrap = (
 
 export const useObjectStateWithRef = <T extends object>(
   initialState: T
-): [T, (patch: Partial<T>) => void, MutableRefObject<T>] => {
+): [
+  T,
+  (patch: Partial<T> | ((draft: T) => void)) => void,
+  MutableRefObject<T>
+] => {
   const [state, setState] = useObjectState<T>(initialState);
   const ref = useStableLatestRef(state);
 
-  return [state, setState, ref];
+  return [state, setState as any, ref];
 };
 
 export const useFocusRestore = ({
