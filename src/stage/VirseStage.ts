@@ -472,6 +472,10 @@ export class VirseStage {
     return this.avatars[this.#activeAvatarUid ?? ''] ?? null;
   }
 
+  public getAvatar(uid: string): AvatarData | undefined {
+    return this.avatars[uid];
+  }
+
   public setActiveAvatar(uid: string) {
     this.#activeAvatarUid = uid;
 
