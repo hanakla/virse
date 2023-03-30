@@ -64,6 +64,7 @@ import { transitionCss } from '../../styles/mixins';
 import {
   useBindMousetrap,
   useFunc,
+  useObjectStateWithRef,
   useStableLatestRef,
   useStoreState,
 } from '../../utils/hooks';
@@ -74,6 +75,7 @@ import { VRMLicense } from '../../modals/VRMLicense';
 import { ConfirmModal } from '../../modals/ConfirmModal';
 import { Trans } from '../../components/Trans';
 import { emptyCoalesce } from '../../utils/lang';
+import { fit } from 'object-fit-math';
 
 type StashedCam = {
   mode: CamModes;
@@ -107,7 +109,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   const { show: showContextMenu, hideAll } = useContextMenu({});
 
   const [rightTab, setRightTab] = useState<'expr' | 'poses'>('expr');
-  const [state, setState] = useObjectState({
+  const [state, setState, stateRef] = useObjectStateWithRef({
     loadedPoses: {
       '': {
         poseId: null,
@@ -629,6 +631,37 @@ export const PhotoBooth = memo(function PhotoBooth({
   //// Models UI Event Handlers
   /////
   // #region Models UI Event Handlers
+  const handleChangeSizeWidth = useEvent(
+    ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
+      setState((state) => {
+        state.size.width = currentTarget.valueAsNumber;
+      });
+
+      stage?.setSize(currentTarget.valueAsNumber, state.size.height);
+    }
+  );
+
+  const handleChangeSizeHeight = useEvent(
+    ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
+      setState((state) => {
+        state.size.height = currentTarget.valueAsNumber;
+      });
+
+      stage?.setSize(state.size.width, currentTarget.valueAsNumber);
+    }
+  );
+
+  const handleClickSizeToScreen = useEvent(() => {
+    setState({
+      size: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+    });
+
+    stage?.setSize(window.innerWidth, window.innerHeight);
+  });
+
   const handleStagedModelsContextMenu = useEvent(
     (e: MouseEvent<HTMLElement>) => {
       const uid = e.currentTarget.dataset.uid!;
@@ -1057,8 +1090,25 @@ export const PhotoBooth = memo(function PhotoBooth({
   }, [stage]);
 
   useEffect(() => {
+    let prevWindowSize = [window.innerWidth, window.innerHeight];
+
     const onResize = () => {
-      stage?.setSize(state.size.width, window.innerHeight);
+      const state = stateRef.current;
+      const windowSize = [window.innerWidth, window.innerHeight];
+
+      if (
+        state.size.width === prevWindowSize[0] &&
+        state.size.height === prevWindowSize[1]
+      ) {
+        setState({
+          size: { width: windowSize[0], height: windowSize[1] },
+        });
+        stage?.setSize(windowSize[0], windowSize[1]);
+      } else {
+        stage?.setSize(state.size.width, state.size.height);
+      }
+
+      prevWindowSize = windowSize;
     };
 
     window.addEventListener('resize', onResize);
@@ -1412,15 +1462,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                     `}
                     type="number"
                     value={state.size.width}
-                    onChange={({ currentTarget }) => {
-                      setState((state) => {
-                        state.size.width = currentTarget.valueAsNumber;
-                      });
-                      stage.setSize(
-                        currentTarget.valueAsNumber,
-                        stage.getSize().height
-                      );
-                    }}
+                    onChange={handleChangeSizeWidth}
                   />
                   <span>×</span>
                   <Input
@@ -1429,15 +1471,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                     `}
                     type="number"
                     value={state.size.height}
-                    onChange={({ currentTarget }) => {
-                      setState((state) => {
-                        state.size.height = currentTarget.valueAsNumber;
-                      });
-                      stage.setSize(
-                        stage.getSize().width,
-                        currentTarget.valueAsNumber
-                      );
-                    }}
+                    onChange={handleChangeSizeHeight}
                   />
                 </div>
                 <Button
@@ -1445,16 +1479,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                     margin-top: 8px;
                   `}
                   size="min"
-                  onClick={() => {
-                    setState({
-                      size: {
-                        width: window.innerWidth,
-                        height: window.innerHeight,
-                      },
-                    });
-
-                    stage.setSize(window.innerWidth, window.innerHeight);
-                  }}
+                  onClick={handleClickSizeToScreen}
                 >
                   {t('resolution/resetToScreenSize')}
                 </Button>

@@ -1,4 +1,3 @@
-import { useInsertionEffect } from 'react';
 import { StoreClass } from '@fleur/fleur';
 import { ExtractStateOfStoreClass } from '@fleur/fleur/dist/Store';
 import { useStore } from '@fleur/react';
@@ -8,12 +7,11 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
 import { shallowEquals } from './object';
-import useEvent from 'react-use-event-hook';
+import { useObjectState } from '@hanakla/arma';
 
 export const useFunc = <T extends (...args: any[]) => any>(fn: T): T => {
   const ref = useRef<T | null>(null);
@@ -137,6 +135,15 @@ export const useBindMousetrap = (
       trap.reset();
     };
   }, [ref.current, handlerKey]);
+};
+
+export const useObjectStateWithRef = <T extends object>(
+  initialState: T
+): [T, (patch: Partial<T>) => void, MutableRefObject<T>] => {
+  const [state, setState] = useObjectState<T>(initialState);
+  const ref = useStableLatestRef(state);
+
+  return [state, setState, ref];
 };
 
 export const useFocusRestore = ({
