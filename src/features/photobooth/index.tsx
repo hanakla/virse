@@ -110,7 +110,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   const { show: showContextMenu, hideAll } = useContextMenu({});
 
   const [rightTab, setRightTab] = useState<'expr' | 'poses'>('expr');
-  const [state, setState, stateRef] = useObjectStateWithRef({
+  const [state, setState] = useObjectStateWithRef({
     loadedPoses: {
       '': {
         poseId: null,
@@ -123,7 +123,6 @@ export const PhotoBooth = memo(function PhotoBooth({
     syncEyes: true,
     eyeLeft: { x: 0, y: 0 },
     eyeRight: { x: 0, y: 0 },
-    size: { width: 1000, height: 1000 },
     fov: 15,
     showColorPane: false,
     currentCamKind: 'capture' as 'editorial' | 'capture',
@@ -220,7 +219,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     const pose: UnsavedVirsePose = {
       name: emptyCoalesce(state.loadedPoses[uid]?.poseName, 'New Pose'),
-      canvas: state.size,
+      canvas: stage.getSize(),
       camera: {
         mode: stage.camMode,
         fov: stage.camFov,
@@ -482,7 +481,6 @@ export const PhotoBooth = memo(function PhotoBooth({
     setState({
       captureCam: pose.camera,
       fov: pose.camera.fov,
-      size: { width: pose.canvas.width, height: pose.canvas.height },
     });
   });
 
@@ -530,7 +528,6 @@ export const PhotoBooth = memo(function PhotoBooth({
     setState({
       captureCam: pose.camera,
       fov: pose.camera.fov,
-      size: { width: pose.canvas.width, height: pose.canvas.height },
     });
   });
 
@@ -671,7 +668,6 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     setState({
       fov: pose.camera.fov,
-      size: { width: pose.canvas.width, height: pose.canvas.height },
     });
   });
 
@@ -688,32 +684,26 @@ export const PhotoBooth = memo(function PhotoBooth({
   // #region Models UI Event Handlers
   const handleChangeSizeWidth = useEvent(
     ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
-      setState((state) => {
-        state.size.width = currentTarget.valueAsNumber;
-      });
+      const num = Number.isNaN(currentTarget.valueAsNumber)
+        ? 1
+        : currentTarget.valueAsNumber;
 
-      stage?.setSize(currentTarget.valueAsNumber, state.size.height);
+      stage?.setSize(num, stage.getSize().height);
+      rerender();
     }
   );
 
   const handleChangeSizeHeight = useEvent(
     ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
-      setState((state) => {
-        state.size.height = currentTarget.valueAsNumber;
-      });
-
-      stage?.setSize(state.size.width, currentTarget.valueAsNumber);
+      const num = Number.isNaN(currentTarget.valueAsNumber)
+        ? 1
+        : currentTarget.valueAsNumber;
+      stage?.setSize(stage.getSize().width, num);
+      rerender();
     }
   );
 
   const handleClickSizeToScreen = useEvent(() => {
-    setState({
-      size: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      },
-    });
-
     stage?.setSize(window.innerWidth, window.innerHeight);
   });
 
@@ -730,8 +720,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       const prevAvatarUid = params.props!.avatarUid;
       const pose = serializeAvatarPose.current(prevAvatarUid);
-      console.log(params);
-      console.log({ pose });
+
       if (!pose) return;
 
       const result = await openModal(SelectModel, {
@@ -790,13 +779,13 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   const handleClickStagedModel = useEvent(
     ({ currentTarget }: MouseEvent<HTMLLIElement>) => {
-      stage?.setActiveAvatar(currentTarget.dataset.uid!);
+      stage?.setActiveAvatar(currentTarget.dataset.avatarUid!);
     }
   );
 
   const handleClickStagedModelLicense = useEvent(
     ({ currentTarget }: MouseEvent<HTMLElement>) => {
-      const uid = currentTarget.dataset.uid!;
+      const uid = currentTarget.dataset.avatarUid!;
       const entry = stage?.avatarsIterator.find((m) => m.uid === uid);
       if (!stage || !entry) return;
 
@@ -1191,19 +1180,16 @@ export const PhotoBooth = memo(function PhotoBooth({
     let prevWindowSize = [window.innerWidth, window.innerHeight];
 
     const onResize = () => {
-      const state = stateRef.current;
+      if (!stage) return;
+
+      const size = stage.getSize();
       const windowSize = [window.innerWidth, window.innerHeight];
 
       if (
-        state.size.width === prevWindowSize[0] &&
-        state.size.height === prevWindowSize[1]
+        size.width === prevWindowSize[0] &&
+        size.height === prevWindowSize[1]
       ) {
-        setState({
-          size: { width: windowSize[0], height: windowSize[1] },
-        });
         stage?.setSize(windowSize[0], windowSize[1]);
-      } else {
-        stage?.setSize(state.size.width, state.size.height);
       }
 
       prevWindowSize = windowSize;
@@ -1229,12 +1215,6 @@ export const PhotoBooth = memo(function PhotoBooth({
   // on mode changed
   useEffectOnce(() => {
     stage?.setShowBones(photoModeState.visibleBones);
-    stage?.setSize(state.size.width, state.size.height);
-  });
-
-  useEffectOnce(() => {
-    if (!stage) return;
-    setState({ size: stage?.getSize() });
   });
 
   // Sync right eye position to Avatar
@@ -1559,7 +1539,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                       display: block;
                     `}
                     type="number"
-                    value={state.size.width}
+                    value={stage?.getSize().width ?? 1}
                     onChange={handleChangeSizeWidth}
                   />
                   <span>×</span>
@@ -1568,7 +1548,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                       display: block;
                     `}
                     type="number"
-                    value={state.size.height}
+                    value={stage?.getSize().height ?? 1}
                     onChange={handleChangeSizeHeight}
                   />
                 </div>
@@ -1633,7 +1613,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                         <RiInformationLine
                           fontSize={16}
                           onClick={handleClickStagedModelLicense}
-                          data-uid={uid}
+                          data-avatar-uid={uid}
                         />
                       </div>
                     </ListItem>
