@@ -4,7 +4,7 @@ import styled from 'styled-components';
 type Props = ComponentProps<'a'>;
 
 export const ExternalLink = forwardRef<HTMLAnchorElement, Props>(
-  (props, ref) => {
+  function ExternalLink(props, ref) {
     return (
       <Anchor {...props} ref={ref} target="_blank" rel="noopener noreferrer" />
     );

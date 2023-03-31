@@ -14,7 +14,14 @@ import {
   VRMUtils,
 } from '@pixiv/three-vrm';
 import { KalidokitCapture } from '../Kalidokit/capture';
-import { Bone, Group, Scene, SkinnedMesh } from 'three';
+import {
+  Bone,
+  Group,
+  Scene,
+  SkinnedMesh,
+  Vector3Tuple,
+  Vector4Tuple,
+} from 'three';
 import { VirseStage } from '../VirseStage';
 import mitt from 'mitt';
 import { VrmPoseController } from './vrmPoseController';
@@ -43,6 +50,7 @@ export class Avatar {
 
   public gltfJson!: GLTFJson;
   public gltf!: GLTF;
+  public vrmBin: Blob | null = null;
   private _avatarScene!: Scene;
   private _vrm!: VRM;
   private _positionBone!: Bone;
@@ -51,8 +59,8 @@ export class Avatar {
   public needIKSolve: boolean = false;
   public initialBones: Array<{
     name: string;
-    position: [number, number, number];
-    quaternion: [number, number, number, number];
+    position: Vector3Tuple;
+    quaternion: Vector4Tuple;
   }> = [];
 
   public readonly events = mitt<Events>();
@@ -118,9 +126,12 @@ export class Avatar {
 
     const gltf = await loader.loadAsync(url);
     this.gltf = gltf;
+
+    const buffer = await (await fetch(url)).arrayBuffer();
     this.gltfJson = await new WebIO({ credentials: 'include' }).binaryToJSON(
-      new Uint8Array(await (await fetch(url)).arrayBuffer())
+      new Uint8Array(buffer)
     );
+    this.vrmBin = new Blob([buffer], { type: 'model/gltf+json' });
 
     const vrm: VRM = gltf.userData.vrm;
     vrm.scene.traverse((l) => {
@@ -293,7 +304,6 @@ export class Avatar {
       }
     }
 
-    console.log(proxy);
     return proxy;
   }
 }

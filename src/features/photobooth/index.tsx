@@ -1,11 +1,18 @@
 import { useModalOpener } from '@fleur/mordred';
 import { useFleurContext } from '@fleur/react';
-import { letDownload, styleWhen, useObjectState } from '@hanakla/arma';
+import { letDownload, selectFile, styleWhen } from '@hanakla/arma';
 import { VRMExpressionPresetName, VRMHumanBoneName } from '@pixiv/three-vrm';
 import useMouse from '@react-hook/mouse-position';
 import { nanoid } from 'nanoid';
 import { rgba } from 'polished';
-import { memo, MouseEvent, useEffect, useRef, useState } from 'react';
+import {
+  type ChangeEvent,
+  memo,
+  type MouseEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { ChromePicker, ColorChangeHandler } from 'react-color';
 import {
   ItemParams,
@@ -14,34 +21,28 @@ import {
   Item as ContextItem,
   Separator,
 } from 'react-contexify';
+import { useLongPress } from 'use-long-press';
 import {
+  RiArrowLeftLine,
   RiArrowLeftSFill,
+  RiArrowRightLine,
   RiCamera2Fill,
-  RiCamera2Line,
   RiCameraSwitchFill,
   RiFlashlightFill,
   RiInformationLine,
   RiPaintFill,
-  RiQuestionFill,
   RiQuestionMark,
   RiRefreshLine,
   RiSkullFill,
 } from 'react-icons/ri';
-import {
-  useClickAway,
-  useDrop,
-  useEffectOnce,
-  useMeasure,
-  useMount,
-  useUpdate,
-} from 'react-use';
+import { useClickAway, useMount, useUpdate } from 'react-use';
 import useEvent from 'react-use-event-hook';
 import styled, { css, CSSProperties } from 'styled-components';
-import { Bone, MathUtils } from 'three';
+import { Bone, MathUtils, Vector3Tuple, Vector4Tuple } from 'three';
 import { Button } from '../../components/Button';
 import { Checkbox } from '../../components/Checkbox';
 import { Input } from '../../components/Input';
-import { InputSection } from '../../components/InputSection';
+import { InputSection, InputSectionDiv } from '../../components/InputSection';
 import { List, ListItem } from '../../components/List';
 import { Sidebar } from '../../components/Sidebar';
 import { Slider } from '../../components/Slider';
@@ -55,12 +56,12 @@ import { migrateV0PoseToV1 } from '../../domains/vrm';
 import { KeyboardHelp } from '../../modals/KeyboardHelp';
 import { SelectBones } from '../../modals/SelectBones';
 import { SelectChangeBones } from '../../modals/SelectChangeBone';
-import { LoadPose } from '../../modals/LoadPose';
 import { CamModes, VirseStage } from '../../stage/VirseStage';
 import { transitionCss } from '../../styles/mixins';
 import {
   useBindMousetrap,
   useFunc,
+  useObjectStateWithRef,
   useStableLatestRef,
   useStoreState,
 } from '../../utils/hooks';
@@ -70,12 +71,15 @@ import { SelectExpressions } from '../../modals/SelectExpressions';
 import { VRMLicense } from '../../modals/VRMLicense';
 import { ConfirmModal } from '../../modals/ConfirmModal';
 import { Trans } from '../../components/Trans';
+import { emptyCoalesce } from '../../utils/lang';
+import { SelectModel } from '../../modals/SelectModel';
 
 type StashedCam = {
   mode: CamModes;
-  target: number[];
-  position: number[];
-  quaternion: number[];
+  fov: number;
+  target: Vector3Tuple;
+  position: Vector3Tuple;
+  quaternion: Vector4Tuple;
 };
 
 const replaceVRoidShapeNamePrefix = (name: string) => {
@@ -91,7 +95,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   const rerender = useUpdate();
   const { openModal } = useModalOpener();
 
-  const shortcutBindElRef = useRef<HTMLDivElement>(
+  const shortcutBindElRef = useRef<HTMLElement | null>(
     typeof document !== 'undefined' ? document.getElementById('ui') : null
   );
   const padLRef = useRef<HTMLDivElement>(null);
@@ -103,24 +107,23 @@ export const PhotoBooth = memo(function PhotoBooth({
   const { show: showContextMenu, hideAll } = useContextMenu({});
 
   const [rightTab, setRightTab] = useState<'expr' | 'poses'>('expr');
-  const [state, setState] = useObjectState({
-    poseId: null as string | null,
-    poseName: '',
+  const [state, setState] = useObjectStateWithRef({
+    loadedPoses: {
+      '': {
+        poseId: null,
+        poseName: '',
+      },
+    } as {
+      [avatarUid: string]: { poseId: string | null; poseName: string };
+    },
     rotation: false,
     syncEyes: true,
     eyeLeft: { x: 0, y: 0 },
     eyeRight: { x: 0, y: 0 },
-    size: { width: 1000, height: 1000 },
-    fov: 15,
     showColorPane: false,
     currentCamKind: 'capture' as 'editorial' | 'capture',
     captureCam: null as StashedCam | null,
     editorialCam: null as StashedCam | null,
-    color: {
-      hex: '#fff',
-      rgb: { r: 255, g: 255, b: 255 },
-      alpha: 0,
-    },
     handMix: {
       right: 0,
       left: 0,
@@ -142,18 +145,24 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
   });
 
+  const handleClickBGTransparent = useEvent(() => {
+    stage?.setBackgroundColor({ r: 0, g: 0, b: 0, a: 0 });
+  });
+
+  const handleClickBGBlue = useEvent(() => {
+    stage?.setBackgroundColor({ r: 0, g: 0, b: 255, a: 1 });
+  });
+
+  const handleClickBGGreen = useEvent(() => {
+    stage?.setBackgroundColor({ r: 0, g: 255, b: 0, a: 1 });
+  });
+
   const handleChangeBgColor = useFunc<ColorChangeHandler>((color) => {
-    stage.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
-    setState({
-      color: { hex: color.hex, rgb: color.rgb, alpha: color.rgb.a! },
-    });
+    stage?.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
   });
 
   const handleChangeBgColorComplete = useFunc<ColorChangeHandler>((color) => {
-    stage.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
-    setState({
-      color: { hex: color.hex, rgb: color.rgb, alpha: color.rgb.a! },
-    });
+    stage?.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
   });
 
   useClickAway(bgColorPaneRef, ({ currentTarget }) => {
@@ -184,7 +193,14 @@ export const PhotoBooth = memo(function PhotoBooth({
   const serializeCurrentPose = useStableLatestRef(() => {
     if (!stage?.activeAvatar) return;
 
-    const { vrm, avatar } = stage.activeAvatar;
+    return serializeAvatarPose.current(stage.activeAvatar.uid);
+  });
+
+  const serializeAvatarPose = useStableLatestRef((uid: string) => {
+    const avatarData = stage?.getAvatar(uid);
+    if (!stage || !avatarData) return;
+
+    const { vrm, avatar } = avatarData;
     const bones: Bone[] = [];
 
     vrm.scene.traverse((o) => {
@@ -192,13 +208,13 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
     const vrmPose = vrm.humanoid!.getPose();
 
-    const original = state.poseId
-      ? poses.find((p) => p.uid === state.poseId!)
+    const original = state.loadedPoses[uid]
+      ? poses.find((p) => p.uid === state.loadedPoses[uid]?.poseId)
       : null;
 
     const pose: UnsavedVirsePose = {
-      name: state.poseName,
-      canvas: state.size,
+      name: emptyCoalesce(state.loadedPoses[uid]?.poseName, 'New Pose'),
+      canvas: stage.getSize(),
       camera: {
         mode: stage.camMode,
         fov: stage.camFov,
@@ -244,12 +260,15 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickOverwritePose = useEvent(() => {
+    const { activeAvatar } = stage!;
     const pose = serializeCurrentPose.current();
-    if (!pose || !state.poseId) return;
+
+    const originalPoseId = state.loadedPoses[activeAvatar.uid].poseId;
+    if (!pose || !originalPoseId) return;
 
     executeOperation(
       editorOps.savePose,
-      { ...pose, uid: state.poseId },
+      { ...pose, uid: originalPoseId },
       { overwrite: true }
     );
   });
@@ -262,15 +281,17 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickResetPose = useFunc(() => {
-    const avatar = stage?.activeAvatar?.avatar;
-    if (!avatar) return;
+    const activeAvatar = stage?.activeAvatar;
+    if (!activeAvatar) return;
 
-    avatar.resetPose();
-    avatar.resetExpressions();
+    activeAvatar.avatar.resetPose();
+    activeAvatar.avatar.resetExpressions();
 
-    setState({
-      poseId: null,
-      poseName: '',
+    setState((next) => {
+      next.loadedPoses[activeAvatar.uid] = {
+        poseId: null,
+        poseName: '',
+      };
     });
   });
 
@@ -309,7 +330,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   const handleClickResetUnsafeMorphs = useFunc(() => {
     const avatar = stage?.activeAvatar.avatar;
-    if (!avatar.blendshapes) return;
+    if (!avatar || !avatar.blendshapes) return;
 
     Object.entries(avatar.blendshapes).forEach(([name, proxy]) => {
       proxy.value = 0;
@@ -330,6 +351,20 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
   });
 
+  const handleChangePoseName = useEvent(
+    ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
+      if (!stage?.activeAvatar) return;
+
+      setState((next) => {
+        next.loadedPoses[stage.activeAvatar.uid] ??= {
+          poseId: null,
+          poseName: '',
+        };
+        next.loadedPoses[stage.activeAvatar.uid].poseName = currentTarget.value;
+      });
+    }
+  );
+
   const handlePoseContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
     const poseId = e.currentTarget.dataset.poseId!;
 
@@ -348,27 +383,94 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
   });
 
+  const applyPoseToActiveAvatar = useStableLatestRef(
+    (
+      pose: UnsavedVirsePose,
+      {
+        camera,
+        presetExpressions,
+        extraBlendShapes,
+        nonStandardBones,
+      }: {
+        camera: boolean;
+        presetExpressions: boolean;
+        extraBlendShapes: boolean;
+        nonStandardBones: boolean | string[];
+      }
+    ) => {
+      if (!stage?.activeAvatar) return;
+
+      const { avatar } = stage.activeAvatar;
+
+      if (camera) {
+        stage.setCamMode(pose.camera.mode, {
+          fov: pose.camera.fov,
+          zoom: pose.camera.zoom,
+          position: pose.camera.position,
+          rotation: pose.camera.rotation,
+          // quaternion: pose.camera.quaternion,
+          target: pose.camera.target,
+        });
+
+        stage.setSize(pose.canvas.width, pose.canvas.height);
+      }
+
+      if (extraBlendShapes) {
+        Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
+          if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
+        });
+      }
+
+      if (presetExpressions) {
+        Object.entries(pose.blendShapeProxies).map(
+          ([name, value]: [string, number]) => {
+            avatar.vrm.expressionManager?.setValue(name, value);
+          }
+        );
+      }
+
+      if (nonStandardBones) {
+        if (nonStandardBones === true) {
+          nonStandardBones = Object.keys(pose.bones);
+        }
+
+        nonStandardBones.map((name) => {
+          const bone = pose.bones[name];
+          const o = avatar.vrm.scene.getObjectByName(name)!;
+          if (!bone || !o) return;
+
+          o.position.set(...bone.position);
+          o.quaternion.set(...bone.quaternion);
+        });
+      }
+
+      avatar.positionBone.position.fromArray(pose.rootPosition.position);
+      avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
+
+      avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
+    }
+  );
+
   const handleClickLoadPoseOnly = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
-    const avatar = stage?.activeAvatar.avatar;
-    if (!avatar || !pose) return;
+    const { avatar, uid } = stage?.activeAvatar ?? {};
+    if (!avatar || !uid || !pose) return;
 
-    Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-      if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
+    applyPoseToActiveAvatar.current(pose, {
+      camera: false,
+      presetExpressions: true,
+      extraBlendShapes: true,
+      nonStandardBones: false,
     });
 
-    Object.entries(pose.blendShapeProxies).map(
-      ([name, value]: [string, number]) => {
-        avatar.vrm.expressionManager?.setValue(name, value);
-      }
-    );
-
-    avatar.positionBone.position.fromArray(pose.rootPosition.position);
-    avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
-
-    avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
+    setState((next) => {
+      next.loadedPoses[uid] = {
+        poseId,
+        poseName: pose.name,
+      };
+    });
   });
 
   const handleClickLoadScene = useFunc((params: ItemParams) => {
@@ -389,11 +491,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     stage.setSize(pose.canvas.width, pose.canvas.height);
 
     setState({
-      poseId: null,
-      poseName: undefined,
       captureCam: pose.camera,
-      fov: pose.camera.fov,
-      size: { width: pose.canvas.width, height: pose.canvas.height },
     });
   });
 
@@ -402,39 +500,26 @@ export const PhotoBooth = memo(function PhotoBooth({
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
     const avatar = stage?.activeAvatar.avatar;
-    if (!stage || !avatar?.vrm || !pose) return;
+    if (!stage || !pose) return;
 
-    stage.setCamMode(pose.camera.mode, {
-      fov: pose.camera.fov,
-      zoom: pose.camera.zoom,
-      position: pose.camera.position,
-      rotation: pose.camera.rotation,
-      // quaternion: pose.camera.quaternion,
-      target: pose.camera.target,
-    });
-    stage.setSize(pose.canvas.width, pose.canvas.height);
+    if (avatar) {
+      applyPoseToActiveAvatar.current(pose, {
+        camera: true,
+        presetExpressions: true,
+        extraBlendShapes: true,
+        nonStandardBones: false,
+      });
 
-    Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-      if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
-    });
-
-    Object.entries(pose.blendShapeProxies).map(
-      ([name, value]: [string, number]) => {
-        avatar.vrm.expressionManager?.setValue(name, value);
-      }
-    );
-
-    avatar.positionBone.position.fromArray(pose.rootPosition.position);
-    avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
-
-    avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
+      setState((next) => {
+        next.loadedPoses[stage.activeAvatar.uid] = {
+          poseId,
+          poseName: pose.name,
+        };
+      });
+    }
 
     setState({
-      poseId: poseId!,
-      poseName: pose.name,
       captureCam: pose.camera,
-      fov: pose.camera.fov,
-      size: { width: pose.canvas.width, height: pose.canvas.height },
     });
   });
 
@@ -458,8 +543,8 @@ export const PhotoBooth = memo(function PhotoBooth({
       const o = avatar.vrm.scene.getObjectByName(name)!;
       if (!o) return;
 
-      o.position.set(...(bone.position as any));
-      o.quaternion.set(...(bone.quaternion as any));
+      o.position.set(...bone.position);
+      o.quaternion.set(...bone.quaternion);
     });
 
     if (result.restorePosition) {
@@ -468,7 +553,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   });
 
-  const handleClickLoadShapes = useFunc(async (params: ItemParams) => {
+  const handleClickLoadBlendShapes = useFunc(async (params: ItemParams) => {
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
 
@@ -535,6 +620,28 @@ export const PhotoBooth = memo(function PhotoBooth({
     letDownload(url, `poseset.json`);
   });
 
+  const handleClickOverwritePoseMenu = useEvent((params: ItemParams) => {
+    if (!stage?.activeAvatar) return;
+
+    const poseId = params.props.poseId;
+
+    const pose = serializeCurrentPose.current();
+    if (!pose) return;
+
+    executeOperation(
+      editorOps.savePose,
+      { ...pose, uid: poseId },
+      { overwrite: true }
+    );
+
+    setState((next) => {
+      next.loadedPoses[stage.activeAvatar.uid] = {
+        poseId,
+        poseName: pose.name,
+      };
+    });
+  });
+
   const handleClickLoadCamera = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
     const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
@@ -550,11 +657,6 @@ export const PhotoBooth = memo(function PhotoBooth({
       target: pose.camera.target,
     });
     // stage.setSize(pose.canvas.width, pose.canvas.height);
-
-    setState({
-      fov: pose.camera.fov,
-      size: { width: pose.canvas.width, height: pose.canvas.height },
-    });
   });
 
   const handleClickRemovePose = useFunc((params: ItemParams) => {
@@ -568,16 +670,83 @@ export const PhotoBooth = memo(function PhotoBooth({
   //// Models UI Event Handlers
   /////
   // #region Models UI Event Handlers
+  const handleChangeSizeWidth = useEvent(
+    ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
+      const num = Number.isNaN(currentTarget.valueAsNumber)
+        ? 1
+        : currentTarget.valueAsNumber;
+
+      stage?.setSize(num, stage.getSize().height);
+      rerender();
+    }
+  );
+
+  const handleChangeSizeHeight = useEvent(
+    ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
+      const num = Number.isNaN(currentTarget.valueAsNumber)
+        ? 1
+        : currentTarget.valueAsNumber;
+      stage?.setSize(stage.getSize().width, num);
+      rerender();
+    }
+  );
+
+  const handleClickSizeToScreen = useEvent(() => {
+    stage?.setSize(window.innerWidth, window.innerHeight);
+  });
+
   const handleStagedModelsContextMenu = useEvent(
     (e: MouseEvent<HTMLElement>) => {
-      const uid = e.currentTarget.dataset.uid!;
-      showContextMenu(e, { id: 'stagedModelMenu', props: { uid } });
+      const avatarUid = e.currentTarget.dataset.avatarUid!;
+      showContextMenu(e, { id: 'stagedModelMenu', props: { avatarUid } });
+    }
+  );
+
+  const handleClickReplaceModel = useEvent(
+    async (params: ItemParams<{ avatarUid: string }>) => {
+      if (!stage) return;
+
+      const prevAvatarUid = params.props!.avatarUid;
+      const pose = serializeAvatarPose.current(prevAvatarUid);
+
+      if (!pose) return;
+
+      const result = await openModal(SelectModel, {
+        clickBackdropToClose: true,
+      });
+      if (!result) return;
+
+      executeOperation(editorOps.addVrm, result.file);
+
+      const url = URL.createObjectURL(result.file);
+      const avatar = await stage.loadVRM(url);
+      URL.revokeObjectURL(url);
+
+      stage.setActiveAvatar(avatar.uid);
+
+      applyPoseToActiveAvatar.current(pose, {
+        camera: false,
+        nonStandardBones: true,
+        extraBlendShapes: true,
+        presetExpressions: true,
+      });
+
+      stage.removeAvatar(prevAvatarUid);
+
+      setState((next) => {
+        next.loadedPoses[avatar.uid] = {
+          poseId: next.loadedPoses[prevAvatarUid]?.poseId ?? null,
+          poseName: next.loadedPoses[prevAvatarUid]?.poseName ?? '',
+        };
+
+        delete next.loadedPoses[prevAvatarUid];
+      });
     }
   );
 
   const handleClickRemoveStagedModel = useEvent(
-    async (params: ItemParams<{ uid: string }>) => {
-      const uid = params.props!.uid;
+    async (params: ItemParams<{ avatarUid: string }>) => {
+      const uid = params.props!.avatarUid;
 
       const result = await openModal(ConfirmModal, {
         message: <Trans i18nKey="stagedModelMenu/removeAvatarConfirm" />,
@@ -598,19 +767,34 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   const handleClickStagedModel = useEvent(
     ({ currentTarget }: MouseEvent<HTMLLIElement>) => {
-      stage?.setActiveAvatar(currentTarget.dataset.uid!);
+      stage?.setActiveAvatar(currentTarget.dataset.avatarUid!);
     }
   );
 
   const handleClickStagedModelLicense = useEvent(
     ({ currentTarget }: MouseEvent<HTMLElement>) => {
-      const uid = currentTarget.dataset.uid!;
+      const uid = currentTarget.dataset.avatarUid!;
       const entry = stage?.avatarsIterator.find((m) => m.uid === uid);
       if (!stage || !entry) return;
 
       openModal(VRMLicense, { meta: entry.avatar.vrm?.meta });
     }
   );
+
+  const handleClickSelectVRM = useEvent(async () => {
+    const files = await selectFile({ extensions: ['.vrm'], multiple: true });
+
+    if (files.length === 0) return;
+
+    for (const file of files) {
+      const url = URL.createObjectURL(file);
+
+      executeOperation(editorOps.addVrm, file);
+      await stage!.loadVRM(url);
+
+      URL.revokeObjectURL(url);
+    }
+  });
 
   const handleDblClickModel = useFunc((e: MouseEvent<HTMLElement>) => {
     handleClickLoadModel({
@@ -629,8 +813,10 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     await new Promise((r) => requestAnimationFrame(r));
 
-    if (state.captureCam) {
-      stage?.setCamMode(state.captureCam.mode, state.captureCam);
+    if (state.captureCam && state.currentCamKind !== 'capture') {
+      stage?.setCamMode(state.captureCam.mode, {
+        ...state.captureCam,
+      });
     }
 
     const blob = await new Promise<Blob>((resolve) => {
@@ -643,17 +829,17 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     const url = URL.createObjectURL(blob);
 
-    letDownload(
-      url,
-      `${state.poseName !== '' ? state.poseName : 'Untitled'}.png`
-    );
+    const poseName =
+      state.loadedPoses[stage.activeAvatar?.uid ?? '']?.poseName ?? 'Untitled';
+
+    letDownload(url, `${poseName !== '' ? poseName : 'Untitled'}.png`);
 
     const cam =
       state.currentCamKind === 'capture'
         ? state.captureCam
         : state.editorialCam;
 
-    if (cam) {
+    if (cam && state.currentCamKind !== 'capture') {
       stage?.setCamMode(cam.mode, cam);
     }
 
@@ -666,7 +852,14 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       executeOperation(editorOps.loadVrmBin, modelId, (blob) => {
         const url = URL.createObjectURL(blob);
-        stage?.loadVRM(url);
+        stage?.loadVRM(url).then((avatar) => {
+          setState((next) => {
+            next.loadedPoses[avatar.uid] = {
+              poseId: null,
+              poseName: '',
+            };
+          });
+        });
       });
     }
   );
@@ -683,9 +876,10 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       const current = {
         mode: stage.camMode,
+        fov: stage.camFov,
         target: stage.orbitControls.target.toArray(),
         position: stage.activeCamera.position.toArray(),
-        quaternion: stage.activeCamera.quaternion.toArray(),
+        quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
       };
 
       if (state.currentCamKind === nextMode) return;
@@ -726,6 +920,28 @@ export const PhotoBooth = memo(function PhotoBooth({
       changeCamKind.current(camMode);
     }
   );
+
+  const handleClickApplyEditorialToCapture = useEvent(() => {
+    if (!stage) return;
+
+    const source = state.editorialCam;
+    if (!source) return;
+
+    if (state.currentCamKind === 'capture')
+      stage.setCamMode(stage.camMode, source);
+    setState({ captureCam: source });
+  });
+
+  const handleClickApplyCaptureToEditorial = useEvent(() => {
+    if (!stage) return;
+
+    const source = state.captureCam;
+    if (!source) return;
+
+    if (state.currentCamKind === 'editorial')
+      stage.setCamMode(stage.camMode, source);
+    setState({ editorialCam: source });
+  });
 
   // const handleChangeHandMix = useFunc((_, v) => {
   //   const { vrm } = stage?.activeAvatar;
@@ -768,6 +984,48 @@ export const PhotoBooth = memo(function PhotoBooth({
   const handleClickHelp = useEvent(() => {
     openModal(KeyboardHelp, { temporalyShow: false });
   });
+
+  const bindLongPress = useLongPress(
+    ({ nativeEvent: e }) => {
+      e.preventDefault();
+
+      const openContextMenu = () => {
+        e.target?.dispatchEvent(
+          new MouseEvent('contextmenu', {
+            bubbles: true,
+            clientX: e instanceof MouseEvent ? e.clientX : e.touches[0].clientX,
+            clientY: e instanceof MouseEvent ? e.clientY : e.touches[0].clientY,
+            screenX: e instanceof MouseEvent ? e.screenX : e.touches[0].screenX,
+            screenY: e instanceof MouseEvent ? e.screenY : e.touches[0].screenY,
+            buttons: 0,
+          })
+        );
+      };
+
+      openContextMenu();
+
+      const abort = new AbortController();
+      document.addEventListener(
+        'mouseup',
+        () => {
+          openContextMenu();
+          abort.abort();
+        },
+        { signal: abort.signal }
+      );
+      document.addEventListener(
+        'touchend',
+        () => {
+          openContextMenu();
+          abort.abort();
+        },
+        { signal: abort.signal }
+      );
+    },
+    {
+      cancelOnMovement: true,
+    }
+  );
 
   // #endregion
   // endregion
@@ -935,6 +1193,22 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.resetCurrentBone,
+    () => {
+      const avatar = stage?.activeAvatar?.avatar;
+      const bone = avatar?.ui.activeBone;
+      if (!avatar || !bone) return;
+
+      const initial = avatar.getInitialBoneState(bone.name);
+      if (!initial) return;
+
+      bone.position.fromArray(initial.position);
+      bone.quaternion.fromArray(initial.quaternion);
+    }
+  );
+
   useBindMousetrap(shortcutBindElRef, 'p', () => {
     setRightTab('poses');
   });
@@ -958,30 +1232,6 @@ export const PhotoBooth = memo(function PhotoBooth({
   /////
   //// Another
   /////
-  useDrop({
-    onFiles: async ([file]) => {
-      const url = URL.createObjectURL(file);
-
-      if (file.name.endsWith('.vrm')) {
-        executeOperation(editorOps.addVrm, file);
-        stage!.loadVRM(url);
-      } else if (file.name.endsWith('.json')) {
-        const json = JSON.parse(await file.text());
-
-        if (json.poseset) {
-          const result = await openModal(LoadPose, { poses: json.poseset });
-          if (!result) return;
-
-          executeOperation(editorOps.installPoseSet, result.poses, {
-            clear: result.clearPoseSet,
-          });
-        } else {
-          executeOperation(editorOps.savePose, json);
-        }
-      }
-    },
-  });
-
   useMount(async () => {
     executeOperation(editorOps.loadPoses);
     executeOperation(editorOps.loadVrms);
@@ -998,8 +1248,22 @@ export const PhotoBooth = memo(function PhotoBooth({
   }, [stage]);
 
   useEffect(() => {
+    let prevWindowSize = [window.innerWidth, window.innerHeight];
+
     const onResize = () => {
-      stage?.setSize(state.size.width, window.innerHeight);
+      if (!stage) return;
+
+      const size = stage.getSize();
+      const windowSize = [window.innerWidth, window.innerHeight];
+
+      if (
+        size.width === prevWindowSize[0] &&
+        size.height === prevWindowSize[1]
+      ) {
+        stage?.setSize(windowSize[0], windowSize[1]);
+      }
+
+      prevWindowSize = windowSize;
     };
 
     window.addEventListener('resize', onResize);
@@ -1020,15 +1284,12 @@ export const PhotoBooth = memo(function PhotoBooth({
   }, []);
 
   // on mode changed
-  useEffectOnce(() => {
-    stage?.setShowBones(photoModeState.visibleBones);
-    stage?.setSize(state.size.width, state.size.height);
-  });
-
-  useEffectOnce(() => {
+  useEffect(() => {
     if (!stage) return;
-    setState({ size: stage?.getSize() });
-  });
+
+    stage.setShowBones(photoModeState.visibleBones);
+    stage.enablePhys = false;
+  }, [stage]);
 
   // Sync right eye position to Avatar
   useEffect(() => {
@@ -1100,6 +1361,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         pointer-events: none;
       `}
       tabIndex={-1}
+      {...bindLongPress()}
     >
       {/* Photomenu */}
       <div
@@ -1194,6 +1456,46 @@ export const PhotoBooth = memo(function PhotoBooth({
               >
                 {t('editorialCam')}
               </Button>
+
+              <div
+                css={css`
+                  display: flex;
+                  flex-flow: column;
+                  align-items: center;
+                  justify-content: center;
+                  color: #34c0b9;
+                  font-weight: bold;
+                  line-height: 0;
+                `}
+              >
+                <RiArrowRightLine
+                  css={css`
+                    border-radius: 100px;
+                    cursor: pointer;
+                    background-color: #fff;
+                    ${transitionCss}
+
+                    &:hover {
+                      color: #fff;
+                      background-color: #34c0b9;
+                    }
+                  `}
+                  size={16}
+                  onClick={handleClickApplyEditorialToCapture}
+                />
+                <RiArrowLeftLine
+                  css={css`
+                    border-radius: 100px;
+                    cursor: pointer;
+                    background-colo#fffr ${transitionCss} &:hover {
+                      color: #fff;
+                      background-color: #34c0b9;
+                    }
+                  `}
+                  onClick={handleClickApplyCaptureToEditorial}
+                />
+              </div>
+
               <Button
                 css={css`
                   white-space: nowrap;
@@ -1226,13 +1528,76 @@ export const PhotoBooth = memo(function PhotoBooth({
                   top: 0;
                   left: 100%;
                   z-index: 1;
-                  box-shadow: 0 4px 5px ${rgba('#aaaa', 0.1)};
+                  background-color: #fff;
+                  border-radius: 4px;
+                  overflow: hidden;
+                  box-shadow: 0 4px 12px ${rgba('#000', 0.2)};
+                  cursor: default;
                 `}
                 style={{ display: state.showColorPane ? 'block' : 'none' }}
               >
+                <div
+                  css={css`
+                    display: flex;
+                    gap: 4px;
+                    padding: 4px;
+                  `}
+                >
+                  <div
+                    css={css`
+                      width: 24px;
+                      height: 24px;
+                      border-radius: 4px;
+                      cursor: pointer;
+                      background-image: linear-gradient(
+                          45deg,
+                          rgba(100, 100, 100, 0.4) 25%,
+                          transparent 25%,
+                          transparent 75%,
+                          rgba(100, 100, 100, 0.4) 75%
+                        ),
+                        linear-gradient(
+                          45deg,
+                          rgba(100, 100, 100, 0.4) 25%,
+                          transparent 25%,
+                          transparent 75%,
+                          rgba(100, 100, 100, 0.4) 75%
+                        );
+                      /* background-color: transparent; */
+                      background-size: ${12}px ${12}px;
+                      background-position: 0 0, ${12 / 2}px ${12 / 2}px;
+                    `}
+                    onClick={handleClickBGTransparent}
+                  />
+                  <div
+                    css={css`
+                      width: 24px;
+                      height: 24px;
+                      background-color: #00f;
+                      border-radius: 4px;
+                      cursor: pointer;
+                    `}
+                    onClick={handleClickBGBlue}
+                  />
+                  <div
+                    css={css`
+                      width: 24px;
+                      height: 24px;
+                      background-color: #0f0;
+                      border-radius: 4px;
+                      cursor: pointer;
+                    `}
+                    onClick={handleClickBGGreen}
+                  />
+                </div>
                 <ChromePicker
                   disableAlpha={false}
-                  color={{ ...state.color.rgb, a: state.color.alpha }}
+                  color={{
+                    r: (stage?.backgroundColor.r ?? 0) * 255,
+                    g: (stage?.backgroundColor.g ?? 0) * 255,
+                    b: (stage?.backgroundColor.b ?? 0) * 255,
+                    a: stage?.backgroundColor.a ?? 0,
+                  }}
                   onChange={handleChangeBgColor}
                   onChangeComplete={handleChangeBgColorComplete}
                 />
@@ -1276,10 +1641,9 @@ export const PhotoBooth = memo(function PhotoBooth({
                     `}
                     type="number"
                     size="min"
-                    value={state.fov}
+                    value={stage.camFov}
                     onChange={({ currentTarget }) => {
                       stage.camFov = currentTarget.valueAsNumber;
-                      setState({ fov: currentTarget.valueAsNumber });
                       stage.pCam.updateProjectionMatrix();
                     }}
                   />
@@ -1352,16 +1716,8 @@ export const PhotoBooth = memo(function PhotoBooth({
                       display: block;
                     `}
                     type="number"
-                    value={state.size.width}
-                    onChange={({ currentTarget }) => {
-                      setState((state) => {
-                        state.size.width = currentTarget.valueAsNumber;
-                      });
-                      stage.setSize(
-                        currentTarget.valueAsNumber,
-                        stage.getSize().height
-                      );
-                    }}
+                    value={stage?.getSize().width ?? 1}
+                    onChange={handleChangeSizeWidth}
                   />
                   <span>×</span>
                   <Input
@@ -1369,16 +1725,8 @@ export const PhotoBooth = memo(function PhotoBooth({
                       display: block;
                     `}
                     type="number"
-                    value={state.size.height}
-                    onChange={({ currentTarget }) => {
-                      setState((state) => {
-                        state.size.height = currentTarget.valueAsNumber;
-                      });
-                      stage.setSize(
-                        stage.getSize().width,
-                        currentTarget.valueAsNumber
-                      );
-                    }}
+                    value={stage?.getSize().height ?? 1}
+                    onChange={handleChangeSizeHeight}
                   />
                 </div>
                 <Button
@@ -1386,22 +1734,13 @@ export const PhotoBooth = memo(function PhotoBooth({
                     margin-top: 8px;
                   `}
                   size="min"
-                  onClick={() => {
-                    setState({
-                      size: {
-                        width: window.innerWidth,
-                        height: window.innerHeight,
-                      },
-                    });
-
-                    stage.setSize(window.innerWidth, window.innerHeight);
-                  }}
+                  onClick={handleClickSizeToScreen}
                 >
                   {t('resolution/resetToScreenSize')}
                 </Button>
               </InputSection>
 
-              <InputSection title={t('onStageModels')}>
+              <InputSectionDiv title={t('onStageModels')}>
                 <List
                   css={`
                     flex: 1;
@@ -1414,7 +1753,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                       css={css`
                         display: flex;
                       `}
-                      data-uid={uid}
+                      data-avatar-uid={uid}
                       active={stage.activeAvatar?.uid === uid}
                       onClick={handleClickStagedModel}
                       onContextMenu={handleStagedModelsContextMenu}
@@ -1451,7 +1790,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                         <RiInformationLine
                           fontSize={16}
                           onClick={handleClickStagedModelLicense}
-                          data-uid={uid}
+                          data-avatar-uid={uid}
                         />
                       </div>
                     </ListItem>
@@ -1463,10 +1802,20 @@ export const PhotoBooth = memo(function PhotoBooth({
                       font-size: 12px;
                     `}
                   >
-                    Drop VRM to add on stage
+                    <div
+                      css={css`
+                        margin-bottom: 8px;
+                      `}
+                    >
+                      {t('dropVRM')}
+                    </div>
+
+                    <Button size="min" onClick={handleClickSelectVRM}>
+                      {t('dropVRM/button')}
+                    </Button>
                   </ListItem>
                 </List>
-              </InputSection>
+              </InputSectionDiv>
 
               <InputSection title={t('recentlyUsedModels')}>
                 <List
@@ -1864,7 +2213,10 @@ export const PhotoBooth = memo(function PhotoBooth({
                 {poses.map((pose, idx) => (
                   <ListItem
                     key={idx}
-                    active={state.poseId === pose.uid}
+                    active={
+                      state.loadedPoses[activeAvatar?.uid ?? '']?.poseId ===
+                      pose.uid
+                    }
                     onDoubleClick={handleDblClickPose}
                     onContextMenu={handlePoseContextMenu}
                     data-pose-id={pose.uid}
@@ -1883,10 +2235,8 @@ export const PhotoBooth = memo(function PhotoBooth({
                 `}
               >
                 <Input
-                  value={state.poseName}
-                  onChange={({ currentTarget }) =>
-                    setState({ poseName: currentTarget.value })
-                  }
+                  value={state.loadedPoses[activeAvatar?.uid ?? '']?.poseName}
+                  onChange={handleChangePoseName}
                 />
 
                 <Button onClick={handleClickSavePose}>
@@ -1895,11 +2245,11 @@ export const PhotoBooth = memo(function PhotoBooth({
 
                 <Button
                   kind="primary"
-                  disabled={!state.poseId}
+                  disabled={!state.loadedPoses[activeAvatar?.uid ?? '']?.poseId}
                   onClick={handleClickOverwritePose}
                 >
                   {t('pose/overwrite')}
-                  {state.poseId && (
+                  {state.loadedPoses[activeAvatar?.uid ?? '']?.poseId && (
                     <span
                       css={css`
                         width: 100%;
@@ -1907,7 +2257,15 @@ export const PhotoBooth = memo(function PhotoBooth({
                         font-size: 8px;
                       `}
                     >
-                      ({poses.find((p) => p.uid === state.poseId)?.name})
+                      (
+                      {
+                        poses.find(
+                          (p) =>
+                            p.uid ===
+                            state.loadedPoses[activeAvatar?.uid ?? '']?.poseId
+                        )?.name
+                      }
+                      )
                     </span>
                   )}
                 </Button>
@@ -1970,7 +2328,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         <ContextItem onClick={handleClickLoadBones}>
           {t('posemenu/loadBones')}
         </ContextItem>
-        <ContextItem onClick={handleClickLoadShapes}>
+        <ContextItem onClick={handleClickLoadBlendShapes}>
           {t('posemenu/loadFacial')}
         </ContextItem>
 
@@ -1982,6 +2340,12 @@ export const PhotoBooth = memo(function PhotoBooth({
 
         <ContextItem onClick={handleClickDownloadPoseSet}>
           {t('posemenu/downloadAll')}
+        </ContextItem>
+
+        <Separator />
+
+        <ContextItem onClick={handleClickOverwritePoseMenu}>
+          {t('posemenu/overwriteToThis')}
         </ContextItem>
 
         <Separator />
@@ -2016,6 +2380,9 @@ export const PhotoBooth = memo(function PhotoBooth({
         id="stagedModelMenu"
         animation={false}
       >
+        <ContextItem onClick={handleClickReplaceModel}>
+          {t('stagedModelMenu/replaceModel')}
+        </ContextItem>
         <ContextItem onClick={handleClickRemoveStagedModel}>
           {t('stagedModelMenu/removeStagedModel')}
         </ContextItem>

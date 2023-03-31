@@ -195,6 +195,7 @@ export class VrmPoseController {
   public setEnableControll(enable: boolean) {
     this.#enable = enable;
     this._transformController.enabled = enable;
+    this._transformController.visible = enable;
     this._interactableObjects.forEach((obj) => (obj.visible = enable));
   }
 

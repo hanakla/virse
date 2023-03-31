@@ -4,6 +4,7 @@ export const rightHandShortcuts = {
   selectParentBone: 's',
   selectChildBone: 'd',
   toggleBoneControlMode: 'r',
+  resetCurrentBone: 'shift+r',
   axisX: 'x',
   axisY: 'y',
   axisZ: 'z',
@@ -15,6 +16,7 @@ export const rightHandShortcuts = {
   boneListPrev: 's',
   boneListNext: 'd',
   boneListOk: 'f',
+  boneListOk2: 'space',
 } as const;
 
 export function humanizeShortcutKey(key: string) {

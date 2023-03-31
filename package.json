@@ -30,6 +30,7 @@
     "kalidokit": "^1.1.5",
     "klona": "^2.0.6",
     "mitt": "^3.0.0",
+    "msgpackr": "^1.8.5",
     "nanoid": "^3.3.1",
     "next": "12.2.5",
     "next-translate": "^2.0.3",
@@ -46,7 +47,11 @@
     "react-use-measure": "^2.1.1",
     "styled-components": "^5.3.5",
     "styled-reset": "^4.4.2",
-    "three": "^0.150.1"
+    "three": "^0.150.1",
+    "use-long-press": "^2.0.3"
+  },
+  "resolutions": {
+    "@types/react": "17.0.40"
   },
   "devDependencies": {
     "@mdx-js/loader": "^2.3.0",

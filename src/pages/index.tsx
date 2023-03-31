@@ -31,6 +31,8 @@ import { LiveBooth } from '../features/livebooth';
 import { useRouter } from 'next/router';
 import { Link } from '../components/Link';
 import { ConfirmAgreement } from '../modals/ConrirmAgreement';
+import { fitAndPosition } from 'object-fit-math';
+import { shallowEquals } from '../utils/object';
 
 const replaceVRoidShapeNamePrefix = (name: string) => {
   return name.replace(/^Fcl_/g, '');
@@ -48,41 +50,13 @@ export default function Home() {
   const rerender = useUpdate();
   const { openModal } = useModalOpener();
 
-  const canvas = useRef<HTMLCanvasElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const padLRef = useRef<HTMLDivElement>(null);
-  const padRRef = useRef<HTMLDivElement>(null);
-  const padLMouse = useMouse(padLRef);
-  const padRMouse = useMouse(padRRef);
   const [isAgreed, setAgreement] = useLocalStorage('virseAgreement', false);
 
   const { show: showContextMenu, hideAll } = useContextMenu({});
 
-  const stage = useVirseStage(canvas);
-
-  const [state, setState] = useObjectState({
-    poseId: null as string | null,
-    poseName: '',
-    rotation: false,
-    syncEyes: true,
-    eyeLeft: { x: 0, y: 0 },
-    eyeRight: { x: 0, y: 0 },
-    size: { width: 1000, height: 1000 },
-    fov: 15,
-    showColorPane: false,
-    currentCamKind: 'capture' as 'editorial' | 'capture',
-    captureCam: null as StashedCam | null,
-    editorialCam: null as StashedCam | null,
-    color: {
-      hex: '#fff',
-      rgb: { r: 255, g: 255, b: 255 },
-      alpha: 0,
-    },
-    handMix: {
-      right: 0,
-      left: 0,
-    },
-  });
+  const stage = useVirseStage(canvasRef);
 
   const { executeOperation, getStore } = useFleurContext();
   const { mode, menuOpened, poses, photoModeState, modelIndex } = useStoreState(
@@ -126,6 +100,10 @@ export default function Home() {
       if (file.name.endsWith('.vrm')) {
         executeOperation(editorOps.addVrm, file);
         stage!.loadVRM(url);
+      } else if (file.name.endsWith('.virse')) {
+        const buf = await file.arrayBuffer();
+        const bin = new Uint8Array(buf);
+        stage?.loadScene(bin);
       } else if (file.name.endsWith('.json')) {
         const json = JSON.parse(await file.text());
 
@@ -146,7 +124,6 @@ export default function Home() {
   useMount(async () => {
     executeOperation(editorOps.loadPoses);
     executeOperation(editorOps.loadVrms);
-    // executeOperation(editorOps.savePose, 'pose1', )
   });
 
   useEffect(() => {
@@ -172,18 +149,67 @@ export default function Home() {
   }, [stage]);
 
   useEffect(() => {
+    let id: number;
+    let latestSyncTime: number = 0;
+    let prevSize: number[] | null = null;
+    let windowSize: { width: number; height: number } | null = null;
+
     const onResize = () => {
-      if (mode === EditorMode.photo) {
-        stage?.setSize(state.size.width, window.innerHeight);
-      } else {
-        stage?.setSize(window.innerWidth, window.innerHeight);
-      }
+      windowSize = {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      };
     };
 
-    window.addEventListener('resize', onResize);
+    window.addEventListener('resize', onResize, { passive: true });
 
-    return () => window.addEventListener('resize', onResize);
-  }, []);
+    id = requestAnimationFrame(function updatePosition() {
+      id = requestAnimationFrame(updatePosition);
+
+      const canvas = canvasRef.current;
+      const size = stage?.getSize();
+
+      if (!canvas || !size || !windowSize) return;
+
+      const deps = [
+        windowSize!.width,
+        windowSize!.height,
+        size.width,
+        size.height,
+      ];
+
+      if (shallowEquals(prevSize, deps)) return;
+      if (Date.now() - latestSyncTime < 1000) return;
+
+      // console.log('updatePosition', deps);
+
+      prevSize = deps;
+      latestSyncTime = Date.now();
+
+      const result = fitAndPosition(
+        { width: windowSize.width, height: windowSize.height },
+        {
+          width: size.width,
+          height: size.height,
+        },
+        'contain',
+        '50%',
+        '50%'
+      );
+
+      canvas.style.left = `${result.x}px`;
+      canvas.style.top = `${result.y}px`;
+      canvas.style.width = `${result.width}px`;
+      canvas.style.height = `${result.height}px`;
+    });
+
+    onResize();
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      cancelAnimationFrame(id);
+    };
+  });
 
   useEffect(() => {
     const cancelContextMenu = (e: Event) => e.preventDefault();
@@ -197,50 +223,6 @@ export default function Home() {
     };
   }, []);
 
-  // on mode changed
-  useEffect(() => {
-    if (mode === EditorMode.photo) {
-      stage?.setShowBones(photoModeState.visibleBones);
-      stage?.setSize(state.size.width, state.size.height);
-    }
-
-    if (mode === EditorMode.live) {
-      stage?.setShowBones(false);
-      stage?.setSize(window.innerWidth, window.innerHeight);
-    }
-  }, [mode]);
-
-  useEffect(() => {
-    if (!stage) return;
-    setState({ size: stage?.getSize() });
-  }, [stage]);
-
-  useEffect(() => {
-    const vrm = stage ? Object.values(stage.avatars)[0]?.vrm : null;
-    if (!vrm || !padLMouse || !padLMouse.isDown) return;
-
-    const rateX = MathUtils.lerp(
-      -0.3,
-      0.3,
-      padLMouse.x! / padLMouse.elementWidth!
-    );
-    const rateY = MathUtils.lerp(
-      -0.3,
-      0.3,
-      1 - padLMouse.y! / padLMouse.elementHeight!
-    );
-
-    vrm.humanoid
-      ?.getRawBoneNode(VRMHumanBoneName.RightEye)
-      ?.rotation.set(rateY, rateX, 0);
-
-    if (state.syncEyes) {
-      vrm.humanoid
-        ?.getRawBoneNode(VRMHumanBoneName.LeftEye)
-        ?.rotation.set(rateY, rateX, 0);
-    }
-  }, [state.syncEyes, padLMouse.clientX, padLMouse.clientY, padLMouse.isDown]);
-
   useEffectOnce(() => {
     if (isAgreed) return;
 
@@ -248,32 +230,6 @@ export default function Home() {
       setAgreement(true);
     });
   });
-
-  useEffect(() => {
-    const vrm = stage ? Object.values(stage.avatars)[0]?.vrm : null;
-    if (!vrm || !padRMouse || !padRMouse.isDown) return;
-
-    const rateX = MathUtils.lerp(
-      -0.3,
-      0.3,
-      padRMouse.x! / padRMouse.elementWidth!
-    );
-    const rateY = MathUtils.lerp(
-      -0.3,
-      0.3,
-      1 - padRMouse.y! / padRMouse.elementHeight!
-    );
-
-    vrm.humanoid
-      ?.getRawBoneNode(VRMHumanBoneName.LeftEye)
-      ?.rotation.set(rateY, rateX, 0);
-
-    if (state.syncEyes) {
-      vrm.humanoid
-        ?.getRawBoneNode(VRMHumanBoneName.RightEye)
-        ?.rotation.set(rateY, rateX, 0);
-    }
-  }, [state.syncEyes, padRMouse.clientX, padRMouse.clientY, padRMouse.isDown]);
 
   return (
     <div
@@ -416,7 +372,7 @@ export default function Home() {
             user-select: none;
             pointer-events: all;
           `}
-          ref={canvas}
+          ref={canvasRef}
           onContextMenu={handleSceneContextMenu}
         />
 
