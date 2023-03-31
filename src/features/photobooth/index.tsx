@@ -11,9 +11,9 @@ import useMouse from '@react-hook/mouse-position';
 import { nanoid } from 'nanoid';
 import { rgba } from 'polished';
 import {
-  ChangeEvent,
+  type ChangeEvent,
   memo,
-  MouseEvent,
+  type MouseEvent,
   useEffect,
   useRef,
   useState,
@@ -968,6 +968,48 @@ export const PhotoBooth = memo(function PhotoBooth({
     openModal(KeyboardHelp, { temporalyShow: false });
   });
 
+  const bindLongPress = useLongPress(
+    ({ nativeEvent: e }) => {
+      e.preventDefault();
+
+      const openContextMenu = () => {
+        e.target?.dispatchEvent(
+          new MouseEvent('contextmenu', {
+            bubbles: true,
+            clientX: e instanceof MouseEvent ? e.clientX : e.touches[0].clientX,
+            clientY: e instanceof MouseEvent ? e.clientY : e.touches[0].clientY,
+            screenX: e instanceof MouseEvent ? e.screenX : e.touches[0].screenX,
+            screenY: e instanceof MouseEvent ? e.screenY : e.touches[0].screenY,
+            buttons: 0,
+          })
+        );
+      };
+
+      openContextMenu();
+
+      const abort = new AbortController();
+      document.addEventListener(
+        'mouseup',
+        () => {
+          openContextMenu();
+          abort.abort();
+        },
+        { signal: abort.signal }
+      );
+      document.addEventListener(
+        'touchend',
+        () => {
+          openContextMenu();
+          abort.abort();
+        },
+        { signal: abort.signal }
+      );
+    },
+    {
+      cancelOnMovement: true,
+    }
+  );
+
   // #endregion
   // endregion
 
@@ -1299,6 +1341,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         pointer-events: none;
       `}
       tabIndex={-1}
+      {...bindLongPress()}
     >
       {/* Photomenu */}
       <div
