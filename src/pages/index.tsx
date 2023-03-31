@@ -2,16 +2,18 @@ import { MouseEvent, useRef } from 'react';
 import { rgba } from 'polished';
 import { useVirseStage } from '../stage';
 import { RiCamera2Line, RiLiveLine } from 'react-icons/ri';
-import useMeasure from 'react-use-measure';
-import { styleWhen, useObjectState } from '@hanakla/arma';
+import { styleWhen } from '@hanakla/arma';
 import styled, { css } from 'styled-components';
 import { useFunc, useBindMousetrap, useStoreState } from '../utils/hooks';
-import { MathUtils } from 'three';
 import { useEffect } from 'react';
-import useMouse from '@react-hook/mouse-position';
-import { VRMHumanBoneName } from '@pixiv/three-vrm';
 import { useFleurContext } from '@fleur/react';
-import { EditorMode, editorOps, EditorStore } from '../domains/editor';
+import { Packr } from 'msgpackr';
+import {
+  EditorMode,
+  editorOps,
+  EditorStore,
+  VirseProject,
+} from '../domains/editor';
 import { transitionCss } from '../styles/mixins';
 import {
   useDrop,
@@ -33,6 +35,7 @@ import { Link } from '../components/Link';
 import { ConfirmAgreement } from '../modals/ConrirmAgreement';
 import { fitAndPosition } from 'object-fit-math';
 import { shallowEquals } from '../utils/object';
+import { LoadProjectOption } from '../modals/LoadProjectOption';
 
 const replaceVRoidShapeNamePrefix = (name: string) => {
   return name.replace(/^Fcl_/g, '');
@@ -101,9 +104,21 @@ export default function Home() {
         executeOperation(editorOps.addVrm, file);
         stage!.loadVRM(url);
       } else if (file.name.endsWith('.virse')) {
+        const options = await openModal(LoadProjectOption, {});
+        if (!options) return;
+
         const buf = await file.arrayBuffer();
         const bin = new Uint8Array(buf);
-        stage?.loadScene(bin);
+        const packr = new Packr({ structuredClone: true });
+        const data: VirseProject = packr.unpack(bin);
+
+        if (options.loadPoseSet) {
+          executeOperation(editorOps.importPoseSet, data.poseset, {
+            clear: options.clearCurrentPoses,
+          });
+        }
+
+        stage?.loadScene(data);
       } else if (file.name.endsWith('.json')) {
         const json = JSON.parse(await file.text());
 
@@ -111,7 +126,7 @@ export default function Home() {
           const result = await openModal(LoadPose, { poses: json.poseset });
           if (!result) return;
 
-          executeOperation(editorOps.installPoseSet, result.poses, {
+          executeOperation(editorOps.importPoseSet, result.poses, {
             clear: result.clearPoseSet,
           });
         } else {

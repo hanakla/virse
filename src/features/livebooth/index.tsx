@@ -172,7 +172,7 @@ export const LiveBooth = memo(function LiveBooth({
           const result = await openModal(LoadPose, { poses: json.poseset });
           if (!result) return;
 
-          executeOperation(editorOps.installPoseSet, result.poses, {
+          executeOperation(editorOps.importPoseSet, result.poses, {
             clear: result.clearPoseSet,
           });
         } else {

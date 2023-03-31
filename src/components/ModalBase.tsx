@@ -68,7 +68,7 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
 
         <div
           css={`
-            padding: 16px;
+            padding: 24px;
           `}
         >
           {content}

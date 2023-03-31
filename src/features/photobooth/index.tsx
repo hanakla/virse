@@ -36,6 +36,7 @@ import {
   RiSkullFill,
 } from 'react-icons/ri';
 import { useClickAway, useMount, useUpdate } from 'react-use';
+import { Packr } from 'msgpackr';
 import useEvent from 'react-use-event-hook';
 import styled, { css, CSSProperties } from 'styled-components';
 import { Bone, MathUtils, Vector3Tuple, Vector4Tuple } from 'three';
@@ -51,6 +52,7 @@ import {
   editorOps,
   EditorStore,
   UnsavedVirsePose,
+  VirseProject,
 } from '../../domains/editor';
 import { migrateV0PoseToV1 } from '../../domains/vrm';
 import { KeyboardHelp } from '../../modals/KeyboardHelp';
@@ -272,6 +274,28 @@ export const PhotoBooth = memo(function PhotoBooth({
       { overwrite: true }
     );
   });
+
+  const handleClickSaveVirseScene = ((typeof window === 'undefined'
+    ? {}
+    : (window as any)
+  ).v$saveScene = useEvent(async () => {
+    // msgpackr
+    const msgpackr = new Packr({ structuredClone: true });
+
+    const prj: VirseProject = {
+      ...(await stage?.serializeScene()!),
+      poseset: poses,
+    };
+    const data = msgpackr.pack(prj);
+
+    const blob = new Blob([data], {
+      type: 'application/octet-stream',
+    });
+    const url = URL.createObjectURL(blob);
+
+    letDownload(url, 'virse-scene.virse');
+    URL.revokeObjectURL(url);
+  }));
 
   const handleClickSavePose = useEvent(() => {
     const pose = serializeCurrentPose.current();
@@ -815,7 +839,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     if (state.captureCam && state.currentCamKind !== 'capture') {
       stage?.setCamMode(state.captureCam.mode, {
-        ...state.captureCam,
+        fov: state.fov,
       });
     }
 

@@ -5,6 +5,7 @@ import { VRMPose } from '@pixiv/three-vrm';
 import { WebIO } from '@gltf-transform/core';
 import { nanoid } from 'nanoid';
 import { Vector3Tuple, Vector4Tuple } from 'three';
+import { VirseScene } from '../stage/VirseStage';
 
 type State = {
   mode: EditorMode;
@@ -15,6 +16,10 @@ type State = {
     currentPoseKey: number | null;
     visibleBones: boolean;
   };
+};
+
+export type VirseProject = VirseScene & {
+  poseset: VirsePose[];
 };
 
 export type VirsePose = {
@@ -164,7 +169,7 @@ export const [EditorStore, editorOps] = minOps('Editor', {
         ),
       });
     },
-    async installPoseSet(
+    async importPoseSet(
       x,
       poseSet: VirsePose[],
       { clear }: { clear: boolean }

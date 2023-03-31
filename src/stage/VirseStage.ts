@@ -38,7 +38,7 @@ type AvatarData = {
   vrm: VRM;
 };
 
-type VirseScene = {
+export type VirseScene = {
   vrms: Record<string, Uint8Array>;
   canvas: {
     width: number;
@@ -238,9 +238,6 @@ export class VirseStage {
   }
 
   public async serializeScene() {
-    // msgpackr
-    const msgpackr = new Packr({ structuredClone: true });
-
     const size = this.renderer.getSize(new THREE.Vector2());
 
     const scene: VirseScene = {
@@ -313,19 +310,15 @@ export class VirseStage {
       ),
     };
 
-    const data = msgpackr.pack(scene);
-    return data;
+    return scene;
   }
 
-  public async loadScene(virseBin: Uint8Array) {
+  public async loadScene(data: VirseScene) {
     Object.values(this.avatars).map((avatar) => {
       avatar.avatar.dispose();
       delete this.avatars[avatar.uid];
     });
 
-    const msgpackr = new Packr({ structuredClone: true });
-
-    const data = msgpackr.unpack(virseBin) as VirseScene;
     console.info('🧘‍♀️ Load virse scene', data);
 
     const { vrms, canvas, camera, poses } = data;
