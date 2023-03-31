@@ -71,7 +71,8 @@
   "keyboardHelp/selectSiblingBone": "Select sibling bone",
   "keyboardHelp/selectParentBone": "Select parent bone",
   "keyboardHelp/selectChildBone": "Select child bone",
-  "keyboardHelp/axisFilter": "(In bone selected)<br/> Display only {{axis}} rotation axis.<br/>Reset by pressing again.",
+  "keyboardHelp/resetCurrentBone": "Reset transforms of current bone",
+  "keyboardHelp/axisFilter": "Display only {{axis}} rotation axis.<br/>Reset by pressing again.",
 
   "confirmAgreement/title": "Terms of Use",
   "confirmAgreement/agree": "Agree to use",

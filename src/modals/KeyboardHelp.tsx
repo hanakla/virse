@@ -18,7 +18,13 @@ export function KeyboardHelp({
 
   return (
     <ModalBase
-      css={transparentStyle}
+      css={css`
+        h1 {
+          margin: 16px 0 24px 0;
+          font-weight: bold;
+        }
+        ${transparentStyle}
+      `}
       header={<h1>{t('keyboardHelp/title')}</h1>}
       footer={
         temporalyShow ? (
@@ -43,6 +49,8 @@ export function KeyboardHelp({
             />
           </Grid>
 
+          <Separator />
+
           <Grid>
             <Entry
               keyCode={humanizeShortcutKey(rightHandShortcuts.previousAvatar)}
@@ -53,6 +61,8 @@ export function KeyboardHelp({
               desc={t('keyboardHelp/nextAvatar')}
             />
           </Grid>
+
+          <Separator />
 
           <Grid>
             <Entry
@@ -69,6 +79,8 @@ export function KeyboardHelp({
             />
           </Grid>
 
+          <Separator />
+
           <Grid>
             <Entry
               keyCode={humanizeShortcutKey(
@@ -83,6 +95,10 @@ export function KeyboardHelp({
               desc={t('keyboardHelp/changeDisplaySkeleton')}
             />
           </Grid>
+
+          <Separator />
+
+          <h1>ボーン選択中</h1>
 
           <Grid>
             <Entry
@@ -99,11 +115,18 @@ export function KeyboardHelp({
               )}
               desc={t('keyboardHelp/selectSiblingBone')}
             />
-          </Grid>
 
-          <Grid>
             <Entry
-              keyCode={rightHandShortcuts.axisX}
+              keyCode={humanizeShortcutKey(rightHandShortcuts.resetCurrentBone)}
+              desc={
+                <Trans
+                  i18nKey="keyboardHelp/resetCurrentBone"
+                  values={{ axis: 'X' }}
+                />
+              }
+            />
+            <Entry
+              keyCode={humanizeShortcutKey(rightHandShortcuts.axisX)}
               desc={
                 <Trans
                   i18nKey="keyboardHelp/axisFilter"
@@ -112,7 +135,7 @@ export function KeyboardHelp({
               }
             />
             <Entry
-              keyCode={rightHandShortcuts.axisY}
+              keyCode={humanizeShortcutKey(rightHandShortcuts.axisY)}
               desc={
                 <Trans
                   i18nKey="keyboardHelp/axisFilter"
@@ -121,7 +144,7 @@ export function KeyboardHelp({
               }
             />
             <Entry
-              keyCode={rightHandShortcuts.axisZ}
+              keyCode={humanizeShortcutKey(rightHandShortcuts.axisZ)}
               desc={
                 <Trans
                   i18nKey="keyboardHelp/axisFilter"
@@ -140,12 +163,11 @@ const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+`;
 
-  & + & {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid rgba(208, 208, 208, 0.5);
-  }
+const Separator = styled.div`
+  margin: 16px 0;
+  border-top: 1px solid rgba(208, 208, 208, 0.5);
 `;
 
 const Key = styled.code`

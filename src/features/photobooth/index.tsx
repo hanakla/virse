@@ -1134,6 +1134,22 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.resetCurrentBone,
+    () => {
+      const avatar = stage?.activeAvatar?.avatar;
+      const bone = avatar?.ui.activeBone;
+      if (!avatar || !bone) return;
+
+      const initial = avatar.getInitialBoneState(bone.name);
+      if (!initial) return;
+
+      bone.position.fromArray(initial.position);
+      bone.quaternion.fromArray(initial.quaternion);
+    }
+  );
+
   useBindMousetrap(shortcutBindElRef, 'p', () => {
     setRightTab('poses');
   });
