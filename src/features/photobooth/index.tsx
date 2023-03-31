@@ -1,11 +1,6 @@
 import { useModalOpener } from '@fleur/mordred';
 import { useFleurContext } from '@fleur/react';
-import {
-  letDownload,
-  selectFile,
-  styleWhen,
-  useObjectState,
-} from '@hanakla/arma';
+import { letDownload, selectFile, styleWhen } from '@hanakla/arma';
 import { VRMExpressionPresetName, VRMHumanBoneName } from '@pixiv/three-vrm';
 import useMouse from '@react-hook/mouse-position';
 import { nanoid } from 'nanoid';
@@ -28,7 +23,9 @@ import {
 } from 'react-contexify';
 import { useLongPress } from 'use-long-press';
 import {
+  RiArrowLeftLine,
   RiArrowLeftSFill,
+  RiArrowRightLine,
   RiCamera2Fill,
   RiCameraSwitchFill,
   RiFlashlightFill,
@@ -38,7 +35,7 @@ import {
   RiRefreshLine,
   RiSkullFill,
 } from 'react-icons/ri';
-import { useClickAway, useEffectOnce, useMount, useUpdate } from 'react-use';
+import { useClickAway, useMount, useUpdate } from 'react-use';
 import useEvent from 'react-use-event-hook';
 import styled, { css, CSSProperties } from 'styled-components';
 import { Bone, MathUtils, Vector3Tuple, Vector4Tuple } from 'three';
@@ -75,7 +72,6 @@ import { VRMLicense } from '../../modals/VRMLicense';
 import { ConfirmModal } from '../../modals/ConfirmModal';
 import { Trans } from '../../components/Trans';
 import { emptyCoalesce } from '../../utils/lang';
-import { fit } from 'object-fit-math';
 import { SelectModel } from '../../modals/SelectModel';
 
 type StashedCam = {
@@ -925,6 +921,28 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  const handleClickApplyEditorialToCapture = useEvent(() => {
+    if (!stage) return;
+
+    const source = state.editorialCam;
+    if (!source) return;
+
+    if (state.currentCamKind === 'capture')
+      stage.setCamMode(stage.camMode, source);
+    setState({ captureCam: source });
+  });
+
+  const handleClickApplyCaptureToEditorial = useEvent(() => {
+    if (!stage) return;
+
+    const source = state.captureCam;
+    if (!source) return;
+
+    if (state.currentCamKind === 'editorial')
+      stage.setCamMode(stage.camMode, source);
+    setState({ editorialCam: source });
+  });
+
   // const handleChangeHandMix = useFunc((_, v) => {
   //   const { vrm } = stage?.activeAvatar;
   //   if (!vrm) return;
@@ -1438,6 +1456,46 @@ export const PhotoBooth = memo(function PhotoBooth({
               >
                 {t('editorialCam')}
               </Button>
+
+              <div
+                css={css`
+                  display: flex;
+                  flex-flow: column;
+                  align-items: center;
+                  justify-content: center;
+                  color: #34c0b9;
+                  font-weight: bold;
+                  line-height: 0;
+                `}
+              >
+                <RiArrowRightLine
+                  css={css`
+                    border-radius: 100px;
+                    cursor: pointer;
+                    background-color: #fff;
+                    ${transitionCss}
+
+                    &:hover {
+                      color: #fff;
+                      background-color: #34c0b9;
+                    }
+                  `}
+                  size={16}
+                  onClick={handleClickApplyEditorialToCapture}
+                />
+                <RiArrowLeftLine
+                  css={css`
+                    border-radius: 100px;
+                    cursor: pointer;
+                    background-colo#fffr ${transitionCss} &:hover {
+                      color: #fff;
+                      background-color: #34c0b9;
+                    }
+                  `}
+                  onClick={handleClickApplyCaptureToEditorial}
+                />
+              </div>
+
               <Button
                 css={css`
                   white-space: nowrap;
