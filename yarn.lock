@@ -1304,7 +1304,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react@npm:*":
+"@types/react@npm:17.0.40":
   version: 17.0.40
   resolution: "@types/react@npm:17.0.40"
   dependencies:
@@ -1312,17 +1312,6 @@ __metadata:
     "@types/scheduler": "npm:*"
     csstype: "npm:^3.0.2"
   checksum: 1b93d16851c8a7e694a34518790d738c3d78804521e5d0f112851ea96fd8273408a332684eb6e974e3293497a96e3159f5118166d65a968e6f2b74703538fd8d
-  languageName: node
-  linkType: hard
-
-"@types/react@npm:^18.0.28":
-  version: 18.0.28
-  resolution: "@types/react@npm:18.0.28"
-  dependencies:
-    "@types/prop-types": "npm:*"
-    "@types/scheduler": "npm:*"
-    csstype: "npm:^3.0.2"
-  checksum: 5a43d1f81da064da91d0be3a676fbd2380d3bdff7491e0dae49e9ccdecf8fdf07e1bf7054d5fdd79266bf90a813384bd6898c678aca44e041a9e19df5fa690b3
   languageName: node
   linkType: hard
 
@@ -6410,6 +6399,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"use-long-press@npm:^2.0.3":
+  version: 2.0.3
+  resolution: "use-long-press@npm:2.0.3"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+  checksum: bebdf9cd19f1dc5b6eee14e94d609cb71d6a9f5a0bc03e73f743c2b6a3685a3874372ee7cb33077bd231500e1dd1e60566d96358ebed06e1fd7ae9484053350d
+  languageName: node
+  linkType: hard
+
 "use-sync-external-store@npm:1.2.0":
   version: 1.2.0
   resolution: "use-sync-external-store@npm:1.2.0"
@@ -6488,6 +6486,7 @@ __metadata:
     "@fleur/mordred": "npm:^1.0.0-beta.6"
     "@fleur/next": "npm:^1.0.0"
     "@fleur/react": "npm:^5.0.2"
+    "@fseehawer/react-circular-slider": "npm:^2.5.16"
     "@gltf-transform/core": "npm:^2.0.5"
     "@hanakla/arma": "npm:^0.2.4"
     "@mdx-js/loader": "npm:^2.3.0"
@@ -6541,6 +6540,7 @@ __metadata:
     three: "npm:^0.150.1"
     typescript: "npm:4.6.2"
     url-loader: "npm:^4.1.1"
+    use-long-press: "npm:^2.0.3"
   languageName: unknown
   linkType: soft
 

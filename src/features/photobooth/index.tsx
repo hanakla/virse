@@ -128,11 +128,6 @@ export const PhotoBooth = memo(function PhotoBooth({
     currentCamKind: 'capture' as 'editorial' | 'capture',
     captureCam: null as StashedCam | null,
     editorialCam: null as StashedCam | null,
-    color: {
-      hex: '#fff',
-      rgb: { r: 255, g: 255, b: 255 },
-      alpha: 0,
-    },
     handMix: {
       right: 0,
       left: 0,
@@ -154,20 +149,24 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
   });
 
+  const handleClickBGTransparent = useEvent(() => {
+    stage?.setBackgroundColor({ r: 0, g: 0, b: 0, a: 0 });
+  });
+
+  const handleClickBGBlue = useEvent(() => {
+    stage?.setBackgroundColor({ r: 0, g: 0, b: 255, a: 1 });
+  });
+
+  const handleClickBGGreen = useEvent(() => {
+    stage?.setBackgroundColor({ r: 0, g: 255, b: 0, a: 1 });
+  });
+
   const handleChangeBgColor = useFunc<ColorChangeHandler>((color) => {
     stage?.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
-
-    setState({
-      color: { hex: color.hex, rgb: color.rgb, alpha: color.rgb.a! },
-    });
   });
 
   const handleChangeBgColorComplete = useFunc<ColorChangeHandler>((color) => {
     stage?.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
-
-    setState({
-      color: { hex: color.hex, rgb: color.rgb, alpha: color.rgb.a! },
-    });
   });
 
   useClickAway(bgColorPaneRef, ({ currentTarget }) => {
@@ -881,7 +880,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       const current = {
         mode: stage.camMode,
-        fov: stage.activeCamera.fov ?? 15,
+        fov: stage.camFov,
         target: stage.orbitControls.target.toArray(),
         position: stage.activeCamera.position.toArray(),
         quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
@@ -1468,13 +1467,76 @@ export const PhotoBooth = memo(function PhotoBooth({
                   top: 0;
                   left: 100%;
                   z-index: 1;
-                  box-shadow: 0 4px 5px ${rgba('#aaaa', 0.1)};
+                  background-color: #fff;
+                  border-radius: 4px;
+                  overflow: hidden;
+                  box-shadow: 0 4px 12px ${rgba('#000', 0.2)};
+                  cursor: default;
                 `}
                 style={{ display: state.showColorPane ? 'block' : 'none' }}
               >
+                <div
+                  css={css`
+                    display: flex;
+                    gap: 4px;
+                    padding: 4px;
+                  `}
+                >
+                  <div
+                    css={css`
+                      width: 24px;
+                      height: 24px;
+                      border-radius: 4px;
+                      cursor: pointer;
+                      background-image: linear-gradient(
+                          45deg,
+                          rgba(100, 100, 100, 0.4) 25%,
+                          transparent 25%,
+                          transparent 75%,
+                          rgba(100, 100, 100, 0.4) 75%
+                        ),
+                        linear-gradient(
+                          45deg,
+                          rgba(100, 100, 100, 0.4) 25%,
+                          transparent 25%,
+                          transparent 75%,
+                          rgba(100, 100, 100, 0.4) 75%
+                        );
+                      /* background-color: transparent; */
+                      background-size: ${12}px ${12}px;
+                      background-position: 0 0, ${12 / 2}px ${12 / 2}px;
+                    `}
+                    onClick={handleClickBGTransparent}
+                  />
+                  <div
+                    css={css`
+                      width: 24px;
+                      height: 24px;
+                      background-color: #00f;
+                      border-radius: 4px;
+                      cursor: pointer;
+                    `}
+                    onClick={handleClickBGBlue}
+                  />
+                  <div
+                    css={css`
+                      width: 24px;
+                      height: 24px;
+                      background-color: #0f0;
+                      border-radius: 4px;
+                      cursor: pointer;
+                    `}
+                    onClick={handleClickBGGreen}
+                  />
+                </div>
                 <ChromePicker
                   disableAlpha={false}
-                  color={{ ...state.color.rgb, a: state.color.alpha }}
+                  color={{
+                    r: (stage?.backgroundColor.r ?? 0) * 255,
+                    g: (stage?.backgroundColor.g ?? 0) * 255,
+                    b: (stage?.backgroundColor.b ?? 0) * 255,
+                    a: stage?.backgroundColor.a ?? 0,
+                  }}
                   onChange={handleChangeBgColor}
                   onChangeComplete={handleChangeBgColorComplete}
                 />

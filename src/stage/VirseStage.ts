@@ -40,7 +40,11 @@ type AvatarData = {
 
 type VirseScene = {
   vrms: Record<string, Uint8Array>;
-  canvas: { width: number; height: number };
+  canvas: {
+    width: number;
+    height: number;
+    background?: { color: Vector3Tuple; alpha: number };
+  };
   camera: {
     mode: 'perspective' | 'orthographic';
     fov: number;
@@ -92,6 +96,12 @@ export class VirseStage {
   };
 
   #size: { width: number; height: number };
+  #backgroundColor: { r: number; g: number; b: number; a: number } = {
+    r: 0,
+    g: 0,
+    b: 0,
+    a: 0,
+  };
   #activeAvatarUid: string | null = null;
 
   public avatars: {
@@ -244,6 +254,12 @@ export class VirseStage {
       canvas: {
         width: size.x,
         height: size.y,
+        background: {
+          color: this.renderer
+            .getClearColor(new THREE.Color())
+            .toArray() as Vector3Tuple,
+          alpha: this.renderer.getClearAlpha(),
+        },
       },
       camera: {
         mode: this.camMode,
@@ -313,8 +329,14 @@ export class VirseStage {
 
     const { vrms, canvas, camera, poses } = data;
 
-    this.renderer.setSize(canvas.width, canvas.height);
-
+    this.setSize(canvas.width, canvas.height);
+    canvas.background &&
+      this.setBackgroundColor({
+        r: canvas.background.color[0],
+        g: canvas.background.color[1],
+        b: canvas.background.color[2],
+        a: canvas.background.alpha,
+      });
     this.setCamMode(camera.mode, camera);
 
     const uidMap: { [old: string]: string } = {};
@@ -441,6 +463,7 @@ export class VirseStage {
     this.pCam.fov = fov;
     this.pCam.updateProjectionMatrix();
     this.orbitControls.update();
+    this.events.emit('updated');
   }
 
   public get camMode(): CamModes {
@@ -531,6 +554,10 @@ export class VirseStage {
     return { ...this.#size };
   }
 
+  public get backgroundColor() {
+    return this.#backgroundColor;
+  }
+
   public setBackgroundColor({
     r,
     g,
@@ -543,8 +570,9 @@ export class VirseStage {
     a: number;
   }) {
     this.renderer.setClearColor(new Color(r / 255, g / 255, b / 255));
-
     this.renderer.setClearAlpha(a);
+    this.#backgroundColor = { r: r / 255, g: g / 255, b: b / 255, a };
+    this.events.emit('updated');
   }
 
   public removeAvatar(uid: string) {

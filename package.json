@@ -50,6 +50,9 @@
     "three": "^0.150.1",
     "use-long-press": "^2.0.3"
   },
+  "resolutions": {
+    "@types/react": "17.0.40"
+  },
   "devDependencies": {
     "@mdx-js/loader": "^2.3.0",
     "@next/mdx": "^13.2.4",
