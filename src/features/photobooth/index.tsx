@@ -80,6 +80,7 @@ import { SelectModel } from '../../modals/SelectModel';
 
 type StashedCam = {
   mode: CamModes;
+  fov: number;
   target: Vector3Tuple;
   position: Vector3Tuple;
   quaternion: Vector4Tuple;
@@ -123,7 +124,6 @@ export const PhotoBooth = memo(function PhotoBooth({
     syncEyes: true,
     eyeLeft: { x: 0, y: 0 },
     eyeRight: { x: 0, y: 0 },
-    fov: 15,
     showColorPane: false,
     currentCamKind: 'capture' as 'editorial' | 'capture',
     captureCam: null as StashedCam | null,
@@ -361,6 +361,10 @@ export const PhotoBooth = memo(function PhotoBooth({
       if (!stage?.activeAvatar) return;
 
       setState((next) => {
+        next.loadedPoses[stage.activeAvatar.uid] ??= {
+          poseId: null,
+          poseName: '',
+        };
         next.loadedPoses[stage.activeAvatar.uid].poseName = currentTarget.value;
       });
     }
@@ -402,6 +406,19 @@ export const PhotoBooth = memo(function PhotoBooth({
       if (!stage?.activeAvatar) return;
 
       const { avatar } = stage.activeAvatar;
+
+      if (camera) {
+        stage.setCamMode(pose.camera.mode, {
+          fov: pose.camera.fov,
+          zoom: pose.camera.zoom,
+          position: pose.camera.position,
+          rotation: pose.camera.rotation,
+          // quaternion: pose.camera.quaternion,
+          target: pose.camera.target,
+        });
+
+        stage.setSize(pose.canvas.width, pose.canvas.height);
+      }
 
       if (extraBlendShapes) {
         Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
@@ -480,7 +497,6 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     setState({
       captureCam: pose.camera,
-      fov: pose.camera.fov,
     });
   });
 
@@ -491,31 +507,13 @@ export const PhotoBooth = memo(function PhotoBooth({
     const avatar = stage?.activeAvatar.avatar;
     if (!stage || !pose) return;
 
-    stage.setCamMode(pose.camera.mode, {
-      fov: pose.camera.fov,
-      zoom: pose.camera.zoom,
-      position: pose.camera.position,
-      rotation: pose.camera.rotation,
-      // quaternion: pose.camera.quaternion,
-      target: pose.camera.target,
-    });
-    stage.setSize(pose.canvas.width, pose.canvas.height);
-
     if (avatar) {
-      Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-        if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
+      applyPoseToActiveAvatar.current(pose, {
+        camera: true,
+        presetExpressions: true,
+        extraBlendShapes: true,
+        nonStandardBones: false,
       });
-
-      Object.entries(pose.blendShapeProxies).map(
-        ([name, value]: [string, number]) => {
-          avatar.vrm.expressionManager?.setValue(name, value);
-        }
-      );
-
-      avatar.positionBone.position.fromArray(pose.rootPosition.position);
-      avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
-
-      avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
 
       setState((next) => {
         next.loadedPoses[stage.activeAvatar.uid] = {
@@ -527,7 +525,6 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     setState({
       captureCam: pose.camera,
-      fov: pose.camera.fov,
     });
   });
 
@@ -665,10 +662,6 @@ export const PhotoBooth = memo(function PhotoBooth({
       target: pose.camera.target,
     });
     // stage.setSize(pose.canvas.width, pose.canvas.height);
-
-    setState({
-      fov: pose.camera.fov,
-    });
   });
 
   const handleClickRemovePose = useFunc((params: ItemParams) => {
@@ -825,8 +818,10 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     await new Promise((r) => requestAnimationFrame(r));
 
-    if (state.captureCam) {
-      stage?.setCamMode(state.captureCam.mode, state.captureCam);
+    if (state.captureCam && state.currentCamKind !== 'capture') {
+      stage?.setCamMode(state.captureCam.mode, {
+        ...state.captureCam,
+      });
     }
 
     const blob = await new Promise<Blob>((resolve) => {
@@ -840,7 +835,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const url = URL.createObjectURL(blob);
 
     const poseName =
-      state.loadedPoses[stage.activeAvatar?.uid ?? ''].poseName ?? 'Untitled';
+      state.loadedPoses[stage.activeAvatar?.uid ?? '']?.poseName ?? 'Untitled';
 
     letDownload(url, `${poseName !== '' ? poseName : 'Untitled'}.png`);
 
@@ -849,7 +844,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         ? state.captureCam
         : state.editorialCam;
 
-    if (cam) {
+    if (cam && state.currentCamKind !== 'capture') {
       stage?.setCamMode(cam.mode, cam);
     }
 
@@ -886,6 +881,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       const current = {
         mode: stage.camMode,
+        fov: stage.activeCamera.fov ?? 15,
         target: stage.orbitControls.target.toArray(),
         position: stage.activeCamera.position.toArray(),
         quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
@@ -1463,10 +1459,9 @@ export const PhotoBooth = memo(function PhotoBooth({
                     `}
                     type="number"
                     size="min"
-                    value={state.fov}
+                    value={stage.camFov}
                     onChange={({ currentTarget }) => {
                       stage.camFov = currentTarget.valueAsNumber;
-                      setState({ fov: currentTarget.valueAsNumber });
                       stage.pCam.updateProjectionMatrix();
                     }}
                   />

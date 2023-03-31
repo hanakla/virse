@@ -164,6 +164,8 @@ export default function Home() {
     window.addEventListener('resize', onResize, { passive: true });
 
     id = requestAnimationFrame(function updatePosition() {
+      id = requestAnimationFrame(updatePosition);
+
       const canvas = canvasRef.current;
       const size = stage?.getSize();
 
@@ -178,6 +180,8 @@ export default function Home() {
 
       if (shallowEquals(prevSize, deps)) return;
       if (Date.now() - latestSyncTime < 1000) return;
+
+      // console.log('updatePosition', deps);
 
       prevSize = deps;
       latestSyncTime = Date.now();
@@ -197,8 +201,6 @@ export default function Home() {
       canvas.style.top = `${result.y}px`;
       canvas.style.width = `${result.width}px`;
       canvas.style.height = `${result.height}px`;
-
-      id = requestAnimationFrame(updatePosition);
     });
 
     onResize();

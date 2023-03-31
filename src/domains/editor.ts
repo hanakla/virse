@@ -21,7 +21,15 @@ export type VirsePose = {
   uid: string;
   name: string;
   canvas: any;
-  camera: any;
+  camera: {
+    fov: number;
+    mode: 'perspective' | 'orthographic';
+    position: Vector3Tuple;
+    quaternion: Vector4Tuple;
+    rotation: Vector3Tuple;
+    target: Vector3Tuple;
+    zoom: number;
+  };
   blendShapeProxies: Record<string, number>;
   morphs: Record<string, { value: number }>;
   vrmPose: VRMPose;
