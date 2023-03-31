@@ -221,9 +221,12 @@ export const LiveBooth = memo(function LiveBooth({
 
   // on mode changed
   useEffect(() => {
-    stage?.setShowBones(false);
-    stage?.setSize(window.innerWidth, window.innerHeight);
-  }, [mode]);
+    if (!stage) return;
+
+    stage.setShowBones(false);
+    stage.setSize(window.innerWidth, window.innerHeight);
+    stage.enablePhys = true;
+  }, [stage, mode]);
 
   useEffect(() => {
     if (!stage) return;

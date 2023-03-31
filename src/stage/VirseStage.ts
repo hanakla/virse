@@ -102,6 +102,7 @@ export class VirseStage {
     b: 0,
     a: 0,
   };
+  #enablePhys: boolean = false;
   #activeAvatarUid: string | null = null;
 
   public avatars: {
@@ -407,6 +408,14 @@ export class VirseStage {
     this.renderer.dispose();
   }
 
+  public get enablePhys() {
+    return this.#enablePhys;
+  }
+
+  public set enablePhys(enable: boolean) {
+    this.#enablePhys = enable;
+  }
+
   public setCamMode(
     mode?: CamModes,
     opt: {
@@ -658,11 +667,13 @@ export class VirseStage {
 
   public render() {
     try {
+      const delta = this.clock.getDelta();
+
       // Update model to render physics
       Object.values(this.avatars).map(({ avatar }) => {
         avatar.update();
         avatar.ui.update();
-        avatar.vrm.update(0);
+        avatar.vrm.update(this.#enablePhys ? delta : 0);
       });
 
       // this.passes.distortion.enabled = this.enableEffect;

@@ -1266,9 +1266,12 @@ export const PhotoBooth = memo(function PhotoBooth({
   }, []);
 
   // on mode changed
-  useEffectOnce(() => {
-    stage?.setShowBones(photoModeState.visibleBones);
-  });
+  useEffect(() => {
+    if (!stage) return;
+
+    stage.setShowBones(photoModeState.visibleBones);
+    stage.enablePhys = false;
+  }, [stage]);
 
   // Sync right eye position to Avatar
   useEffect(() => {
