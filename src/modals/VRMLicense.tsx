@@ -209,8 +209,8 @@ function VRM1License({ meta }: { meta: VRM1Meta }) {
               <None />
             ) : (
               <ul>
-                {meta.references.map((reference) => (
-                  <li>{reference}</li>
+                {meta.references.map((reference, idx) => (
+                  <li key={idx}>{reference}</li>
                 ))}
               </ul>
             )}
