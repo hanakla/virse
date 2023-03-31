@@ -1511,7 +1511,10 @@ export const PhotoBooth = memo(function PhotoBooth({
                   css={css`
                     border-radius: 100px;
                     cursor: pointer;
-                    background-colo#fffr ${transitionCss} &:hover {
+                    background-color: #fff;
+                    ${transitionCss}
+
+                    &:hover {
                       color: #fff;
                       background-color: #34c0b9;
                     }
