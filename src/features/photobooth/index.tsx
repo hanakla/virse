@@ -1342,8 +1342,8 @@ export const PhotoBooth = memo(function PhotoBooth({
     window.addEventListener('contextmenu', cancelContextMenu);
 
     return () => {
-      window.addEventListener('click', hideAll);
-      window.addEventListener('contextmenu', cancelContextMenu);
+      window.removeEventListener('click', hideAll);
+      window.removeEventListener('contextmenu', cancelContextMenu);
     };
   }, []);
 
@@ -2517,34 +2517,6 @@ const hiddenStyle: CSSProperties = {
   userSelect: 'none',
   opacity: 0,
 };
-
-const NavItem = styled.div<{ active: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-
-  color: #34c0b9;
-  font-size: 12px;
-  text-transform: uppercase;
-  user-select: none;
-  cursor: pointer;
-
-  &:hover {
-    color: #34c0b9;
-    background-color: ${rgba('#aaa', 0.3)};
-  }
-
-  ${({ active }) => styleWhen(active)`
-    color: #fff;
-    background-color: #34c0b9;
-
-    &:hover {
-      color: #fff;
-      background-color: #23a8a2;
-    }
-  `}
-`;
 
 const MenuItem = styled.div`
   display: flex;

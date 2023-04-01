@@ -27,7 +27,6 @@ import { useContextMenu } from 'react-contexify';
 import 'react-contexify/dist/ReactContexify.css';
 import { useModalOpener } from '@fleur/mordred';
 import { LoadPose } from '../modals/LoadPose';
-import { CamModes } from '../stage/VirseStage';
 import { PhotoBooth } from '../features/photobooth';
 import { LiveBooth } from '../features/livebooth';
 import { useRouter } from 'next/router';
@@ -36,17 +35,6 @@ import { ConfirmAgreement } from '../modals/ConrirmAgreement';
 import { fitAndPosition } from 'object-fit-math';
 import { shallowEquals } from '../utils/object';
 import { LoadProjectOption } from '../modals/LoadProjectOption';
-
-const replaceVRoidShapeNamePrefix = (name: string) => {
-  return name.replace(/^Fcl_/g, '');
-};
-
-type StashedCam = {
-  mode: CamModes;
-  target: number[];
-  position: number[];
-  quaternion: number[];
-};
 
 export default function Home() {
   const router = useRouter();
