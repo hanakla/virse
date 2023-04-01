@@ -238,12 +238,6 @@ export class VirseStage {
   }
 
   public async serializeScene() {
-<<<<<<< HEAD
-=======
-    // msgpackr
-    const msgpackr = new Packr({ structuredClone: true });
-
->>>>>>> origin/main
     const size = this.renderer.getSize(new THREE.Vector2());
 
     const scene: VirseScene = {
