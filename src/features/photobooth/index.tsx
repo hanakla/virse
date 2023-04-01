@@ -992,7 +992,6 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     if (state.currentCamKind === 'capture')
       stage.setCamMode(stage.camMode, source);
-
     setState({ captureCam: source });
   });
 
