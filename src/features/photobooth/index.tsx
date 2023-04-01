@@ -648,21 +648,22 @@ export const PhotoBooth = memo(function PhotoBooth({
   const handleClickOverwritePoseMenu = useEvent((params: ItemParams) => {
     if (!stage?.activeAvatar) return;
 
-    const poseId = params.props.poseId;
+    const originalPoseId = params.props.poseId;
 
-    const pose = serializeCurrentPose.current();
-    if (!pose) return;
+    const original = poses.find((p) => p.uid === originalPoseId);
+    const currentPose = serializeCurrentPose.current();
+    if (!original || !currentPose) return;
 
     executeOperation(
       editorOps.savePose,
-      { ...pose, uid: poseId },
+      { ...currentPose, name: original.name, uid: originalPoseId },
       { overwrite: true }
     );
 
     setState((next) => {
       next.loadedPoses[stage.activeAvatar.uid] = {
-        poseId,
-        poseName: pose.name,
+        poseId: originalPoseId,
+        poseName: original.name,
       };
     });
   });
