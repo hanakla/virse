@@ -73,5 +73,6 @@
     "next-transpile-modules": "^9.0.0",
     "typescript": "4.6.2",
     "url-loader": "^4.1.1"
-  }
+  },
+  "packageManager": "yarn@3.5.0"
 }
