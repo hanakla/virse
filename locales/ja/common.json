@@ -12,6 +12,8 @@
   "camMode": "カメラの種類",
   "camMode/perspective": "パースペクティブ",
   "camMode/orthographic": "平行投影",
+  "camMode/fov": "視野角",
+  "camMode/zoom": "ズーム",
   "showSkeleton": "ボーン表示",
   "boneMode": "ボーン操作",
   "boneMode/rotate": "回転",

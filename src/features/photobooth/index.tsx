@@ -79,6 +79,7 @@ import { SelectModel } from '../../modals/SelectModel';
 type StashedCam = {
   mode: CamModes;
   fov: number;
+  zoom: number;
   target: Vector3Tuple;
   position: Vector3Tuple;
   quaternion: Vector4Tuple;
@@ -835,11 +836,18 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     console.time('capture');
 
-    await new Promise((r) => requestAnimationFrame(r));
+    const currentCam: StashedCam = {
+      mode: stage.camMode,
+      fov: stage.camFov,
+      zoom: stage.camZoom,
+      target: stage.orbitControls.target.toArray(),
+      position: stage.activeCamera.position.toArray(),
+      quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
+    };
 
     if (state.captureCam && state.currentCamKind !== 'capture') {
       stage?.setCamMode(state.captureCam.mode, {
-        fov: state.fov,
+        ...state.captureCam,
       });
     }
 
@@ -864,7 +872,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         : state.editorialCam;
 
     if (cam && state.currentCamKind !== 'capture') {
-      stage?.setCamMode(cam.mode, cam);
+      stage?.setCamMode(currentCam.mode, currentCam);
     }
 
     stage!.setShowBones(photoModeState.visibleBones);
@@ -898,9 +906,10 @@ export const PhotoBooth = memo(function PhotoBooth({
     (nextMode: 'editorial' | 'capture') => {
       if (!stage) return;
 
-      const current = {
+      const current: StashedCam = {
         mode: stage.camMode,
         fov: stage.camFov,
+        zoom: stage.camZoom,
         target: stage.orbitControls.target.toArray(),
         position: stage.activeCamera.position.toArray(),
         quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
@@ -945,25 +954,56 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  const syncCamFromStage = useStableLatestRef(() => {
+    if (!stage) return;
+
+    const current: StashedCam = {
+      mode: stage.camMode,
+      fov: stage.camFov,
+      zoom: stage.camZoom,
+      target: stage.orbitControls.target.toArray(),
+      position: stage.activeCamera.position.toArray(),
+      quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
+    };
+
+    if (state.currentCamKind === 'capture') {
+      setState({ captureCam: current });
+
+      return {
+        captureCam: current,
+        editorialCam: state.editorialCam,
+      };
+    } else if (state.currentCamKind === 'editorial') {
+      setState({ editorialCam: current });
+
+      return {
+        captureCam: state.captureCam,
+        editorialCam: current,
+      };
+    }
+  });
+
   const handleClickApplyEditorialToCapture = useEvent(() => {
     if (!stage) return;
 
-    const source = state.editorialCam;
+    const source = syncCamFromStage.current()?.editorialCam;
     if (!source) return;
 
     if (state.currentCamKind === 'capture')
       stage.setCamMode(stage.camMode, source);
+
     setState({ captureCam: source });
   });
 
   const handleClickApplyCaptureToEditorial = useEvent(() => {
     if (!stage) return;
 
-    const source = state.captureCam;
+    const source = syncCamFromStage.current()?.captureCam;
     if (!source) return;
 
     if (state.currentCamKind === 'editorial')
       stage.setCamMode(stage.camMode, source);
+
     setState({ editorialCam: source });
   });
 
@@ -1660,18 +1700,43 @@ export const PhotoBooth = memo(function PhotoBooth({
                     align-items: center;
                   `}
                 >
-                  <span>Fov: </span>
+                  <span>{t('camMode/fov')}</span>
                   <Input
                     css={`
                       flex: 1;
                       margin-left: 4px;
                     `}
                     type="number"
-                    size="min"
+                    sizing="min"
                     value={stage.camFov}
                     onChange={({ currentTarget }) => {
                       stage.camFov = currentTarget.valueAsNumber;
                       stage.pCam.updateProjectionMatrix();
+                    }}
+                  />
+                </div>
+              )}
+
+              {stage && (
+                <div
+                  css={`
+                    display: flex;
+                    align-items: center;
+                  `}
+                >
+                  <span>{t('camMode/zoom')}</span>
+                  <Input
+                    css={`
+                      flex: 1;
+                      margin-left: 4px;
+                    `}
+                    type="number"
+                    sizing="min"
+                    min={1}
+                    step={0.1}
+                    value={stage?.camZoom}
+                    onChange={({ currentTarget }) => {
+                      stage.camZoom = currentTarget.valueAsNumber;
                     }}
                   />
                 </div>

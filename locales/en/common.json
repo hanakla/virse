@@ -12,6 +12,8 @@
   "camMode": "Cam type",
   "camMode/perspective": "Perspective",
   "camMode/orthographic": "Orthographic",
+  "camMode/fov": "Fov",
+  "camMode/zoom": "Zoom",
   "showSkeleton": "Show Bones",
   "boneMode": "Bone control",
   "boneMode/rotate": "Rotate",
