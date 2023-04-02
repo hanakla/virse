@@ -36,6 +36,7 @@ import {
   RiSkullFill,
 } from 'react-icons/ri';
 import { useClickAway, useMount, useUpdate } from 'react-use';
+import { Packr } from 'msgpackr';
 import useEvent from 'react-use-event-hook';
 import styled, { css, CSSProperties } from 'styled-components';
 import { Bone, MathUtils, Vector3Tuple, Vector4Tuple } from 'three';
@@ -51,6 +52,7 @@ import {
   editorOps,
   EditorStore,
   UnsavedVirsePose,
+  VirseProject,
 } from '../../domains/editor';
 import { migrateV0PoseToV1 } from '../../domains/vrm';
 import { KeyboardHelp } from '../../modals/KeyboardHelp';
@@ -77,6 +79,7 @@ import { SelectModel } from '../../modals/SelectModel';
 type StashedCam = {
   mode: CamModes;
   fov: number;
+  zoom: number;
   target: Vector3Tuple;
   position: Vector3Tuple;
   quaternion: Vector4Tuple;
@@ -272,6 +275,28 @@ export const PhotoBooth = memo(function PhotoBooth({
       { overwrite: true }
     );
   });
+
+  const handleClickSaveVirseScene = ((typeof window === 'undefined'
+    ? {}
+    : (window as any)
+  ).v$saveScene = useEvent(async () => {
+    // msgpackr
+    const msgpackr = new Packr({ structuredClone: true });
+
+    const prj: VirseProject = {
+      ...(await stage?.serializeScene()!),
+      poseset: poses,
+    };
+    const data = msgpackr.pack(prj);
+
+    const blob = new Blob([data], {
+      type: 'application/octet-stream',
+    });
+    const url = URL.createObjectURL(blob);
+
+    letDownload(url, 'virse-scene.virse');
+    URL.revokeObjectURL(url);
+  }));
 
   const handleClickSavePose = useEvent(() => {
     const pose = serializeCurrentPose.current();
@@ -623,21 +648,22 @@ export const PhotoBooth = memo(function PhotoBooth({
   const handleClickOverwritePoseMenu = useEvent((params: ItemParams) => {
     if (!stage?.activeAvatar) return;
 
-    const poseId = params.props.poseId;
+    const originalPoseId = params.props.poseId;
 
-    const pose = serializeCurrentPose.current();
-    if (!pose) return;
+    const original = poses.find((p) => p.uid === originalPoseId);
+    const currentPose = serializeCurrentPose.current();
+    if (!original || !currentPose) return;
 
     executeOperation(
       editorOps.savePose,
-      { ...pose, uid: poseId },
+      { ...currentPose, name: original.name, uid: originalPoseId },
       { overwrite: true }
     );
 
     setState((next) => {
       next.loadedPoses[stage.activeAvatar.uid] = {
-        poseId,
-        poseName: pose.name,
+        poseId: originalPoseId,
+        poseName: original.name,
       };
     });
   });
@@ -811,7 +837,14 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     console.time('capture');
 
-    await new Promise((r) => requestAnimationFrame(r));
+    const currentCam: StashedCam = {
+      mode: stage.camMode,
+      fov: stage.camFov,
+      zoom: stage.camZoom,
+      target: stage.orbitControls.target.toArray(),
+      position: stage.activeCamera.position.toArray(),
+      quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
+    };
 
     if (state.captureCam && state.currentCamKind !== 'capture') {
       stage?.setCamMode(state.captureCam.mode, {
@@ -840,7 +873,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         : state.editorialCam;
 
     if (cam && state.currentCamKind !== 'capture') {
-      stage?.setCamMode(cam.mode, cam);
+      stage?.setCamMode(currentCam.mode, currentCam);
     }
 
     stage!.setShowBones(photoModeState.visibleBones);
@@ -874,9 +907,10 @@ export const PhotoBooth = memo(function PhotoBooth({
     (nextMode: 'editorial' | 'capture') => {
       if (!stage) return;
 
-      const current = {
+      const current: StashedCam = {
         mode: stage.camMode,
         fov: stage.camFov,
+        zoom: stage.camZoom,
         target: stage.orbitControls.target.toArray(),
         position: stage.activeCamera.position.toArray(),
         quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
@@ -921,10 +955,39 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  const syncCamFromStage = useStableLatestRef(() => {
+    if (!stage) return;
+
+    const current: StashedCam = {
+      mode: stage.camMode,
+      fov: stage.camFov,
+      zoom: stage.camZoom,
+      target: stage.orbitControls.target.toArray(),
+      position: stage.activeCamera.position.toArray(),
+      quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
+    };
+
+    if (state.currentCamKind === 'capture') {
+      setState({ captureCam: current });
+
+      return {
+        captureCam: current,
+        editorialCam: state.editorialCam,
+      };
+    } else if (state.currentCamKind === 'editorial') {
+      setState({ editorialCam: current });
+
+      return {
+        captureCam: state.captureCam,
+        editorialCam: current,
+      };
+    }
+  });
+
   const handleClickApplyEditorialToCapture = useEvent(() => {
     if (!stage) return;
 
-    const source = state.editorialCam;
+    const source = syncCamFromStage.current()?.editorialCam;
     if (!source) return;
 
     if (state.currentCamKind === 'capture')
@@ -935,11 +998,12 @@ export const PhotoBooth = memo(function PhotoBooth({
   const handleClickApplyCaptureToEditorial = useEvent(() => {
     if (!stage) return;
 
-    const source = state.captureCam;
+    const source = syncCamFromStage.current()?.captureCam;
     if (!source) return;
 
     if (state.currentCamKind === 'editorial')
       stage.setCamMode(stage.camMode, source);
+
     setState({ editorialCam: source });
   });
 
@@ -1278,8 +1342,8 @@ export const PhotoBooth = memo(function PhotoBooth({
     window.addEventListener('contextmenu', cancelContextMenu);
 
     return () => {
-      window.addEventListener('click', hideAll);
-      window.addEventListener('contextmenu', cancelContextMenu);
+      window.removeEventListener('click', hideAll);
+      window.removeEventListener('contextmenu', cancelContextMenu);
     };
   }, []);
 
@@ -1487,7 +1551,10 @@ export const PhotoBooth = memo(function PhotoBooth({
                   css={css`
                     border-radius: 100px;
                     cursor: pointer;
-                    background-colo#fffr ${transitionCss} &:hover {
+                    background-color: #fff;
+                    ${transitionCss}
+
+                    &:hover {
                       color: #fff;
                       background-color: #34c0b9;
                     }
@@ -1633,18 +1700,43 @@ export const PhotoBooth = memo(function PhotoBooth({
                     align-items: center;
                   `}
                 >
-                  <span>Fov: </span>
+                  <span>{t('camMode/fov')}</span>
                   <Input
                     css={`
                       flex: 1;
                       margin-left: 4px;
                     `}
                     type="number"
-                    size="min"
+                    sizing="min"
                     value={stage.camFov}
                     onChange={({ currentTarget }) => {
                       stage.camFov = currentTarget.valueAsNumber;
                       stage.pCam.updateProjectionMatrix();
+                    }}
+                  />
+                </div>
+              )}
+
+              {stage && (
+                <div
+                  css={`
+                    display: flex;
+                    align-items: center;
+                  `}
+                >
+                  <span>{t('camMode/zoom')}</span>
+                  <Input
+                    css={`
+                      flex: 1;
+                      margin-left: 4px;
+                    `}
+                    type="number"
+                    sizing="min"
+                    min={1}
+                    step={0.1}
+                    value={stage?.camZoom}
+                    onChange={({ currentTarget }) => {
+                      stage.camZoom = currentTarget.valueAsNumber;
                     }}
                   />
                 </div>
@@ -2425,34 +2517,6 @@ const hiddenStyle: CSSProperties = {
   userSelect: 'none',
   opacity: 0,
 };
-
-const NavItem = styled.div<{ active: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-
-  color: #34c0b9;
-  font-size: 12px;
-  text-transform: uppercase;
-  user-select: none;
-  cursor: pointer;
-
-  &:hover {
-    color: #34c0b9;
-    background-color: ${rgba('#aaa', 0.3)};
-  }
-
-  ${({ active }) => styleWhen(active)`
-    color: #fff;
-    background-color: #34c0b9;
-
-    &:hover {
-      color: #fff;
-      background-color: #23a8a2;
-    }
-  `}
-`;
 
 const MenuItem = styled.div`
   display: flex;

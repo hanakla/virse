@@ -1,6 +1,7 @@
 {
   "ok": "OK",
   "cancel": "キャンセル",
+  "continue": "続ける",
   "selectAll": "すべて選択",
   "filter": "絞り込み",
   "noBoneSelected": "(ボーン未選択)",
@@ -11,6 +12,8 @@
   "camMode": "カメラの種類",
   "camMode/perspective": "パースペクティブ",
   "camMode/orthographic": "平行投影",
+  "camMode/fov": "視野角",
+  "camMode/zoom": "ズーム",
   "showSkeleton": "ボーン表示",
   "boneMode": "ボーン操作",
   "boneMode/rotate": "回転",
@@ -78,6 +81,11 @@
   "confirmAgreement/agree": "同意して利用する",
   "confirmAgreement/disagree": "同意しない",
   "confirmAgreement/invalid": "同意しないじゃねえ、同意するしかねえんだよ。",
+
+  "loadProjectOption/confirm": "現在のステージをリセットしてプロジェクトを読み込みますか？",
+  "loadProjectOption/poseSets": "ポーズセットを読み込む",
+  "loadProjectOption/clearPoses": "現在のポーズセットをすべて削除する",
+  "loadProjectOption/clearPoses/note": "virseファイル内のポーズが現在のポーズセットに追加されます",
 
   "vrmLicense/title": "ライセンス情報",
   "vrmLicense/metadata": "メタデータ",

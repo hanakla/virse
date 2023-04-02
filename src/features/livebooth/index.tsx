@@ -10,28 +10,18 @@ import { styleWhen, useObjectState } from '@hanakla/arma';
 import styled, { css } from 'styled-components';
 import { useFunc, useBindMousetrap, useStoreState } from '../../utils/hooks';
 import { useEffect } from 'react';
-import useMouse from '@react-hook/mouse-position';
 import { useFleurContext } from '@fleur/react';
 import { editorOps, EditorStore } from '../../domains/editor';
 import { Input } from '../../components/Input';
 import { transitionCss } from '../../styles/mixins';
 import { Sidebar } from '../../components/Sidebar';
 import { useClickAway, useDrop, useMount, useUpdate } from 'react-use';
-import { useContextMenu } from 'react-contexify';
 import 'react-contexify/dist/ReactContexify.css';
 import { ChromePicker, ColorChangeHandler } from 'react-color';
 import { useModalOpener } from '@fleur/mordred';
 import { LoadPose } from '../../modals/LoadPose';
-import { CamModes } from '../../stage/VirseStage';
 import { VirseStage } from '../../stage/VirseStage';
 import { useTranslation } from '../../hooks/useTranslation';
-
-type StashedCam = {
-  mode: CamModes;
-  target: number[];
-  position: number[];
-  quaternion: number[];
-};
 
 export const LiveBooth = memo(function LiveBooth({
   stage,
@@ -45,23 +35,14 @@ export const LiveBooth = memo(function LiveBooth({
   const rootRef = useRef<HTMLDivElement>(null);
   const bgColorPaneRef = useRef<HTMLDivElement>(null);
 
-  const { show: showContextMenu, hideAll } = useContextMenu({});
-
   const [state, setState] = useObjectState({
     size: { width: 1000, height: 1000 },
     fov: 15,
     showColorPane: false,
-    currentCamKind: 'capture' as 'editorial' | 'capture',
-    captureCam: null as StashedCam | null,
-    editorialCam: null as StashedCam | null,
     color: {
       hex: '#fff',
       rgb: { r: 255, g: 255, b: 255 },
       alpha: 0,
-    },
-    handMix: {
-      right: 0,
-      left: 0,
     },
   });
 
@@ -81,14 +62,14 @@ export const LiveBooth = memo(function LiveBooth({
   });
 
   const handleChangeBgColor = useFunc<ColorChangeHandler>((color) => {
-    stage.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
+    stage!.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
     setState({
       color: { hex: color.hex, rgb: color.rgb, alpha: color.rgb.a! },
     });
   });
 
   const handleChangeBgColorComplete = useFunc<ColorChangeHandler>((color) => {
-    stage.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
+    stage!.setBackgroundColor({ ...color.rgb, a: color.rgb.a! });
     setState({
       color: { hex: color.hex, rgb: color.rgb, alpha: color.rgb.a! },
     });
@@ -141,20 +122,6 @@ export const LiveBooth = memo(function LiveBooth({
     executeOperation(editorOps.setMenuOpened, !menuOpened);
   });
 
-  useBindMousetrap(rootRef, 'h', (e) => {
-    if (e.repeat) return;
-
-    // const abort = new AbortController();
-
-    // window.addEventListener(
-    //   'keyup',
-    //   () => !abort.signal.aborted && abort.abort(),
-    //   { once: true }
-    // );
-
-    // openModal(KeyboardHelp, {}, { signal: abort.signal });
-  });
-
   /////
   //// Another
   /////
@@ -172,7 +139,7 @@ export const LiveBooth = memo(function LiveBooth({
           const result = await openModal(LoadPose, { poses: json.poseset });
           if (!result) return;
 
-          executeOperation(editorOps.installPoseSet, result.poses, {
+          executeOperation(editorOps.importPoseSet, result.poses, {
             clear: result.clearPoseSet,
           });
         } else {
@@ -205,18 +172,6 @@ export const LiveBooth = memo(function LiveBooth({
     window.addEventListener('resize', onResize);
 
     return () => window.addEventListener('resize', onResize);
-  }, []);
-
-  useEffect(() => {
-    const cancelContextMenu = (e: Event) => e.preventDefault();
-
-    window.addEventListener('click', hideAll);
-    window.addEventListener('contextmenu', cancelContextMenu);
-
-    return () => {
-      window.addEventListener('click', hideAll);
-      window.addEventListener('contextmenu', cancelContextMenu);
-    };
   }, []);
 
   // on mode changed
@@ -337,12 +292,11 @@ export const LiveBooth = memo(function LiveBooth({
                       margin-left: 4px;
                     `}
                     type="number"
-                    size="min"
+                    sizing="min"
                     value={state.fov}
                     onChange={({ currentTarget }) => {
                       stage.camFov = currentTarget.valueAsNumber;
                       setState({ fov: currentTarget.valueAsNumber });
-                      stage.pCam.updateProjectionMatrix();
                     }}
                   />
                 </div>
@@ -359,9 +313,9 @@ export const LiveBooth = memo(function LiveBooth({
                     font-size: 12px;
                   `}
                 >
-                  {model?.avatar.kalidokit.isInitializing
+                  {model?.avatar.kalidokit?.isInitializing
                     ? t('motionCapture/loading')
-                    : model?.avatar.kalidokit.isCaptureRunnging
+                    : model?.avatar.kalidokit?.isCaptureRunnging
                     ? t('motionCapture/enabled')
                     : t('motionCapture/disabled')}
                 </span>

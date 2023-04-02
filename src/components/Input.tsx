@@ -1,9 +1,9 @@
-import { styleWhen } from "@hanakla/arma";
-import styled from "styled-components";
+import { styleWhen } from '@hanakla/arma';
+import styled from 'styled-components';
 
-export const Input = styled.input.withConfig<{ size?: "min" }>({
+export const Input = styled.input.withConfig<{ sizing?: 'min' }>({
   shouldForwardProp(prop, valid) {
-    return prop !== "size" && valid(prop);
+    return prop !== 'sizing' && valid(prop);
   },
 })`
   display: block;
@@ -14,7 +14,7 @@ export const Input = styled.input.withConfig<{ size?: "min" }>({
   border-radius: 4px;
   outline: none;
 
-  ${({ size }) => styleWhen(size === "min")`
+  ${({ sizing }) => styleWhen(sizing === 'min')`
     padding: 4px 8px;
   `}
 `;

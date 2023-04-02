@@ -38,7 +38,7 @@ type AvatarData = {
   vrm: VRM;
 };
 
-type VirseScene = {
+export type VirseScene = {
   vrms: Record<string, Uint8Array>;
   canvas: {
     width: number;
@@ -238,9 +238,6 @@ export class VirseStage {
   }
 
   public async serializeScene() {
-    // msgpackr
-    const msgpackr = new Packr({ structuredClone: true });
-
     const size = this.renderer.getSize(new THREE.Vector2());
 
     const scene: VirseScene = {
@@ -313,19 +310,15 @@ export class VirseStage {
       ),
     };
 
-    const data = msgpackr.pack(scene);
-    return data;
+    return scene;
   }
 
-  public async loadScene(virseBin: Uint8Array) {
+  public async loadScene(data: VirseScene) {
     Object.values(this.avatars).map((avatar) => {
       avatar.avatar.dispose();
       delete this.avatars[avatar.uid];
     });
 
-    const msgpackr = new Packr({ structuredClone: true });
-
-    const data = msgpackr.unpack(virseBin) as VirseScene;
     console.info('🧘‍♀️ Load virse scene', data);
 
     const { vrms, canvas, camera, poses } = data;
@@ -436,7 +429,8 @@ export class VirseStage {
       mode === 'perspective' ? this.pCam : this.oCam);
 
     // this.activeCamera.position.set(0.0, 1.4, 0.7);
-    if (cam instanceof PerspectiveCamera && opt.fov != null) cam.fov = opt.fov;
+    if (cam instanceof PerspectiveCamera && opt.fov != null)
+      this.camFov = opt.fov;
     if (cam instanceof OrthographicCamera && opt.zoom != null)
       cam.zoom = opt.zoom;
     if (opt.position != null) cam.position.fromArray(opt.position);
@@ -471,6 +465,17 @@ export class VirseStage {
   public set camFov(fov: number) {
     this.pCam.fov = fov;
     this.pCam.updateProjectionMatrix();
+    this.orbitControls.update();
+    this.events.emit('updated');
+  }
+
+  public get camZoom() {
+    return this.activeCamera.zoom;
+  }
+
+  public set camZoom(zoom: number) {
+    this.activeCamera.zoom = zoom;
+    this.activeCamera.updateProjectionMatrix();
     this.orbitControls.update();
     this.events.emit('updated');
   }

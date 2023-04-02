@@ -1,6 +1,7 @@
 {
   "ok": "OK",
   "cancel": "Cancel",
+  "continue": "Continue",
   "selectAll": "Select All",
   "filter": "Filter",
   "noBoneSelected": "(No bone selected)",
@@ -11,6 +12,8 @@
   "camMode": "Cam type",
   "camMode/perspective": "Perspective",
   "camMode/orthographic": "Orthographic",
+  "camMode/fov": "Fov",
+  "camMode/zoom": "Zoom",
   "showSkeleton": "Show Bones",
   "boneMode": "Bone control",
   "boneMode/rotate": "Rotate",
@@ -78,6 +81,11 @@
   "confirmAgreement/agree": "Agree to use",
   "confirmAgreement/disagree": "Disagree",
   "confirmAgreement/invalid": "You can't disagree, you can only agree.",
+
+  "loadProjectOption/confirm": "Do you want to reset the current stage and load the project?",
+  "loadProjectOption/poseSets": "Load pose set",
+  "loadProjectOption/clearPoses": "Clear all current pose sets",
+  "loadProjectOption/clearPoses/note": "The poses in the virse file are added to the current pose set",
 
   "vrmLicense/title": "License information",
   "vrmLicense/metadata": "Meta",

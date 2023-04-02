@@ -1,4 +1,5 @@
 import { styleWhen } from '@hanakla/arma';
+import { rgba } from 'polished';
 import styled from 'styled-components';
 import { transitionCss } from '../styles/mixins';
 
@@ -31,14 +32,13 @@ export const Button = styled.button.withConfig<{
   ${transitionCss}
 
   &:hover {
-    background-color: #f5f5f5;
+    background-color: #eaeaea;
   }
 
   &:active,
   &:focus {
-    color: #fff;
-    background-color: #d5d5d5;
-    box-shadow: 0 0 0 3px #cbcbcb;
+    background-color: #d6d6d6;
+    box-shadow: 0 0 0 3px ${rgba('#34c0b9', 0.6)};
   }
 
   &[disabled] {
@@ -74,6 +74,7 @@ export const Button = styled.button.withConfig<{
 
     &:active, &:focus {
       background-color: #c62828;
+      box-shadow: 0 0 0 3px ${rgba('#ec2929', 0.6)};
     }
   `}
 
