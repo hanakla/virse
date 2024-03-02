@@ -114,13 +114,12 @@ export const [EditorStore, editorOps] = minOps('Editor', {
         credentials: 'include',
       }).binaryToJSON(gltfBin);
 
-      const meta = (gltfJson.extensions?.VRM as VRMSchema.VRM)?.meta;
+      const meta = (gltfJson.extensions?.VRM as any)?.meta;
       const name = meta?.title ?? vrm.name;
       const hash = await blobToHash('sha256', vrm, 'hex');
 
       const db = await connectIdb();
       x.finally(() => db.close());
-      x.finally(() => console.log('ok'));
 
       const indexTrans = db.transaction(
         ['modelIndex', 'modelFile'],

@@ -305,7 +305,6 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   useChangedEffect(() => {
     const pose = poses.find((p) => p.uid === latestSavedPoseUid);
-    console.log('latestSavedPoseUid', latestSavedPoseUid, pose);
     if (!pose) return;
 
     setState((next) => {
