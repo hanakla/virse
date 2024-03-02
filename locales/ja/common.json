@@ -64,7 +64,9 @@
   "loadPose/title": "ポーズセットのインポート",
   "loadPose/deleteCurrentPoset": "現在のポーズセットをすべて削除する",
 
-  "selectBones/restorePosition": "Load avatar position in this pose",
+  "selectBones/restorePosition": "配置位置を復元する",
+
+  "stageContextMenu/resetBone": "ボーンをリセット",
 
   "keyboardHelp/title": "キーボードショートカット",
   "keyboardHelp/showHelp": "キーボードヘルプを表示",

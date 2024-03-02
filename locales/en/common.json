@@ -66,6 +66,8 @@
 
   "selectBones/restorePosition": "Load avatar position in this pose",
 
+  "stageContextMenu/resetBone": "Reset this bone",
+
   "keyboardHelp/title": "Keyboard shortcuts",
   "keyboardHelp/showHelp": "Show this help",
   "keyboardHelp/previousAvatar": "Select above avatar",

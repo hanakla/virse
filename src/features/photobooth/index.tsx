@@ -2788,7 +2788,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         animation={false}
       >
         <ContextItem onClick={handleClickResetCurrentBone}>
-          ボーンをリセット
+          {t('stageContextMenu/resetBone')}
         </ContextItem>
       </ContextMenu>
 
