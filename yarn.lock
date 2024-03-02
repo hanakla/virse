@@ -6794,9 +6794,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"virse-web@workspace:.":
+"virse@workspace:.":
   version: 0.0.0-use.local
-  resolution: "virse-web@workspace:."
+  resolution: "virse@workspace:."
   dependencies:
     "@charlietango/use-focus-trap": ^1.4.0
     "@fleur/fleur": ^3.1.0-beta.7
