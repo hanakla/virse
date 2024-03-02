@@ -152,6 +152,10 @@ export function KeyboardHelp({
                 />
               }
             />
+            <Entry
+              keyCode={humanizeShortcutKey(rightHandShortcuts.toggleMirror)}
+              desc={<Trans i18nKey="keyboardHelp/mirrorBone" />}
+            />
           </Grid>
         </div>
       }

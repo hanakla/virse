@@ -1,15 +1,12 @@
 const nextTranslate = require('next-translate-plugin');
-const withTM = require('next-transpile-modules')(['kalidokit']);
 const withMDX = require('@next/mdx')({
   extension: /\.mdx?$/,
 });
 
 /** @type {import('next').NextConfig} */
 const config = {
-  experimental: {
-    asyncWebAssembly: true,
-    newNextLinkBehavior: true,
-  },
+  experimental: {},
+  transpilePackages: ['kalidokit'],
   compiler: {
     styledComponents: true,
   },
@@ -28,4 +25,4 @@ const config = {
   },
 };
 
-module.exports = nextTranslate(withMDX(withTM(config)));
+module.exports = nextTranslate(withMDX(config));

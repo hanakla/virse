@@ -22,6 +22,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
 import { fit } from 'object-fit-math';
 import mitt from 'mitt';
 import { VrmPoseController } from './VRMToyBox/vrmPoseController';
+import { ObjectController } from './ObjectController/ObjectController';
 
 export type CamModes = 'perspective' | 'orthographic';
 
@@ -40,6 +41,7 @@ type AvatarData = {
 
 export type VirseScene = {
   vrms: Record<string, Uint8Array>;
+  gltfObjects: Record<string, Uint8Array>;
   canvas: {
     width: number;
     height: number;
@@ -71,6 +73,14 @@ export type VirseScene = {
       >;
     }
   >;
+  objects: Record<
+    string,
+    {
+      position: Vector3Tuple;
+      quaternion: Vector4Tuple;
+      scale: Vector3Tuple;
+    }
+  >;
 };
 
 export class VirseStage {
@@ -97,16 +107,25 @@ export class VirseStage {
 
   #size: { width: number; height: number };
   #backgroundColor: { r: number; g: number; b: number; a: number } = {
-    r: 0,
-    g: 0,
-    b: 0,
+    r: 255,
+    g: 255,
+    b: 255,
     a: 0,
   };
   #enablePhys: boolean = false;
+
   #activeAvatarUid: string | null = null;
+  #activeTarget:
+    | { type: 'avatar'; uid: string }
+    | { type: 'object'; uid: string }
+    | null = null;
 
   public avatars: {
     [K: string]: AvatarData;
+  } = Object.create(null);
+
+  public gltfObjects: {
+    [K: string]: { uid: string; control: ObjectController };
   } = Object.create(null);
 
   constructor(public canvas: HTMLCanvasElement) {
@@ -131,8 +150,7 @@ export class VirseStage {
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(this.#size.width, this.#size.height);
-    this.renderer.setClearColor('#ffffff');
-    this.renderer.setClearAlpha(0);
+    this.renderer.setClearColor('#ffffff', 0);
 
     // const size = fit(
     //   { width: window.innerWidth, height: window.innerHeight },
@@ -249,6 +267,17 @@ export class VirseStage {
           ])
         )
       ),
+      gltfObjects: Object.fromEntries(
+        await Promise.all(
+          Object.entries(this.gltfObjects).map(
+            async ([uid, { control: ui }]) => [
+              uid,
+              new Uint8ClampedArray(await ui.gltfBin!.arrayBuffer()),
+            ]
+          )
+        )
+      ),
+
       canvas: {
         width: size.x,
         height: size.y,
@@ -308,27 +337,45 @@ export class VirseStage {
           },
         ])
       ),
+      objects: Object.fromEntries(
+        Object.entries(this.gltfObjects).map(([uid, { control: ui }]) => [
+          uid,
+          {
+            position: ui.rootBone.position.toArray(),
+            quaternion: ui.rootBone.quaternion.toArray() as Vector4Tuple,
+            scale: ui.rootBone.scale.toArray(),
+          },
+        ])
+      ),
     };
 
     return scene;
   }
 
   public async loadScene(data: VirseScene) {
+    this.#activeAvatarUid = null;
+    this.#activeTarget = null;
+
     Object.values(this.avatars).map((avatar) => {
       avatar.avatar.dispose();
       delete this.avatars[avatar.uid];
     });
 
+    Object.values(this.gltfObjects).map((obj) => {
+      obj.control.dispose();
+      delete this.gltfObjects[obj.uid];
+    });
+
     console.info('🧘‍♀️ Load virse scene', data);
 
-    const { vrms, canvas, camera, poses } = data;
+    const { vrms, gltfObjects, canvas, camera, poses, objects } = data;
 
     this.setSize(canvas.width, canvas.height);
     canvas.background &&
       this.setBackgroundColor({
-        r: canvas.background.color[0],
-        g: canvas.background.color[1],
-        b: canvas.background.color[2],
+        r: canvas.background.color[0] * 255,
+        g: canvas.background.color[1] * 255,
+        b: canvas.background.color[2] * 255,
         a: canvas.background.alpha,
       });
     this.setCamMode(camera.mode, camera);
@@ -352,6 +399,25 @@ export class VirseStage {
         );
       })
     );
+
+    const objUidMap: { [old: string]: string } = {};
+
+    if (gltfObjects) {
+      await Promise.all(
+        Object.entries(gltfObjects).map(async ([uid, gltfBin]) => {
+          const blob = new Blob([gltfBin], { type: 'model/gltf+json' });
+          const url = URL.createObjectURL(blob);
+          const obj = await this.loadGltf(url);
+          URL.revokeObjectURL(url);
+
+          objUidMap[uid] = obj.uid;
+
+          obj.control.rootBone.position.fromArray(objects[uid].position);
+          obj.control.rootBone.quaternion.fromArray(objects[uid].quaternion);
+          obj.control.rootBone.scale.fromArray(objects[uid].scale);
+        })
+      );
+    }
 
     Object.entries(poses).forEach(([uid, pose]) => {
       const avatar = this.avatars[uidMap[uid]].avatar;
@@ -486,16 +552,14 @@ export class VirseStage {
       : 'orthographic';
   }
 
-  public setControlMode(mode: string) {
-    Object.values(this.avatars).map(({ avatar }) => {
-      avatar.ui.fkControlMode = mode;
-    });
-  }
-
   public get boneControlMode(): 'rotate' | 'translate' {
-    if (!this.activeAvatar) return 'rotate';
+    if (!this.#activeTarget) return 'rotate';
 
-    return this.activeAvatar.ui.fkControlMode;
+    if (this.#activeTarget.type === 'avatar') {
+      return this.avatars[this.#activeTarget.uid].ui.fkControlMode;
+    } else if (this.#activeTarget.type === 'object') {
+      return this.gltfObjects[this.#activeTarget.uid].control.controlMode;
+    }
   }
 
   public set boneControlMode(mode: string) {
@@ -503,10 +567,27 @@ export class VirseStage {
       o.ui.fkControlMode = mode as any;
       o.ui.setAxis('all');
     });
+
+    Object.values(this.gltfObjects).map((o) => {
+      o.control.controlMode = mode as any;
+      o.control.setAxis('all');
+    });
+  }
+
+  public get activeTarget() {
+    if (!this.#activeTarget) return null;
+
+    if (this.#activeTarget.type === 'avatar') {
+      return this.avatars[this.#activeTarget.uid];
+    } else if (this.#activeTarget.type === 'object') {
+      return this.gltfObjects[this.#activeTarget.uid];
+    }
   }
 
   public get activeAvatar() {
-    return this.avatars[this.#activeAvatarUid ?? ''] ?? null;
+    return this.#activeTarget?.type === 'avatar'
+      ? this.avatars[this.#activeTarget.uid]
+      : null;
   }
 
   public getAvatar(uid: string): AvatarData | undefined {
@@ -514,10 +595,25 @@ export class VirseStage {
   }
 
   public setActiveAvatar(uid: string) {
+    if (!this.avatars[uid]) return;
+
     this.#activeAvatarUid = uid;
+    this.#activeTarget = { type: 'avatar', uid };
 
     this.avatarsIterator.forEach((avatar) => {
+      avatar.ui.setVisible(avatar.uid === uid && this.#showBones);
       avatar.ui.setEnableControll(avatar.uid === uid);
+    });
+
+    this.events.emit('updated');
+  }
+
+  public setActiveObject(uid: string) {
+    if (!this.gltfObjects[uid]) return;
+
+    this.#activeTarget = { type: 'object', uid };
+    Object.values(this.gltfObjects).forEach((o) => {
+      o.control.setEnableControll(o.uid === uid);
     });
 
     this.events.emit('updated');
@@ -527,7 +623,11 @@ export class VirseStage {
     this.#showBones = visible;
 
     this.avatarsIterator.forEach((avatar) => {
-      avatar.ui.setVisible(visible);
+      avatar.ui.setVisible(avatar.uid === this.#activeAvatarUid && visible);
+    });
+
+    Object.values(this.gltfObjects).forEach((o) => {
+      o.control.setVisible(visible);
     });
 
     this.objects.forEach((o) => (o.visible = visible));
@@ -585,13 +685,18 @@ export class VirseStage {
   }) {
     this.renderer.setClearColor(new Color(r / 255, g / 255, b / 255));
     this.renderer.setClearAlpha(a);
-    this.#backgroundColor = { r: r / 255, g: g / 255, b: b / 255, a };
+    this.#backgroundColor = { r, g, b, a };
     this.events.emit('updated');
   }
 
   public removeAvatar(uid: string) {
     const avatar = this.avatars[uid];
     if (!avatar) return;
+
+    if (this.#activeAvatarUid === avatar.uid) {
+      this.#activeAvatarUid = null;
+      this.#activeTarget = null;
+    }
 
     avatar.avatar.dispose();
     delete this.avatars[uid];
@@ -631,6 +736,8 @@ export class VirseStage {
       this.orbitControls.enabled = !dragging;
     });
 
+    avatar.events.on('updated', () => this.events.emit('updated'));
+
     avatar.kalidokit?.events.on('statusChanged', () => {
       this.events.emit('updated');
     });
@@ -651,6 +758,26 @@ export class VirseStage {
     this.events.emit('updated');
 
     return this.avatars[uid];
+  }
+
+  public async loadGltf(url: string) {
+    const obj = new ObjectController(this);
+    await obj.loadGltf(url);
+
+    obj.events.on('dragChange', ({ dragging }) => {
+      this.orbitControls.enabled = !dragging;
+    });
+
+    obj.events.on('selectChange', ({ selected }) => {
+      if (selected) {
+        this.setActiveObject(id);
+      }
+    });
+
+    const id = nanoid();
+    this.gltfObjects[id] = { uid: id, control: obj };
+
+    return this.gltfObjects[id];
   }
 
   public resetCamera() {

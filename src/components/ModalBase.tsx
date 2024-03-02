@@ -1,5 +1,5 @@
 import { rgba } from 'polished';
-import { forwardRef, MouseEvent, ReactNode } from 'react';
+import { forwardRef, MouseEvent, ReactNode, useEffect } from 'react';
 import { css } from 'styled-components';
 import { useFunc } from '../utils/hooks';
 
@@ -20,6 +20,16 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
     if (!closeOnBackdropClick) return;
     if (e.target === e.currentTarget) onClose(null);
   });
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.isComposing) return;
+      if (e.key === 'Escape') onClose(null);
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
 
   return (
     <div
@@ -54,7 +64,7 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
         {header && (
           <div
             css={`
-              padding: 16px 16px 0;
+              padding: 24px 24px 0;
               h1 {
                 text-align: center;
                 font-weight: bold;

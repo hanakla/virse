@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { useBufferedState } from '../utils/hooks';
 import { Button } from './Button';
 import { Input } from './Input';
+import { rgba } from 'polished';
 
 export const Slider = memo(function Slider({
   label,
@@ -15,7 +16,7 @@ export const Slider = memo(function Slider({
   onChange,
 }: {
   label: ReactNode;
-  title: string;
+  title?: string;
   min: number;
   max: number;
   step?: number;
@@ -127,6 +128,8 @@ const RangeInput = styled.input`
   --webkit-touch-callout: none;
   outline: none;
   line-height: 1;
+
+  box-shadow: 0 0 4px ${rgba('#000', 0.2)};
 
   /* &::-ms-fill-lower,
   &::-moz-range-track,

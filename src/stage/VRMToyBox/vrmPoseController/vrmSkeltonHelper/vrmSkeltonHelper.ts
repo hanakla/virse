@@ -13,7 +13,7 @@ import { InteractableObject } from '../interactableObject';
 import { Bone, Object3D } from 'three';
 
 /**
- * FKの操作用の３DUIを生成する
+ * FKの操作用の3DUIを生成する
  */
 export const createSkeltonHelper = (vrm: VRM): InteractableObject[] => {
   const boneUIObjects = Array<InteractableObject>();

@@ -26,7 +26,9 @@
   "noVersionInfo": "(No versioned)",
   "dropVRM": "Drop VRM to add on stage",
   "dropVRM/button": "Or select VRM",
+
   "facial": "Facial",
+  "facial/filter": "Filter",
   "facial/presets": "Presets",
   "facial/customs": "Etc expression",
   "facial/customs/noAvailable": "No more expressions available",
@@ -47,6 +49,7 @@
   "posemenu/loadFacial": "Load facial expression",
   "posemenu/download": "Download as JSON",
   "posemenu/downloadAll": "Download all poses as JSON",
+  "posemenu/loadAndCapture": "Save as Image",
   "posemenu/overwriteToThis": "Save pose to this pose (overwrite)",
   "posemenu/delete": "Delete",
 
@@ -76,6 +79,7 @@
   "keyboardHelp/selectChildBone": "Select child bone",
   "keyboardHelp/resetCurrentBone": "Reset transforms of current bone",
   "keyboardHelp/axisFilter": "Display only {{axis}} rotation axis.<br/>Reset by pressing again.",
+  "keyboardHelp/mirrorBone": "Toggle bone mirroring",
 
   "confirmAgreement/title": "Terms of Use",
   "confirmAgreement/agree": "Agree to use",

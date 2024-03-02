@@ -27,6 +27,7 @@ import mitt from 'mitt';
 import { VrmPoseController } from './vrmPoseController';
 
 type Events = {
+  updated: void;
   boneChanged: Bone | null;
   boneDragging: { dragging: boolean };
   kalidokitStatusChanged: { initialized: boolean; running: boolean };
@@ -70,6 +71,8 @@ export class Avatar {
   #kalidokit: KalidokitCapture | null = null;
   #controller!: VrmPoseController;
 
+  #visible: boolean = true;
+
   constructor(stage: VirseStage) {
     this._stage = stage;
     // this._vrm = null;
@@ -103,6 +106,17 @@ export class Avatar {
 
   public get positionBone() {
     return this._positionBone;
+  }
+
+  public get visible() {
+    return this.#visible;
+  }
+
+  public set visible(v: boolean) {
+    this.#visible = v;
+    this._avatarScene.visible = v;
+    this.#controller.setVisible(v);
+    this.events.emit('updated');
   }
 
   public getInitialBoneState(name: string) {
@@ -205,6 +219,7 @@ export class Avatar {
 
       o.position.fromArray(bone.position);
       o.quaternion.fromArray(bone.quaternion);
+      o.scale.fromArray([1, 1, 1]);
     });
 
     this.positionBone.position.set(0, 0, 0);

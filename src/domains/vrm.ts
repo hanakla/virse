@@ -1,5 +1,6 @@
 import { klona } from 'klona';
 import { VirsePose } from './editor';
+import { VRMHumanBoneName, VRMPose } from '@pixiv/three-vrm';
 
 const expressionNameMap = {
   A: 'aa',
@@ -31,10 +32,14 @@ const blendShapeProxiesMap = {
   Fcl_EYE_Close_Left: 'blinkLeft',
 };
 
-export function migrateV0PoseToV1(pose: VirsePose | null | undefined) {
+export function migrateVRM0PoseToV1<T extends VirsePose | null | undefined>(
+  pose: T,
+  targetVrmVersion: '0' | '1'
+) {
   if (!pose) return pose;
 
   const next = klona(pose);
+  console.log('migrating pose', pose);
 
   Object.entries(expressionNameMap).forEach(([oldKey, newKey]) => {
     next.blendShapeProxies[newKey] ??= pose.blendShapeProxies[oldKey] ?? 0;
@@ -52,6 +57,16 @@ export function migrateV0PoseToV1(pose: VirsePose | null | undefined) {
     delete next.morphs[oldMorphKey];
   });
 
+  if (pose.vrmVersion == null || pose.vrmVersion === '0') {
+    if (targetVrmVersion === '1') {
+      invertRotation(next.vrmPose);
+    }
+  } else if (pose.vrmVersion === '1') {
+    if (targetVrmVersion === '0') {
+      invertRotation(next.vrmPose);
+    }
+  }
+
   if (pose.schemaVersion == null) {
     next.schemaVersion = 1;
     next.camera.position[0] *= -1;
@@ -63,10 +78,22 @@ export function migrateV0PoseToV1(pose: VirsePose | null | undefined) {
 
     next.rootPosition = {
       position: [0, 0, 0],
-      rotation: [0, 0, 0],
+      // rotation: [0, 0, 0],
       quaternion: [0, 0, 0, 1],
     };
   }
 
   return next;
 }
+
+// SEE: https://scrapbox.io/ke456memo/VRM%E3%81%AE%E5%90%91%E3%81%8D%E3%81%AE%E8%A9%B1
+const invertRotation = (pose: VRMPose) => {
+  Object.keys(pose).forEach((key) => {
+    const rotation = pose[key as VRMHumanBoneName]!.rotation;
+    console.log(rotation);
+    if (rotation) {
+      rotation[0] = -rotation[0];
+      rotation[2] = -rotation[2];
+    }
+  });
+};
