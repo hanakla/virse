@@ -217,8 +217,8 @@ export const PhotoBooth = memo(function PhotoBooth({
     return serializeAvatarPose.current(stage.activeAvatar.uid);
   });
 
-  const serializeAvatarPose = useStableLatestRef((uid: string) => {
-    const avatarData = stage?.getAvatar(uid);
+  const serializeAvatarPose = useStableLatestRef((avatarUid: string) => {
+    const avatarData = stage?.getAvatar(avatarUid);
     if (!stage || !avatarData) return;
 
     const { vrm, avatar } = avatarData;
@@ -230,12 +230,12 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     const vrmPose = vrm.humanoid.getRawPose();
 
-    const original = state.loadedPoses[uid]
-      ? poses.find((p) => p.uid === state.loadedPoses[uid]?.poseId)
+    const original = state.loadedPoses[avatarUid]
+      ? poses.find((p) => p.uid === state.loadedPoses[avatarUid]?.poseId)
       : null;
 
     const pose: UnsavedVirsePose = {
-      name: emptyCoalesce(state.loadedPoses[uid]?.poseName, 'New Pose'),
+      name: emptyCoalesce(state.loadedPoses[avatarUid]?.poseName, 'New Pose'),
       canvas: stage.getSize(),
       camera: {
         mode: stage.camMode,
@@ -787,12 +787,15 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       stage.setActiveAvatar(avatar.uid);
 
-      applyPoseToActiveAvatar.current(pose, {
-        camera: false,
-        nonStandardBones: true,
-        extraBlendShapes: true,
-        presetExpressions: true,
-      });
+      applyPoseToActiveAvatar.current(
+        migrateVRM0PoseToV1(pose, avatar.vrm.meta.metaVersion),
+        {
+          camera: false,
+          nonStandardBones: true,
+          extraBlendShapes: true,
+          presetExpressions: true,
+        }
+      );
 
       stage.removeAvatar(prevAvatarUid);
 
@@ -1536,12 +1539,28 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     vrm.humanoid
       ?.getRawBoneNode(VRMHumanBoneName.RightEye)
-      ?.rotation.set(rateY, rateX, 0);
+      ?.rotation.set(
+        ...(vrm.meta.metaVersion === '0'
+          ? ([rateY, rateX, 0] as const)
+          : ([
+              MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
+              MathUtils.mapLinear(rateX, -0.3, 0.3, -0.8, 0),
+              0,
+            ] as const))
+      );
 
     if (state.syncEyes) {
       vrm.humanoid
         ?.getRawBoneNode(VRMHumanBoneName.LeftEye)
-        ?.rotation.set(rateY, rateX, 0);
+        ?.rotation.set(
+          ...(vrm.meta.metaVersion === '0'
+            ? ([rateY, rateX, 0] as const)
+            : ([
+                MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
+                MathUtils.mapLinear(rateX, -0.3, 0.3, 0, 1),
+                0,
+              ] as const))
+        );
     }
   }, [state.syncEyes, padLMouse.clientX, padLMouse.clientY, padLMouse.isDown]);
 
@@ -1563,12 +1582,28 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     vrm.humanoid
       ?.getRawBoneNode(VRMHumanBoneName.LeftEye)
-      ?.rotation.set(rateY, rateX, 0);
+      ?.rotation.set(
+        ...(vrm.meta.metaVersion === '0'
+          ? ([rateY, rateX, 0] as const)
+          : ([
+              MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
+              MathUtils.mapLinear(rateX, -0.3, 0.3, 0, 1),
+              0,
+            ] as const))
+      );
 
     if (state.syncEyes) {
       vrm.humanoid
         ?.getRawBoneNode(VRMHumanBoneName.RightEye)
-        ?.rotation.set(rateY, rateX, 0);
+        ?.rotation.set(
+          ...(vrm.meta.metaVersion === '0'
+            ? ([rateY, rateX, 0] as const)
+            : ([
+                MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
+                MathUtils.mapLinear(rateX, -0.3, 0.3, -0.8, 0),
+                0,
+              ] as const))
+        );
     }
   }, [state.syncEyes, padRMouse.clientX, padRMouse.clientY, padRMouse.isDown]);
 

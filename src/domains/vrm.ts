@@ -1,5 +1,5 @@
 import { klona } from 'klona';
-import { VirsePose } from './editor';
+import { UnsavedVirsePose, VirsePose } from './editor';
 import { VRMHumanBoneName, VRMPose } from '@pixiv/three-vrm';
 
 const expressionNameMap = {
@@ -32,10 +32,9 @@ const blendShapeProxiesMap = {
   Fcl_EYE_Close_Left: 'blinkLeft',
 };
 
-export function migrateVRM0PoseToV1<T extends VirsePose | null | undefined>(
-  pose: T,
-  targetVrmVersion: '0' | '1'
-) {
+export function migrateVRM0PoseToV1<
+  T extends VirsePose | UnsavedVirsePose | null | undefined
+>(pose: T, targetVrmVersion: '0' | '1') {
   if (!pose) return pose;
 
   const next = klona(pose);
@@ -60,27 +59,31 @@ export function migrateVRM0PoseToV1<T extends VirsePose | null | undefined>(
   if (pose.vrmVersion == null || pose.vrmVersion === '0') {
     if (targetVrmVersion === '1') {
       invertRotation(next.vrmPose);
+      invertRotation(next.bones);
     }
   } else if (pose.vrmVersion === '1') {
     if (targetVrmVersion === '0') {
       invertRotation(next.vrmPose);
+      invertRotation(next.bones);
     }
   }
 
-  if (pose.schemaVersion == null) {
-    next.schemaVersion = 1;
-    next.camera.position[0] *= -1;
-    next.camera.position[2] *= -1;
-  }
+  if ('schemaVersion' in next) {
+    if (next.schemaVersion == null) {
+      next.schemaVersion = 1;
+      next.camera.position[0] *= -1;
+      next.camera.position[2] *= -1;
+    }
 
-  if (pose.schemaVersion === 2) {
-    next.schemaVersion = 3;
+    if (next.schemaVersion === 2) {
+      next.schemaVersion = 3;
 
-    next.rootPosition = {
-      position: [0, 0, 0],
-      // rotation: [0, 0, 0],
-      quaternion: [0, 0, 0, 1],
-    };
+      next.rootPosition = {
+        position: [0, 0, 0],
+        // rotation: [0, 0, 0],
+        quaternion: [0, 0, 0, 1],
+      };
+    }
   }
 
   return next;
@@ -90,7 +93,6 @@ export function migrateVRM0PoseToV1<T extends VirsePose | null | undefined>(
 const invertRotation = (pose: VRMPose) => {
   Object.keys(pose).forEach((key) => {
     const rotation = pose[key as VRMHumanBoneName]!.rotation;
-    console.log(rotation);
     if (rotation) {
       rotation[0] = -rotation[0];
       rotation[2] = -rotation[2];
