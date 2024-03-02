@@ -93,6 +93,7 @@
   "loadProjectOption/clearPoses": "Clear all current pose sets",
   "loadProjectOption/clearPoses/note": "The poses in the virse file are added to the current pose set",
 
+  "vrmLicense/metaVersion": "VRM Version",
   "vrmLicense/title": "License information",
   "vrmLicense/metadata": "Meta",
   "vrmLicense/avatarName": "Avatar name",

@@ -45,6 +45,10 @@ function VRM0License({ meta }: { meta: VRM0Meta }) {
       <Heading>{t('vrmLicense/metadata')}</Heading>
       <TableLike>
         <Row>
+          <Cell>{t('vrmLicense/metaVersion')} </Cell>
+          <Cell>{emptyCoalesce(meta.metaVersion, <Unknown />)}</Cell>
+        </Row>
+        <Row>
           <Cell>{t('vrmLicense/avatarName')}</Cell>
           <Cell>{emptyCoalesce(meta.title, <Unknown />)}</Cell>
         </Row>
@@ -181,6 +185,10 @@ function VRM1License({ meta }: { meta: VRM1Meta }) {
     <>
       <Heading>{t('vrmLicense/metadata')}</Heading>
       <TableLike>
+        <Row>
+          <Cell>{t('vrmLicense/metaVersion')} </Cell>
+          <Cell>{emptyCoalesce(meta.metaVersion, <Unknown />)}</Cell>
+        </Row>
         <Row>
           <Cell>{t('vrmLicense/avatarName')} </Cell>
           <Cell>
@@ -444,4 +452,5 @@ const Row = styled.div`
 const Cell = styled.div`
   padding: 4px 0;
   line-height: 1.4;
+  word-break: break-all;
 `;

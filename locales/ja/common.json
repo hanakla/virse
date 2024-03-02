@@ -93,6 +93,7 @@
   "loadProjectOption/clearPoses": "現在のポーズセットをすべて削除する",
   "loadProjectOption/clearPoses/note": "virseファイル内のポーズが現在のポーズセットに追加されます",
 
+  "vrmLicense/metaVersion": "VRMバージョン",
   "vrmLicense/title": "ライセンス情報",
   "vrmLicense/metadata": "メタデータ",
   "vrmLicense/avatarName": "アバターの名前",
