@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
 const topH = 0.7;
 const bottomH = 0.15; // topH + bottomH < 1.0 を推奨
@@ -15,10 +15,7 @@ const bottom = new THREE.ConeGeometry(radius, bottomH, segment, 1, true);
 bottom.rotateX(-Math.PI / 2);
 bottom.translate(0, 0, bottomH / 2);
 
-export const boneGeometry = BufferGeometryUtils.mergeBufferGeometries([
-  top,
-  bottom,
-]);
+export const boneGeometry = BufferGeometryUtils.mergeGeometries([top, bottom]);
 
 export const sphereGeometry = new THREE.SphereGeometry(0.05, 16, 16);
 
@@ -39,7 +36,7 @@ export const focusMaterial = new THREE.MeshBasicMaterial({
 });
 
 export const activeMaterial = new THREE.MeshBasicMaterial({
-  color: 0xffff00,
+  color: 0xf4c90a,
   depthTest: false,
   depthWrite: false,
   transparent: true,

@@ -14,7 +14,7 @@ export function KeyboardHelp({
 }: ModalProps<{ temporalyShow?: boolean }, void>) {
   const t = useTranslation('common');
 
-  useFocusRestore({ restoreOnUnmount: true });
+  useFocusRestore();
 
   return (
     <ModalBase
@@ -151,6 +151,10 @@ export function KeyboardHelp({
                   values={{ axis: 'Z' }}
                 />
               }
+            />
+            <Entry
+              keyCode={humanizeShortcutKey(rightHandShortcuts.toggleMirror)}
+              desc={<Trans i18nKey="keyboardHelp/mirrorBone" />}
             />
           </Grid>
         </div>

@@ -20,7 +20,7 @@ export function SelectChangeBones({
 >) {
   const t = useTranslation('common');
 
-  useFocusRestore({ restoreOnUnmount: true });
+  useFocusRestore();
 
   const focusTrapRef = useFocusTrap();
   const listRef = useRef<HTMLSelectElement | null>(null);

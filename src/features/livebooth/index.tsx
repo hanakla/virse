@@ -171,7 +171,7 @@ export const LiveBooth = memo(function LiveBooth({
 
     window.addEventListener('resize', onResize);
 
-    return () => window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   // on mode changed

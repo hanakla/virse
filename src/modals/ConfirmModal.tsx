@@ -24,7 +24,7 @@ export function ConfirmModal({
 >) {
   const t = useTranslation('common');
 
-  useFocusRestore({ restoreOnUnmount: true });
+  useFocusRestore();
 
   const handleClickOk = useEvent(() => {
     onClose(true);

@@ -17,6 +17,10 @@ export const rightHandShortcuts = {
   boneListNext: 'd',
   boneListOk: 'f',
   boneListOk2: 'space',
+  toggleMirror: 'm',
+  changeToFacialTab: '5',
+  changeToPoseTab: '6',
+  toggleBoneControllerSpace: 'g',
 } as const;
 
 export function humanizeShortcutKey(key: string) {

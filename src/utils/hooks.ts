@@ -14,10 +14,13 @@ import { shallowEquals } from './object';
 import { useObjectState } from '@hanakla/arma';
 
 export const useFunc = <T extends (...args: any[]) => any>(fn: T): T => {
-  const ref = useRef<T | null>(null);
-  ref.current = fn;
+  const stableRef = useRef<T>(fn);
 
-  return useCallback<any>((...args: any[]) => ref.current!(...args), []);
+  useBrowserEffect(() => {
+    stableRef.current = fn;
+  }, [fn]);
+
+  return useCallback<any>((...args: any[]) => stableRef.current!(...args), []);
 };
 
 const useBrowserEffect =
@@ -150,11 +153,7 @@ export const useObjectStateWithRef = <T extends object>(
   return [state, setState as any, ref];
 };
 
-export const useFocusRestore = ({
-  restoreOnUnmount,
-}: {
-  restoreOnUnmount?: boolean;
-}) => {
+export const useFocusRestore = () => {
   const prevFocusElementRef = useRef<HTMLElement | null>(
     typeof document !== 'undefined'
       ? (document.activeElement as HTMLElement)
@@ -165,11 +164,9 @@ export const useFocusRestore = ({
     const restoreFocusTarget = prevFocusElementRef.current;
 
     return () => {
-      if (restoreOnUnmount) {
-        setTimeout(() => {
-          restoreFocusTarget?.focus();
-        });
-      }
+      setTimeout(() => {
+        restoreFocusTarget?.focus();
+      });
     };
-  });
+  }, []);
 };

@@ -26,7 +26,9 @@
   "noVersionInfo": "(バージョンなし)",
   "dropVRM": "画面にVRMファイルをドロップして読み込む",
   "dropVRM/button": "もしくはファイルを選択",
+
   "facial": "表情",
+  "facial/filter": "フィルタリング",
   "facial/presets": "プリセット表情",
   "facial/customs": "そのほかの表情",
   "facial/customs/noAvailable": "カスタム表情はありません",
@@ -47,6 +49,7 @@
   "posemenu/loadFacial": "表情を読み込む",
   "posemenu/download": "JSONでダウンロード",
   "posemenu/downloadAll": "すべてのポーズをダウンロード",
+  "posemenu/loadAndCapture": "画像に保存",
   "posemenu/overwriteToThis": "ポーズをこのポーズに上書き保存",
   "posemenu/delete": "削除",
 
@@ -61,7 +64,9 @@
   "loadPose/title": "ポーズセットのインポート",
   "loadPose/deleteCurrentPoset": "現在のポーズセットをすべて削除する",
 
-  "selectBones/restorePosition": "Load avatar position in this pose",
+  "selectBones/restorePosition": "配置位置を復元する",
+
+  "stageContextMenu/resetBone": "ボーンをリセット",
 
   "keyboardHelp/title": "キーボードショートカット",
   "keyboardHelp/showHelp": "キーボードヘルプを表示",
@@ -76,6 +81,7 @@
   "keyboardHelp/selectChildBone": "子ボーンを選択",
   "keyboardHelp/resetCurrentBone": "現在のボーンをリセット",
   "keyboardHelp/axisFilter": "{{axis}}回転軸だけ表示 (再押下でリセット)",
+  "keyboardHelp/mirrorBone": "ボーンの左右対称を切り替え",
 
   "confirmAgreement/title": "利用規約",
   "confirmAgreement/agree": "同意して利用する",
@@ -87,6 +93,7 @@
   "loadProjectOption/clearPoses": "現在のポーズセットをすべて削除する",
   "loadProjectOption/clearPoses/note": "virseファイル内のポーズが現在のポーズセットに追加されます",
 
+  "vrmLicense/metaVersion": "VRMバージョン",
   "vrmLicense/title": "ライセンス情報",
   "vrmLicense/metadata": "メタデータ",
   "vrmLicense/avatarName": "アバターの名前",

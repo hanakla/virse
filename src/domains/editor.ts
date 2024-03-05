@@ -16,6 +16,11 @@ type State = {
     currentPoseKey: number | null;
     visibleBones: boolean;
   };
+  latestSavedPoseUid: string | null;
+};
+
+export type VirseProject = VirseScene & {
+  poseset: VirsePose[];
 };
 
 export type VirseProject = VirseScene & {
@@ -23,6 +28,7 @@ export type VirseProject = VirseScene & {
 };
 
 export type VirsePose = {
+  type?: 'avatar' | 'object';
   uid: string;
   name: string;
   canvas: any;
@@ -37,20 +43,22 @@ export type VirsePose = {
   };
   blendShapeProxies: Record<string, number>;
   morphs: Record<string, { value: number }>;
+  vrmVersion?: '1' | '0';
   vrmPose: VRMPose;
   bones: {
     [boneName: string]: {
       position: Vector3Tuple;
-      rotation: Vector3Tuple;
       quaternion: Vector4Tuple;
+      scale?: Vector3Tuple;
     };
   };
   rootPosition: {
     position: number[];
     quaternion: number[];
+    scale?: number[];
   };
   createdAt: Date;
-  schemaVersion: number | void;
+  schemaVersion: 1 | 2 | 3 | 4 | void;
 };
 
 export type UnsavedVirsePose = Omit<
@@ -64,6 +72,7 @@ export enum EditorMode {
 }
 
 const POSE_STORE_NAME = 'poses';
+const LATEST_SCHEMA_VERSION = 4;
 
 export const [EditorStore, editorOps] = minOps('Editor', {
   initialState: (): State => ({
@@ -75,6 +84,7 @@ export const [EditorStore, editorOps] = minOps('Editor', {
       currentPoseKey: null,
       visibleBones: true,
     },
+    latestSavedPoseUid: null,
   }),
   ops: {
     setMode(x, mode: EditorMode) {
@@ -110,13 +120,12 @@ export const [EditorStore, editorOps] = minOps('Editor', {
         credentials: 'include',
       }).binaryToJSON(gltfBin);
 
-      const meta = (gltfJson.extensions?.VRM as VRMSchema.VRM)?.meta;
-      const name = meta?.title ?? vrm.name;
+      const meta = (gltfJson.extensions?.VRM as any)?.meta;
+      const name = meta?.title ?? meta?.name ?? vrm.name;
       const hash = await blobToHash('sha256', vrm, 'hex');
 
       const db = await connectIdb();
       x.finally(() => db.close());
-      x.finally(() => console.log('ok'));
 
       const indexTrans = db.transaction(
         ['modelIndex', 'modelFile'],
@@ -208,23 +217,26 @@ export const [EditorStore, editorOps] = minOps('Editor', {
 
       const tx = db.transaction(POSE_STORE_NAME, 'readwrite');
 
+      let uid = nanoid();
       if (overwrite && 'uid' in pose) {
         await tx.store.put({
           ...pose,
-          schemaVersion: 3,
+          schemaVersion: LATEST_SCHEMA_VERSION,
         });
       } else {
         await tx.store.add({
           ...pose,
-          uid: nanoid(),
+          uid,
           createdAt: new Date(),
-          schemaVersion: 3,
+          schemaVersion: LATEST_SCHEMA_VERSION,
         });
       }
 
       await tx.done;
 
       await x.executeOperation(editorOps.loadPoses);
+
+      x.commit({ latestSavedPoseUid: uid });
     },
   },
 });
@@ -273,6 +285,10 @@ const connectIdb = async () => {
           autoIncrement: false,
           keyPath: 'hash',
         });
+      }
+
+      if (old < 3) {
+        tx.objectStore(POSE_STORE_NAME).createIndex('uid', 'uid');
       }
     },
   });

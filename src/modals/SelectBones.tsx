@@ -60,6 +60,7 @@ export function SelectBones({
               placeholder={t('filter')}
               defaultValue=""
               onChange={handleChangeFilter}
+              autoFocus
             />
           </div>
           <select

@@ -1,6 +1,11 @@
 import { useModalOpener } from '@fleur/mordred';
 import { useFleurContext } from '@fleur/react';
-import { letDownload, selectFile, styleWhen } from '@hanakla/arma';
+import {
+  letDownload,
+  selectFile,
+  styleWhen,
+  useChangedEffect,
+} from '@hanakla/arma';
 import { VRMExpressionPresetName, VRMHumanBoneName } from '@pixiv/three-vrm';
 import useMouse from '@react-hook/mouse-position';
 import { nanoid } from 'nanoid';
@@ -12,6 +17,7 @@ import {
   useEffect,
   useRef,
   useState,
+  KeyboardEvent,
 } from 'react';
 import { ChromePicker, ColorChangeHandler } from 'react-color';
 import {
@@ -24,22 +30,27 @@ import {
 import { useLongPress } from 'use-long-press';
 import {
   RiArrowLeftLine,
+  RiArrowLeftRightFill,
   RiArrowLeftSFill,
   RiArrowRightLine,
   RiCamera2Fill,
   RiCameraSwitchFill,
+  RiEarthFill,
+  RiEyeCloseFill,
+  RiEyeFill,
   RiFlashlightFill,
   RiInformationLine,
   RiPaintFill,
   RiQuestionMark,
   RiRefreshLine,
   RiSkullFill,
+  RiSplitCellsHorizontal,
 } from 'react-icons/ri';
 import { useClickAway, useMount, useUpdate } from 'react-use';
 import { Packr } from 'msgpackr';
 import useEvent from 'react-use-event-hook';
 import styled, { css, CSSProperties } from 'styled-components';
-import { Bone, MathUtils, Vector3Tuple, Vector4Tuple } from 'three';
+import { Bone, MathUtils, Quaternion, Vector3Tuple, Vector4Tuple } from 'three';
 import { Button } from '../../components/Button';
 import { Checkbox } from '../../components/Checkbox';
 import { Input } from '../../components/Input';
@@ -52,9 +63,10 @@ import {
   editorOps,
   EditorStore,
   UnsavedVirsePose,
+  VirsePose,
   VirseProject,
 } from '../../domains/editor';
-import { migrateV0PoseToV1 } from '../../domains/vrm';
+import { migrateVRM0PoseToV1 } from '../../domains/vrm';
 import { KeyboardHelp } from '../../modals/KeyboardHelp';
 import { SelectBones } from '../../modals/SelectBones';
 import { SelectChangeBones } from '../../modals/SelectChangeBone';
@@ -75,6 +87,7 @@ import { ConfirmModal } from '../../modals/ConfirmModal';
 import { Trans } from '../../components/Trans';
 import { emptyCoalesce } from '../../utils/lang';
 import { SelectModel } from '../../modals/SelectModel';
+import escapeStringRegexp from 'escape-string-regexp';
 
 type StashedCam = {
   mode: CamModes;
@@ -134,11 +147,18 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const { executeOperation, getStore } = useFleurContext();
-  const { mode, menuOpened, poses, photoModeState, modelIndex } = useStoreState(
-    (get) => ({
-      ...get(EditorStore),
-    })
-  );
+  const {
+    mode,
+    menuOpened,
+    poses,
+    photoModeState,
+    modelIndex,
+    latestSavedPoseUid,
+  } = useStoreState((get) => ({
+    ...get(EditorStore),
+  }));
+
+  const [facialFilter, setFacialFilter] = useState<RegExp | null>(null);
 
   const handleClickBackgroundColor = useFunc((e) => {
     if ((e.target as HTMLElement).closest('[data-ignore-click]')) return;
@@ -149,7 +169,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickBGTransparent = useEvent(() => {
-    stage?.setBackgroundColor({ r: 0, g: 0, b: 0, a: 0 });
+    stage?.setBackgroundColor({ r: 255, g: 255, b: 255, a: 0 });
   });
 
   const handleClickBGBlue = useEvent(() => {
@@ -189,34 +209,71 @@ export const PhotoBooth = memo(function PhotoBooth({
   const handleClickTransform = useFunc(() => {
     setState((s) => {
       s.rotation = !s.rotation;
-      stage!.setControlMode(!s.rotation ? 'rotate' : 'translate');
+      stage!.boneControlMode = !s.rotation ? 'rotate' : 'translate';
     });
   });
 
   const serializeCurrentPose = useStableLatestRef(() => {
     if (!stage?.activeAvatar) return;
 
-    return serializeAvatarPose.current(stage.activeAvatar.uid);
+    return serializeAvatarPose.current(stage.activeTarget.uid);
   });
 
-  const serializeAvatarPose = useStableLatestRef((uid: string) => {
-    const avatarData = stage?.getAvatar(uid);
+  const serializeObjectDeployment = useStableLatestRef(() => {
+    const target = stage?.activeTarget;
+
+    if (!target || target.type !== 'object') return;
+
+    const pose: UnsavedVirsePose = {
+      type: 'object',
+      name: emptyCoalesce(
+        state.loadedPoses[target.uid]?.poseName,
+        'New Object Deployment'
+      ),
+      canvas: stage.getSize(),
+      camera: {
+        mode: stage.camMode,
+        fov: stage.camFov,
+        zoom: stage.activeCamera.zoom,
+        position: stage.activeCamera.position.toArray(),
+        target: stage.orbitControls.target.toArray(),
+        rotation: stage.activeCamera.rotation.toArray(),
+        quaternion: stage.activeCamera.quaternion.toArray(),
+      },
+      blendShapeProxies: {},
+      morphs: {},
+      vrmVersion: undefined,
+      vrmPose: {},
+      rootPosition: {
+        position: target.obj.rootBone.position.toArray(),
+        quaternion: target.obj.rootBone.quaternion.toArray(),
+        scale: target.obj.rootBone.scale.toArray(),
+      },
+      bones: {},
+    };
+
+    return pose;
+  });
+
+  const serializeAvatarPose = useStableLatestRef((avatarUid: string) => {
+    const avatarData = stage?.getAvatar(avatarUid);
     if (!stage || !avatarData) return;
 
     const { vrm, avatar } = avatarData;
-    const bones: Bone[] = [];
 
+    const bones: Bone[] = [];
     vrm.scene.traverse((o) => {
       if ((o as any).isBone) bones.push(o as Bone);
     });
-    const vrmPose = vrm.humanoid!.getPose();
 
-    const original = state.loadedPoses[uid]
-      ? poses.find((p) => p.uid === state.loadedPoses[uid]?.poseId)
+    const vrmPose = vrm.humanoid.getRawPose();
+
+    const original = state.loadedPoses[avatarUid]
+      ? poses.find((p) => p.uid === state.loadedPoses[avatarUid]?.poseId)
       : null;
 
     const pose: UnsavedVirsePose = {
-      name: emptyCoalesce(state.loadedPoses[uid]?.poseName, 'New Pose'),
+      name: emptyCoalesce(state.loadedPoses[avatarUid]?.poseName, 'New Pose'),
       canvas: stage.getSize(),
       camera: {
         mode: stage.camMode,
@@ -241,19 +298,21 @@ export const PhotoBooth = memo(function PhotoBooth({
           return a;
         }, Object.create(null)),
       },
+      vrmVersion: avatar.vrm.meta.metaVersion,
       vrmPose,
       rootPosition: {
         position: avatar.positionBone.position.toArray(),
         quaternion: avatar.positionBone.quaternion.toArray(),
+        scale: avatar.positionBone.scale.toArray(),
       },
       bones: {
         ...original?.bones,
         ...bones.reduce((a, b) => {
           a[b.name] = {
-            position: b.position.toArray([]),
-            rotation: b.rotation.toArray([]),
-            quaternion: b.quaternion.toArray([]),
-          };
+            position: b.position.toArray([]) as Vector3Tuple,
+            quaternion: b.quaternion.toArray([]) as Vector4Tuple,
+            scale: b.scale.toArray([]) as Vector3Tuple,
+          } satisfies VirsePose['bones'][string];
           return a;
         }, Object.create(null)),
       },
@@ -263,10 +322,18 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickOverwritePose = useEvent(() => {
-    const { activeAvatar } = stage!;
-    const pose = serializeCurrentPose.current();
+    const { activeTarget } = stage!;
 
-    const originalPoseId = state.loadedPoses[activeAvatar.uid].poseId;
+    let originalPoseId: string | null | undefined = undefined;
+    let pose: UnsavedVirsePose | undefined = undefined;
+    if (activeTarget?.type === 'avatar') {
+      pose = serializeCurrentPose.current();
+      originalPoseId = state.loadedPoses[activeTarget.uid].poseId;
+    } else if (activeTarget?.type === 'object') {
+      pose = serializeObjectDeployment.current();
+      originalPoseId = state.loadedPoses[activeTarget.uid].poseId;
+    }
+
     if (!pose || !originalPoseId) return;
 
     executeOperation(
@@ -299,11 +366,29 @@ export const PhotoBooth = memo(function PhotoBooth({
   }));
 
   const handleClickSavePose = useEvent(() => {
-    const pose = serializeCurrentPose.current();
-    if (!pose) return;
+    let pose: UnsavedVirsePose | null | undefined = null;
 
+    if (stage?.activeTarget?.type === 'avatar') {
+      pose = serializeCurrentPose.current();
+    } else if (stage?.activeTarget?.type === 'object') {
+      pose = serializeObjectDeployment.current();
+    }
+
+    if (!pose) return;
     executeOperation(editorOps.savePose, pose);
   });
+
+  useChangedEffect(() => {
+    const pose = poses.find((p) => p.uid === latestSavedPoseUid);
+    if (!pose) return;
+
+    setState((next) => {
+      next.loadedPoses[stage!.activeTarget!.uid] = {
+        poseId: pose.uid,
+        poseName: pose.name,
+      };
+    });
+  }, [latestSavedPoseUid]);
 
   const handleClickResetPose = useFunc(() => {
     const activeAvatar = stage?.activeAvatar;
@@ -378,14 +463,15 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   const handleChangePoseName = useEvent(
     ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
-      if (!stage?.activeAvatar) return;
+      if (!stage?.activeTarget) return;
 
       setState((next) => {
-        next.loadedPoses[stage.activeAvatar.uid] ??= {
+        next.loadedPoses[stage.activeTarget!.uid] ??= {
           poseId: null,
           poseName: '',
         };
-        next.loadedPoses[stage.activeAvatar.uid].poseName = currentTarget.value;
+        next.loadedPoses[stage.activeTarget!.uid].poseName =
+          currentTarget.value;
       });
     }
   );
@@ -408,7 +494,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
   });
 
-  const applyPoseToActiveAvatar = useStableLatestRef(
+  const applyPoseToActiveTarget = useStableLatestRef(
     (
       pose: UnsavedVirsePose,
       {
@@ -423,9 +509,9 @@ export const PhotoBooth = memo(function PhotoBooth({
         nonStandardBones: boolean | string[];
       }
     ) => {
-      if (!stage?.activeAvatar) return;
+      if (!stage?.activeTarget) return;
 
-      const { avatar } = stage.activeAvatar;
+      const target = stage.activeTarget;
 
       if (camera) {
         stage.setCamMode(pose.camera.mode, {
@@ -440,50 +526,71 @@ export const PhotoBooth = memo(function PhotoBooth({
         stage.setSize(pose.canvas.width, pose.canvas.height);
       }
 
-      if (extraBlendShapes) {
-        Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-          if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
-        });
-      }
-
-      if (presetExpressions) {
-        Object.entries(pose.blendShapeProxies).map(
-          ([name, value]: [string, number]) => {
-            avatar.vrm.expressionManager?.setValue(name, value);
-          }
-        );
-      }
-
-      if (nonStandardBones) {
-        if (nonStandardBones === true) {
-          nonStandardBones = Object.keys(pose.bones);
+      if (target?.type === 'avatar') {
+        const avatar = target.avatar;
+        if (extraBlendShapes) {
+          Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
+            if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
+          });
         }
 
-        nonStandardBones.map((name) => {
-          const bone = pose.bones[name];
-          const o = avatar.vrm.scene.getObjectByName(name)!;
-          if (!bone || !o) return;
+        if (presetExpressions) {
+          Object.entries(pose.blendShapeProxies).map(
+            ([name, value]: [string, number]) => {
+              avatar.vrm.expressionManager?.setValue(name, value);
+            }
+          );
+        }
 
-          o.position.set(...bone.position);
-          o.quaternion.set(...bone.quaternion);
-        });
+        if (nonStandardBones) {
+          if (nonStandardBones === true) {
+            nonStandardBones = Object.keys(pose.bones);
+          }
+
+          nonStandardBones.map((name) => {
+            const bone = pose.bones[name];
+            const o = avatar.vrm.scene.getObjectByName(name)!;
+            if (!bone || !o) return;
+
+            o.position.set(...bone.position);
+            o.quaternion.set(...bone.quaternion);
+          });
+        }
+        if (pose.rootPosition) {
+          avatar.positionBone.position.fromArray(pose.rootPosition.position);
+          avatar.positionBone.quaternion.fromArray(
+            pose.rootPosition.quaternion
+          );
+          avatar.positionBone.scale.fromArray(
+            pose.rootPosition.scale ?? [1, 1, 1]
+          );
+        }
+
+        avatar.vrm.humanoid.setRawPose(pose.vrmPose);
+      } else if (target?.type === 'object') {
+        const { obj } = target;
+        obj.rootBone.position.fromArray(pose.rootPosition.position);
+        obj.rootBone.quaternion.fromArray(pose.rootPosition.quaternion);
+        obj.rootBone.scale.fromArray(pose.rootPosition.scale ?? [1, 1, 1]);
       }
-
-      avatar.positionBone.position.fromArray(pose.rootPosition.position);
-      avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
-
-      avatar.vrm.humanoid!.setRawPose(pose.vrmPose);
     }
   );
 
   const handleClickLoadPoseOnly = useFunc((params: ItemParams) => {
+    const activeTarget = stage?.activeTarget;
     const poseId = params.props.poseId;
-    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
+    let pose = poses.find((p) => p.uid === poseId);
 
-    const { avatar, uid } = stage?.activeAvatar ?? {};
-    if (!avatar || !uid || !pose) return;
+    if (!pose || !activeTarget) return;
 
-    applyPoseToActiveAvatar.current(pose, {
+    pose = migrateVRM0PoseToV1(
+      pose,
+      activeTarget?.type === 'avatar'
+        ? activeTarget.avatar.vrm.meta.metaVersion
+        : '1'
+    )!;
+
+    applyPoseToActiveTarget.current(pose, {
       camera: false,
       presetExpressions: true,
       extraBlendShapes: true,
@@ -491,19 +598,21 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
 
     setState((next) => {
-      next.loadedPoses[uid] = {
+      next.loadedPoses[activeTarget.uid] = {
         poseId,
-        poseName: pose.name,
+        poseName: pose!.name,
       };
     });
   });
 
   const handleClickLoadScene = useFunc((params: ItemParams) => {
-    const poseId = params.props.poseId;
-    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
+    const avatar = stage?.activeAvatar?.avatar;
 
-    const avatar = stage?.activeAvatar.avatar;
+    const poseId = params.props.poseId;
+    let pose = poses.find((p) => p.uid === poseId);
+
     if (!stage || !avatar?.vrm || !pose) return;
+    pose = migrateVRM0PoseToV1(pose, avatar.vrm.meta.metaVersion);
 
     stage.setCamMode(pose.camera.mode, {
       fov: pose.camera.fov,
@@ -521,14 +630,16 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickLoadSceneAll = useFunc((params: ItemParams) => {
-    const poseId = params.props.poseId;
-    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
+    const avatar = stage?.activeAvatar?.avatar;
 
-    const avatar = stage?.activeAvatar.avatar;
-    if (!stage || !pose) return;
+    const poseId = params.props.poseId;
+    let pose = poses.find((p) => p.uid === poseId);
+
+    if (!avatar || !pose) return;
+    pose = migrateVRM0PoseToV1(pose, avatar.vrm.meta.metaVersion);
 
     if (avatar) {
-      applyPoseToActiveAvatar.current(pose, {
+      applyPoseToActiveTarget.current(pose, {
         camera: true,
         presetExpressions: true,
         extraBlendShapes: true,
@@ -536,7 +647,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       });
 
       setState((next) => {
-        next.loadedPoses[stage.activeAvatar.uid] = {
+        next.loadedPoses[stage.activeTarget.uid] = {
           poseId,
           poseName: pose.name,
         };
@@ -549,11 +660,13 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickLoadBones = useFunc(async (params: ItemParams) => {
-    const poseId = params.props.poseId;
-    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
+    const avatar = stage?.activeAvatar?.avatar;
 
-    const avatar = stage?.activeAvatar.avatar;
+    const poseId = params.props.poseId;
+    let pose = poses.find((p) => p.uid === poseId);
+
     if (!stage || !avatar?.vrm || !pose) return;
+    pose = migrateVRM0PoseToV1(pose, avatar.vrm.meta.metaVersion);
 
     const boneNames = Object.keys(pose.bones);
     const result = await openModal(SelectBones, {
@@ -566,6 +679,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     result.bones.map((name) => {
       const bone = pose.bones[name];
       const o = avatar.vrm.scene.getObjectByName(name)!;
+
       if (!o) return;
 
       o.position.set(...bone.position);
@@ -579,11 +693,13 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickLoadBlendShapes = useFunc(async (params: ItemParams) => {
-    const poseId = params.props.poseId;
-    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
+    const avatar = stage?.activeAvatar?.avatar;
 
-    const avatar = stage?.activeAvatar.avatar;
+    const poseId = params.props.poseId;
+    let pose = poses.find((p) => p.uid === poseId);
+
     if (!stage || !avatar?.vrm || !pose) return;
+    pose = migrateVRM0PoseToV1(pose, avatar.vrm.meta.metaVersion);
 
     const poseNames = [
       ...Object.keys(pose.blendShapeProxies),
@@ -611,7 +727,10 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   const handleClickDownloadPose = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
-    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
+    const pose = migrateVRM0PoseToV1(
+      poses.find((p) => p.uid === poseId),
+      '1'
+    );
     if (!pose) return;
 
     const json = new Blob([JSON.stringify(pose, null, '  ')], {
@@ -629,7 +748,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           {
             poseset: (poses ?? []).map(({ ...pose }) => {
               pose.uid ??= nanoid();
-              return migrateV0PoseToV1(pose);
+              return migrateVRM0PoseToV1(pose, '1');
             }),
           },
           null,
@@ -646,31 +765,41 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickOverwritePoseMenu = useEvent((params: ItemParams) => {
-    if (!stage?.activeAvatar) return;
+    const activeTarget = stage?.activeTarget;
+    if (!activeTarget) return;
 
-    const originalPoseId = params.props.poseId;
+    let originalPoseId: string | null | undefined = undefined;
+    let pose: UnsavedVirsePose | undefined = undefined;
+    if (activeTarget?.type === 'avatar') {
+      pose = serializeCurrentPose.current();
+      originalPoseId = params.props.poseId;
+    } else if (activeTarget?.type === 'object') {
+      pose = serializeObjectDeployment.current();
+      originalPoseId = params.props.poseId;
+    }
 
-    const original = poses.find((p) => p.uid === originalPoseId);
-    const currentPose = serializeCurrentPose.current();
-    if (!original || !currentPose) return;
+    if (!pose || !originalPoseId) return;
 
     executeOperation(
       editorOps.savePose,
-      { ...currentPose, name: original.name, uid: originalPoseId },
+      { ...pose!, uid: originalPoseId },
       { overwrite: true }
     );
 
     setState((next) => {
-      next.loadedPoses[stage.activeAvatar.uid] = {
-        poseId: originalPoseId,
-        poseName: original.name,
+      next.loadedPoses[stage.activeTarget!.uid] = {
+        poseId: originalPoseId!,
+        poseName: pose!.name,
       };
     });
   });
 
   const handleClickLoadCamera = useFunc((params: ItemParams) => {
     const poseId = params.props.poseId;
-    const pose = migrateV0PoseToV1(poses.find((p) => p.uid === poseId));
+    const pose = migrateVRM0PoseToV1(
+      poses.find((p) => p.uid === poseId),
+      '1'
+    );
 
     if (!stage || !pose) return;
 
@@ -717,6 +846,13 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  const handleClickSwapSize = useEvent(() => {
+    const size = stage?.getSize();
+    if (!size) return;
+
+    stage?.setSize(size.height, size.width);
+  });
+
   const handleClickSizeToScreen = useEvent(() => {
     stage?.setSize(window.innerWidth, window.innerHeight);
   });
@@ -750,12 +886,15 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       stage.setActiveAvatar(avatar.uid);
 
-      applyPoseToActiveAvatar.current(pose, {
-        camera: false,
-        nonStandardBones: true,
-        extraBlendShapes: true,
-        presetExpressions: true,
-      });
+      applyPoseToActiveTarget.current(
+        migrateVRM0PoseToV1(pose, avatar.vrm.meta.metaVersion),
+        {
+          camera: false,
+          nonStandardBones: true,
+          extraBlendShapes: true,
+          presetExpressions: true,
+        }
+      );
 
       stage.removeAvatar(prevAvatarUid);
 
@@ -786,6 +925,21 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  const handleClickResetCurrentBone = useEvent(() => {
+    const avatar = stage?.activeAvatar?.avatar;
+    if (!avatar) return;
+
+    const name = avatar.ui.activeBoneName;
+    if (!name) return;
+
+    const obj = avatar.vrm.scene.getObjectByName(name);
+    const init = avatar.getInitialBoneState(name);
+
+    obj?.position.fromArray(init!.position);
+    obj?.quaternion.fromArray(init!.quaternion);
+    obj?.scale.fromArray([1, 1, 1]);
+  });
+
   const handleModelsContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
     const modelId = e.currentTarget.dataset.modelId!;
     showContextMenu(e, { id: 'modelmenu', props: { modelId } });
@@ -797,9 +951,41 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  const handleClickStagedObject = useEvent(
+    ({ currentTarget }: MouseEvent<HTMLLIElement>) => {
+      stage?.setActiveObject(currentTarget.dataset.objectUid!);
+    }
+  );
+
+  const handleClickStagedModelToggleVisible = useEvent(
+    (e: MouseEvent<SVGElement>) => {
+      e.stopPropagation();
+
+      const uid = e.currentTarget.dataset.avatarUid!;
+      const entry = stage?.avatarsIterator.find((m) => m.uid === uid);
+      if (!stage || !entry) return;
+
+      entry.avatar.visible = !entry.avatar.visible;
+    }
+  );
+
+  const handleClickStagedObjectToggleVisible = useEvent(
+    (e: MouseEvent<SVGElement>) => {
+      e.stopPropagation();
+
+      const uid = e.currentTarget.dataset.objectUid!;
+      const entry = stage?.objectsIterator.find((m) => m.uid === uid);
+      if (!entry) return;
+
+      entry.obj.visible = !entry.obj.visible;
+    }
+  );
+
   const handleClickStagedModelLicense = useEvent(
-    ({ currentTarget }: MouseEvent<HTMLElement>) => {
-      const uid = currentTarget.dataset.avatarUid!;
+    (e: MouseEvent<SVGElement>) => {
+      e.stopPropagation();
+
+      const uid = e.currentTarget.dataset.avatarUid!;
       const entry = stage?.avatarsIterator.find((m) => m.uid === uid);
       if (!stage || !entry) return;
 
@@ -830,7 +1016,53 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
   });
 
-  const handleClickCapture = useEvent(async () => {
+  const captureAndSave = useStableLatestRef(
+    async (
+      type: 'png' | 'jpeg',
+      filenameWithoutExt: string,
+      save: boolean = true
+    ) => {
+      if (!stage) return;
+
+      const blob = await captureStage.current(type);
+      const filename = `${filenameWithoutExt}.${type}`;
+
+      if (!blob) return;
+
+      if (save) {
+        const url = URL.createObjectURL(blob);
+        letDownload(url, filename);
+      }
+
+      return blob;
+    }
+  );
+
+  const captureStage = useStableLatestRef(async (type: 'png' | 'jpeg') => {
+    if (!stage) return;
+
+    const prevBgColor = stage.backgroundColor;
+
+    stage!.setShowBones(false);
+    stage.setBackgroundColor({ ...prevBgColor, a: type === 'png' ? 0 : 1 });
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    console.time('capture');
+
+    const mime = type === 'png' ? 'image/png' : 'image/jpeg';
+    const blob = await new Promise<Blob>((resolve) => {
+      stage.canvas.toBlob((blob) => resolve(blob!), mime, 100);
+    });
+
+    console.timeEnd('capture');
+
+    stage.setBackgroundColor(prevBgColor);
+    stage.setShowBones(photoModeState.visibleBones);
+    return blob;
+  });
+
+  const handleClickCapture = useEvent(async (e: MouseEvent) => {
     if (!stage) return;
 
     stage!.setShowBones(false);
@@ -852,20 +1084,9 @@ export const PhotoBooth = memo(function PhotoBooth({
       });
     }
 
-    const blob = await new Promise<Blob>((resolve) => {
-      stage.canvas.toBlob((blob) => {
-        resolve(blob!);
-      }, 'image/png');
-    });
-
-    console.timeEnd('capture');
-
-    const url = URL.createObjectURL(blob);
-
     const poseName =
       state.loadedPoses[stage.activeAvatar?.uid ?? '']?.poseName ?? 'Untitled';
-
-    letDownload(url, `${poseName !== '' ? poseName : 'Untitled'}.png`);
+    await captureAndSave.current(e.shiftKey ? 'jpeg' : 'png', poseName);
 
     const cam =
       state.currentCamKind === 'capture'
@@ -885,7 +1106,10 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       executeOperation(editorOps.loadVrmBin, modelId, (blob) => {
         const url = URL.createObjectURL(blob);
+
         stage?.loadVRM(url).then((avatar) => {
+          stage.setActiveAvatar(avatar.uid);
+
           setState((next) => {
             next.loadedPoses[avatar.uid] = {
               poseId: null,
@@ -1007,6 +1231,30 @@ export const PhotoBooth = memo(function PhotoBooth({
     setState({ editorialCam: source });
   });
 
+  const handleFocusFacialPreset = useEvent(() => {
+    if (document.activeElement?.matches('input, textarea')) return;
+    document.querySelector('#facialFilter')?.focus();
+  });
+
+  const handleKeyDownFacialFilter = useEvent(
+    ({ key, currentTarget }: KeyboardEvent<HTMLInputElement>) => {
+      if (key === 'Escape') {
+        if (currentTarget.value === '') {
+          currentTarget.blur();
+        }
+
+        currentTarget.value = '';
+        setFacialFilter(null);
+      }
+    }
+  );
+
+  const handleChangeFacialFilter = useEvent(
+    ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
+      setFacialFilter(new RegExp(escapeStringRegexp(currentTarget.value), 'i'));
+    }
+  );
+
   // const handleChangeHandMix = useFunc((_, v) => {
   //   const { vrm } = stage?.activeAvatar;
   //   if (!vrm) return;
@@ -1049,6 +1297,29 @@ export const PhotoBooth = memo(function PhotoBooth({
     openModal(KeyboardHelp, { temporalyShow: false });
   });
 
+  const handleClickToggleBoneControllerSpace = useEvent(() => {
+    if (!stage?.avatars) return;
+    const next =
+      stage.activeAvatar?.ui.controllerSpace === 'world' ? 'local' : 'world';
+
+    stage.avatarsIterator.forEach(({ ui }) => {
+      ui.controllerSpace = next;
+    });
+
+    rerender();
+  });
+
+  const handleClickToggleMirror = useEvent(() => {
+    if (!stage?.activeAvatar) return;
+
+    const next = !stage.activeAvatar.ui.mirrorBone;
+    stage.avatarsIterator.forEach(({ ui }) => {
+      ui.mirrorBone = next;
+    });
+
+    rerender();
+  });
+
   const bindLongPress = useLongPress(
     ({ nativeEvent: e }) => {
       e.preventDefault();
@@ -1075,7 +1346,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           openContextMenu();
           abort.abort();
         },
-        { signal: abort.signal }
+        { once: true, signal: abort.signal }
       );
       document.addEventListener(
         'touchend',
@@ -1083,13 +1354,20 @@ export const PhotoBooth = memo(function PhotoBooth({
           openContextMenu();
           abort.abort();
         },
-        { signal: abort.signal }
+        { once: true, signal: abort.signal }
       );
     },
     {
       cancelOnMovement: true,
     }
   );
+
+  const isMatchToFacialFilter = (name: string, displayName: string = '') => {
+    return (
+      facialFilter?.test(name) !== false ||
+      facialFilter?.test(displayName) !== false
+    );
+  };
 
   // #endregion
   // endregion
@@ -1197,9 +1475,30 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  useBindMousetrap(shortcutBindElRef, 't', () => {
+    if (mode !== EditorMode.photo) return;
+
+    // const current = stage!.boneControlMode;
+
+    stage!.boneControlMode = 'scale';
+  });
+
+  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.toggleMirror, () => {
+    const avatar = stage?.activeAvatar;
+    if (!avatar) return;
+    avatar.ui.mirrorBone = !avatar.ui.mirrorBone;
+    rerender();
+  });
+
   useBindMousetrap(shortcutBindElRef, rightHandShortcuts.nextAvatar, () => {
     const currentUid = stage?.activeAvatar?.uid;
-    if (!stage || !currentUid) return;
+    if (!stage) return;
+
+    if (!currentUid) {
+      const avatars = stage.avatarsIterator;
+      if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
+      return;
+    }
 
     const avatars = stage.avatarsIterator;
     const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
@@ -1212,7 +1511,13 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   useBindMousetrap(shortcutBindElRef, rightHandShortcuts.previousAvatar, () => {
     const currentUid = stage?.activeAvatar?.uid;
-    if (!stage || !currentUid) return;
+    if (!stage) return;
+
+    if (!currentUid) {
+      const avatars = stage.avatarsIterator;
+      if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
+      return;
+    }
 
     const avatars = stage.avatarsIterator;
     const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
@@ -1224,15 +1529,15 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisX, (e) => {
-    stage?.activeAvatar?.ui?.setAxis('X');
+    stage?.activeTarget?.control?.setAxis('X');
   });
 
   useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisY, (e) => {
-    stage?.activeAvatar?.ui?.setAxis('Y');
+    stage?.activeTarget?.control?.setAxis('Y');
   });
 
   useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisZ, (e) => {
-    stage?.activeAvatar?.ui?.setAxis('Z');
+    stage?.activeTarget?.control?.setAxis('Z');
   });
 
   useBindMousetrap(
@@ -1273,21 +1578,43 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
-  useBindMousetrap(shortcutBindElRef, 'p', () => {
-    setRightTab('poses');
-  });
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.changeToPoseTab,
+    () => {
+      setRightTab('poses');
+    }
+  );
 
-  useBindMousetrap(shortcutBindElRef, 'o', () => {
-    setRightTab('expr');
-  });
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.changeToFacialTab,
+    () => {
+      setRightTab('expr');
+    }
+  );
 
-  useBindMousetrap(shortcutBindElRef, 'c', () => {
-    changeCamKind.current('editorial');
-  });
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.changeCamToEditorial,
+    () => {
+      changeCamKind.current('editorial');
+    }
+  );
 
-  useBindMousetrap(shortcutBindElRef, 'shift+c', () => {
-    changeCamKind.current('capture');
-  });
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.changeCamToCapture,
+    () => {
+      changeCamKind.current('capture');
+    }
+  );
+
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.toggleBoneControllerSpace,
+    handleClickToggleBoneControllerSpace
+  );
 
   // useEffect(() => {
   //   openModal(KeyboardHelp, {});
@@ -1324,7 +1651,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         size.width === prevWindowSize[0] &&
         size.height === prevWindowSize[1]
       ) {
-        stage?.setSize(windowSize[0], windowSize[1]);
+        stage.setSize(windowSize[0], windowSize[1]);
       }
 
       prevWindowSize = windowSize;
@@ -1332,7 +1659,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     window.addEventListener('resize', onResize);
 
-    return () => window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   useEffect(() => {
@@ -1373,12 +1700,28 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     vrm.humanoid
       ?.getRawBoneNode(VRMHumanBoneName.RightEye)
-      ?.rotation.set(rateY, rateX, 0);
+      ?.rotation.set(
+        ...(vrm.meta.metaVersion === '0'
+          ? ([rateY, rateX, 0] as const)
+          : ([
+              MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
+              MathUtils.mapLinear(rateX, -0.3, 0.3, -0.8, 0),
+              0,
+            ] as const))
+      );
 
     if (state.syncEyes) {
       vrm.humanoid
         ?.getRawBoneNode(VRMHumanBoneName.LeftEye)
-        ?.rotation.set(rateY, rateX, 0);
+        ?.rotation.set(
+          ...(vrm.meta.metaVersion === '0'
+            ? ([rateY, rateX, 0] as const)
+            : ([
+                MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
+                MathUtils.mapLinear(rateX, -0.3, 0.3, 0, 1),
+                0,
+              ] as const))
+        );
     }
   }, [state.syncEyes, padLMouse.clientX, padLMouse.clientY, padLMouse.isDown]);
 
@@ -1400,16 +1743,58 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     vrm.humanoid
       ?.getRawBoneNode(VRMHumanBoneName.LeftEye)
-      ?.rotation.set(rateY, rateX, 0);
+      ?.rotation.set(
+        ...(vrm.meta.metaVersion === '0'
+          ? ([rateY, rateX, 0] as const)
+          : ([
+              MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
+              MathUtils.mapLinear(rateX, -0.3, 0.3, 0, 1),
+              0,
+            ] as const))
+      );
 
     if (state.syncEyes) {
       vrm.humanoid
         ?.getRawBoneNode(VRMHumanBoneName.RightEye)
-        ?.rotation.set(rateY, rateX, 0);
+        ?.rotation.set(
+          ...(vrm.meta.metaVersion === '0'
+            ? ([rateY, rateX, 0] as const)
+            : ([
+                MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
+                MathUtils.mapLinear(rateX, -0.3, 0.3, -0.8, 0),
+                0,
+              ] as const))
+        );
     }
   }, [state.syncEyes, padRMouse.clientX, padRMouse.clientY, padRMouse.isDown]);
 
+  useEffect(() => {
+    if (!stage?.canvas) return;
+
+    const abort = new AbortController();
+
+    stage.canvas.addEventListener(
+      'contextmenu',
+      (e) => {
+        if (!stage?.activeAvatar?.ui?.activeBoneName) return;
+
+        e.preventDefault();
+
+        showContextMenu(e, {
+          id: 'sceneMenu',
+          props: {},
+        });
+      },
+      { signal: abort.signal }
+    );
+
+    return () => {
+      abort.abort();
+    };
+  }, [stage?.canvas]);
+
   const activeAvatar = stage ? stage.activeAvatar : null;
+  const activeTarget = stage ? stage.activeTarget : null;
 
   //// Render
   return (
@@ -1436,13 +1821,13 @@ export const PhotoBooth = memo(function PhotoBooth({
           align-items: center;
           justify-content: center;
           pointer-events: none;
+          min-height: 0;
           ${transitionCss}
         `}
       >
         <Sidebar
           css={`
-            position: absolute;
-            left: 0;
+            margin-right: auto;
             width: 172px;
             height: 100%;
             pointer-events: all;
@@ -1471,9 +1856,34 @@ export const PhotoBooth = memo(function PhotoBooth({
                   padding: 4px;
                   background-color: rgb(255 255 255 / 68%);
                   font-weight: bold;
+                  vertical-align: bottom;
                 `}
               >
                 {activeAvatar?.ui.activeBoneName ?? t('noBoneSelected')}
+
+                <RiEarthFill
+                  css={css`
+                    margin-left: 2px;
+                    vertical-align: bottom;
+                  `}
+                  fill="#555"
+                  size={16}
+                  opacity={
+                    activeAvatar?.ui.controllerSpace === 'world' ? 1 : 0.3
+                  }
+                  onClick={handleClickToggleBoneControllerSpace}
+                />
+
+                <RiSplitCellsHorizontal
+                  css={css`
+                    margin-left: 2px;
+                    vertical-align: bottom;
+                  `}
+                  fill="#555"
+                  size={16}
+                  opacity={activeAvatar?.ui.mirrorBone ? 1 : 0.3}
+                  onClick={handleClickToggleMirror}
+                />
               </span>
 
               {activeAvatar?.ui.hoveredBone && (
@@ -1660,9 +2070,9 @@ export const PhotoBooth = memo(function PhotoBooth({
                 <ChromePicker
                   disableAlpha={false}
                   color={{
-                    r: (stage?.backgroundColor.r ?? 0) * 255,
-                    g: (stage?.backgroundColor.g ?? 0) * 255,
-                    b: (stage?.backgroundColor.b ?? 0) * 255,
+                    r: stage?.backgroundColor.r ?? 0,
+                    g: stage?.backgroundColor.g ?? 0,
+                    b: stage?.backgroundColor.b ?? 0,
                     a: stage?.backgroundColor.a ?? 0,
                   }}
                   onChange={handleChangeBgColor}
@@ -1673,7 +2083,11 @@ export const PhotoBooth = memo(function PhotoBooth({
 
             <MenuItem
               onClick={(e) => {
-                if (e.target instanceof HTMLInputElement) return;
+                if (
+                  e.target instanceof HTMLInputElement ||
+                  document.activeElement?.matches('input')
+                )
+                  return;
                 stage.setCamMode();
               }}
             >
@@ -1795,7 +2209,21 @@ export const PhotoBooth = memo(function PhotoBooth({
                 color: #fff;
               `}
             >
-              <InputSection title={t('resolutionPx')}>
+              <InputSection
+                title={
+                  <>
+                    {t('resolutionPx')}
+                    <RiArrowLeftRightFill
+                      css={css`
+                        margin-left: auto;
+                        vertical-align: bottom;
+                        cursor: pointer;
+                      `}
+                      onClick={handleClickSwapSize}
+                    />
+                  </>
+                }
+              >
                 <div
                   css={`
                     display: flex;
@@ -1877,13 +2305,70 @@ export const PhotoBooth = memo(function PhotoBooth({
                           display: flex;
                           align-items: center;
                           justify-content: center;
+                          gap: 4px;
                         `}
                       >
+                        {avatar.visible ? (
+                          <RiEyeFill
+                            fontSize={16}
+                            onClick={handleClickStagedModelToggleVisible}
+                            data-avatar-uid={uid}
+                          />
+                        ) : (
+                          <RiEyeCloseFill
+                            fontSize={16}
+                            onClick={handleClickStagedModelToggleVisible}
+                            data-avatar-uid={uid}
+                          />
+                        )}
                         <RiInformationLine
                           fontSize={16}
                           onClick={handleClickStagedModelLicense}
                           data-avatar-uid={uid}
                         />
+                      </div>
+                    </ListItem>
+                  ))}
+
+                  {stage?.objectsIterator.map(({ uid, obj }) => (
+                    <ListItem
+                      key={uid}
+                      css={css`
+                        display: flex;
+                      `}
+                      data-object-uid={uid}
+                      active={stage.activeTarget?.uid === uid}
+                      onClick={handleClickStagedObject}
+                      // onContextMenu={handleStagedModelsContextMenu}
+                    >
+                      <div
+                        css={css`
+                          flex: 1;
+                        `}
+                      >
+                        <div>{obj.name}</div>
+                      </div>
+                      <div
+                        css={css`
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          gap: 4px;
+                        `}
+                      >
+                        {obj.visible ? (
+                          <RiEyeFill
+                            fontSize={16}
+                            onClick={handleClickStagedObjectToggleVisible}
+                            data-object-uid={uid}
+                          />
+                        ) : (
+                          <RiEyeCloseFill
+                            fontSize={16}
+                            onClick={handleClickStagedObjectToggleVisible}
+                            data-object-uid={uid}
+                          />
+                        )}
                       </div>
                     </ListItem>
                   ))}
@@ -1943,9 +2428,8 @@ export const PhotoBooth = memo(function PhotoBooth({
 
         <Sidebar
           css={`
-            position: absolute;
-            right: 0;
             display: flex;
+            margin-left: auto;
             flex-flow: column;
             width: 240px;
             height: 100%;
@@ -2160,7 +2644,22 @@ export const PhotoBooth = memo(function PhotoBooth({
                     background-color: #17585d;
                   }
                 `}
+                onFocus={handleFocusFacialPreset}
+                tabIndex={-1}
               >
+                <Input
+                  id="facialFilter"
+                  css={css`
+                    position: sticky;
+                    top: 0;
+                    margin-bottom: 8px;
+                  `}
+                  sizing="min"
+                  placeholder={t('facial/filter')}
+                  onKeyDown={handleKeyDownFacialFilter}
+                  onChange={handleChangeFacialFilter}
+                />
+
                 <ExprHead
                   css={css`
                     margin-top: 0;
@@ -2191,27 +2690,40 @@ export const PhotoBooth = memo(function PhotoBooth({
                 >
                   {Object.keys(
                     activeAvatar?.vrm.expressionManager?.expressionMap ?? {}
-                  ).map((name) => (
-                    <Slider
-                      key={name}
-                      label={
-                        <>
-                          {t(`vrm/exprPreset/${name}`, null, {
-                            fallback: name,
-                          })}
-                        </>
-                      }
-                      title={name}
-                      min={0}
-                      max={1}
-                      value={
-                        activeAvatar?.vrm.expressionManager?.getValue(name) ?? 0
-                      }
-                      onChange={(v) =>
-                        activeAvatar?.vrm.expressionManager?.setValue(name, v)
-                      }
-                    />
-                  ))}
+                  ).map(
+                    (name) =>
+                      isMatchToFacialFilter(
+                        name,
+                        t(`vrm/exprPreset/${name}`, null, {
+                          fallback: name,
+                        })
+                      ) && (
+                        <Slider
+                          key={name}
+                          label={
+                            <>
+                              {t(`vrm/exprPreset/${name}`, null, {
+                                fallback: name,
+                              })}
+                            </>
+                          }
+                          title={name}
+                          min={0}
+                          max={1}
+                          value={
+                            activeAvatar?.vrm.expressionManager?.getValue(
+                              name
+                            ) ?? 0
+                          }
+                          onChange={(v) =>
+                            activeAvatar?.vrm.expressionManager?.setValue(
+                              name,
+                              v
+                            )
+                          }
+                        />
+                      )
+                  )}
                 </div>
 
                 <ExprHead>
@@ -2240,26 +2752,30 @@ export const PhotoBooth = memo(function PhotoBooth({
                 >
                   {activeAvatar?.avatar.blendshapes ? (
                     Object.entries(activeAvatar.avatar.blendshapes).map(
-                      ([name, proxy]) => (
-                        <Slider
-                          key={name}
-                          label={
-                            // prettier-ignore
-                            name.match(/eye/i) ? <>👀 {replaceVRoidShapeNamePrefix(name)}</>
+                      ([name, proxy]) =>
+                        isMatchToFacialFilter(
+                          name,
+                          replaceVRoidShapeNamePrefix(name)
+                        ) && (
+                          <Slider
+                            key={name}
+                            label={
+                              // prettier-ignore
+                              name.match(/eye/i) ? <>👀 {replaceVRoidShapeNamePrefix(name)}</>
                             : name.match(/mth/i) ? <>💋 {replaceVRoidShapeNamePrefix(name)}</>
                             : name.match(/ha_/i) ? <>🦷 {replaceVRoidShapeNamePrefix(name)}</>
                             : name.match(/brw/i) ? <>⏜ {replaceVRoidShapeNamePrefix(name)}</>
                             : <>❓ {replaceVRoidShapeNamePrefix(name)}</>
-                          }
-                          title={replaceVRoidShapeNamePrefix(name)}
-                          min={-2.5}
-                          max={2.5}
-                          value={proxy.value}
-                          onChange={(v) => {
-                            proxy.value = v;
-                          }}
-                        />
-                      )
+                            }
+                            title={replaceVRoidShapeNamePrefix(name)}
+                            min={-2.5}
+                            max={2.5}
+                            value={proxy.value}
+                            onChange={(v) => {
+                              proxy.value = v;
+                            }}
+                          />
+                        )
                     )
                   ) : (
                     <div>{t('facial/customs/noAvailable')}</div>
@@ -2327,21 +2843,22 @@ export const PhotoBooth = memo(function PhotoBooth({
                 `}
               >
                 <Input
-                  value={state.loadedPoses[activeAvatar?.uid ?? '']?.poseName}
+                  value={state.loadedPoses[activeTarget?.uid ?? '']?.poseName}
                   onChange={handleChangePoseName}
                 />
 
-                <Button onClick={handleClickSavePose}>
+                <Button type="button" onClick={handleClickSavePose}>
                   {t('pose/savePose')}
                 </Button>
 
                 <Button
+                  type="button"
                   kind="primary"
-                  disabled={!state.loadedPoses[activeAvatar?.uid ?? '']?.poseId}
+                  disabled={!state.loadedPoses[activeTarget?.uid ?? '']?.poseId}
                   onClick={handleClickOverwritePose}
                 >
                   {t('pose/overwrite')}
-                  {state.loadedPoses[activeAvatar?.uid ?? '']?.poseId && (
+                  {state.loadedPoses[activeTarget?.uid ?? '']?.poseId && (
                     <span
                       css={css`
                         width: 100%;
@@ -2354,7 +2871,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                         poses.find(
                           (p) =>
                             p.uid ===
-                            state.loadedPoses[activeAvatar?.uid ?? '']?.poseId
+                            state.loadedPoses[activeTarget?.uid ?? '']?.poseId
                         )?.name
                       }
                       )
@@ -2480,16 +2997,18 @@ export const PhotoBooth = memo(function PhotoBooth({
         </ContextItem>
       </ContextMenu>
 
-      {/* <ContextMenu
-          css={`
-            padding: 4px;
-            font-size: 12px;
-          `}
-          id="scenemenu"
-          animation={false}
-        >
-          <ContextItem onClick={handleClickResetRotation}>回転をリセット</ContextItem>
-        </ContextMenu> */}
+      <ContextMenu
+        css={`
+          padding: 4px;
+          font-size: 12px;
+        `}
+        id="sceneMenu"
+        animation={false}
+      >
+        <ContextItem onClick={handleClickResetCurrentBone}>
+          {t('stageContextMenu/resetBone')}
+        </ContextItem>
+      </ContextMenu>
 
       <ContextMenu
         css={`

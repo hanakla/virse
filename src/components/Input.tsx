@@ -9,12 +9,12 @@ export const Input = styled.input.withConfig<{ sizing?: 'min' }>({
   display: block;
   width: 100%;
   padding: 8px 12px;
-  background-color: #eeeeee;
+  background-color: #fff;
   border: none;
   border-radius: 4px;
   outline: none;
 
   ${({ sizing }) => styleWhen(sizing === 'min')`
-    padding: 4px 8px;
+    padding: 6px 8px;
   `}
 `;
