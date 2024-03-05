@@ -153,11 +153,7 @@ export const useObjectStateWithRef = <T extends object>(
   return [state, setState as any, ref];
 };
 
-export const useFocusRestore = ({
-  restoreOnUnmount,
-}: {
-  restoreOnUnmount?: boolean;
-}) => {
+export const useFocusRestore = () => {
   const prevFocusElementRef = useRef<HTMLElement | null>(
     typeof document !== 'undefined'
       ? (document.activeElement as HTMLElement)
@@ -168,11 +164,9 @@ export const useFocusRestore = ({
     const restoreFocusTarget = prevFocusElementRef.current;
 
     return () => {
-      if (restoreOnUnmount) {
-        setTimeout(() => {
-          restoreFocusTarget?.focus();
-        });
-      }
+      setTimeout(() => {
+        restoreFocusTarget?.focus();
+      });
     };
-  });
+  }, []);
 };

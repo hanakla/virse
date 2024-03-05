@@ -7,7 +7,7 @@ export const createTransformController = (
 ): TransformControls => {
   const controller = new TransformControls(camera, canvas);
   controller.setMode('rotate');
-  controller.setSpace('world');
+  controller.setSpace('local');
   controller.setSize(0.7);
 
   scene.attach(controller);

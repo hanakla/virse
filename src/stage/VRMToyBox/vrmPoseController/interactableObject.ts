@@ -13,6 +13,7 @@ export class InteractableObject extends THREE.Object3D {
   public readonly tag: string;
   public enabled: boolean = true;
 
+  private _active: boolean = false;
   private _gizmo: THREE.Mesh;
   private _defaultMaterial: THREE.Material;
   private _hoverMaterial: THREE.Material;
@@ -36,40 +37,31 @@ export class InteractableObject extends THREE.Object3D {
     this._activeMaterial = activeMaterial;
     this.add(this._gizmo);
 
-    this.addEventListener('select', () => {
-      if (!this.enabled) return;
-      this._handleSelect();
-    });
-
-    this.addEventListener('unselect', () => {
-      this._handleUnselect();
-    });
-
-    this.addEventListener('hover', () => {
-      // if (!this.enabled) return;
-      this._handleHover();
-    });
-
-    this.addEventListener('blur', () => {
-      this._handleBlur();
-    });
-
     this.tag = tag;
   }
 
-  private _handleSelect = () => {
+  public selected() {
+    if (!this.enabled) return;
+    this._active = true;
     this._gizmo.material = this._activeMaterial;
-  };
+    this.dispatchEvent({ type: 'select' });
+  }
 
-  private _handleUnselect = () => {
+  public unselected() {
+    this._active = false;
     this._gizmo.material = this._defaultMaterial;
-  };
+    this.dispatchEvent({ type: 'unselect' });
+  }
 
-  private _handleHover = () => {
+  public hovered() {
     this._gizmo.material = this._hoverMaterial;
-  };
+    this.dispatchEvent({ type: 'hover' });
+  }
 
-  private _handleBlur = () => {
-    this._gizmo.material = this._defaultMaterial;
-  };
+  public blurred() {
+    this._gizmo.material = this._active
+      ? this._activeMaterial
+      : this._defaultMaterial;
+    this.dispatchEvent({ type: 'blur' });
+  }
 }

@@ -14,7 +14,7 @@ export function KeyboardHelp({
 }: ModalProps<{ temporalyShow?: boolean }, void>) {
   const t = useTranslation('common');
 
-  useFocusRestore({ restoreOnUnmount: true });
+  useFocusRestore();
 
   return (
     <ModalBase

@@ -17,6 +17,7 @@ import {
   useEffect,
   useRef,
   useState,
+  KeyboardEvent,
 } from 'react';
 import { ChromePicker, ColorChangeHandler } from 'react-color';
 import {
@@ -34,6 +35,7 @@ import {
   RiArrowRightLine,
   RiCamera2Fill,
   RiCameraSwitchFill,
+  RiEarthFill,
   RiEyeCloseFill,
   RiEyeFill,
   RiFlashlightFill,
@@ -214,7 +216,43 @@ export const PhotoBooth = memo(function PhotoBooth({
   const serializeCurrentPose = useStableLatestRef(() => {
     if (!stage?.activeAvatar) return;
 
-    return serializeAvatarPose.current(stage.activeAvatar.uid);
+    return serializeAvatarPose.current(stage.activeTarget.uid);
+  });
+
+  const serializeObjectDeployment = useStableLatestRef(() => {
+    const target = stage?.activeTarget;
+
+    if (!target || target.type !== 'object') return;
+
+    const pose: UnsavedVirsePose = {
+      type: 'object',
+      name: emptyCoalesce(
+        state.loadedPoses[target.uid]?.poseName,
+        'New Object Deployment'
+      ),
+      canvas: stage.getSize(),
+      camera: {
+        mode: stage.camMode,
+        fov: stage.camFov,
+        zoom: stage.activeCamera.zoom,
+        position: stage.activeCamera.position.toArray(),
+        target: stage.orbitControls.target.toArray(),
+        rotation: stage.activeCamera.rotation.toArray(),
+        quaternion: stage.activeCamera.quaternion.toArray(),
+      },
+      blendShapeProxies: {},
+      morphs: {},
+      vrmVersion: undefined,
+      vrmPose: {},
+      rootPosition: {
+        position: target.obj.rootBone.position.toArray(),
+        quaternion: target.obj.rootBone.quaternion.toArray(),
+        scale: target.obj.rootBone.scale.toArray(),
+      },
+      bones: {},
+    };
+
+    return pose;
   });
 
   const serializeAvatarPose = useStableLatestRef((avatarUid: string) => {
@@ -265,6 +303,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       rootPosition: {
         position: avatar.positionBone.position.toArray(),
         quaternion: avatar.positionBone.quaternion.toArray(),
+        scale: avatar.positionBone.scale.toArray(),
       },
       bones: {
         ...original?.bones,
@@ -283,10 +322,18 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickOverwritePose = useEvent(() => {
-    const { activeAvatar } = stage!;
-    const pose = serializeCurrentPose.current();
+    const { activeTarget } = stage!;
 
-    const originalPoseId = state.loadedPoses[activeAvatar.uid].poseId;
+    let originalPoseId: string | null | undefined = undefined;
+    let pose: UnsavedVirsePose | undefined = undefined;
+    if (activeTarget?.type === 'avatar') {
+      pose = serializeCurrentPose.current();
+      originalPoseId = state.loadedPoses[activeTarget.uid].poseId;
+    } else if (activeTarget?.type === 'object') {
+      pose = serializeObjectDeployment.current();
+      originalPoseId = state.loadedPoses[activeTarget.uid].poseId;
+    }
+
     if (!pose || !originalPoseId) return;
 
     executeOperation(
@@ -297,9 +344,15 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickSavePose = useEvent(() => {
-    const pose = serializeCurrentPose.current();
-    if (!pose) return;
+    let pose: UnsavedVirsePose | null | undefined = null;
 
+    if (stage?.activeTarget?.type === 'avatar') {
+      pose = serializeCurrentPose.current();
+    } else if (stage?.activeTarget?.type === 'object') {
+      pose = serializeObjectDeployment.current();
+    }
+
+    if (!pose) return;
     executeOperation(editorOps.savePose, pose);
   });
 
@@ -308,7 +361,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     if (!pose) return;
 
     setState((next) => {
-      next.loadedPoses[stage!.activeAvatar!.uid] = {
+      next.loadedPoses[stage!.activeTarget!.uid] = {
         poseId: pose.uid,
         poseName: pose.name,
       };
@@ -388,14 +441,15 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   const handleChangePoseName = useEvent(
     ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
-      if (!stage?.activeAvatar) return;
+      if (!stage?.activeTarget) return;
 
       setState((next) => {
-        next.loadedPoses[stage.activeAvatar.uid] ??= {
+        next.loadedPoses[stage.activeTarget!.uid] ??= {
           poseId: null,
           poseName: '',
         };
-        next.loadedPoses[stage.activeAvatar.uid].poseName = currentTarget.value;
+        next.loadedPoses[stage.activeTarget!.uid].poseName =
+          currentTarget.value;
       });
     }
   );
@@ -418,7 +472,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
   });
 
-  const applyPoseToActiveAvatar = useStableLatestRef(
+  const applyPoseToActiveTarget = useStableLatestRef(
     (
       pose: UnsavedVirsePose,
       {
@@ -433,9 +487,9 @@ export const PhotoBooth = memo(function PhotoBooth({
         nonStandardBones: boolean | string[];
       }
     ) => {
-      if (!stage?.activeAvatar) return;
+      if (!stage?.activeTarget) return;
 
-      const { avatar } = stage.activeAvatar;
+      const target = stage.activeTarget;
 
       if (camera) {
         stage.setCamMode(pose.camera.mode, {
@@ -450,54 +504,71 @@ export const PhotoBooth = memo(function PhotoBooth({
         stage.setSize(pose.canvas.width, pose.canvas.height);
       }
 
-      if (extraBlendShapes) {
-        Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
-          if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
-        });
-      }
-
-      if (presetExpressions) {
-        Object.entries(pose.blendShapeProxies).map(
-          ([name, value]: [string, number]) => {
-            avatar.vrm.expressionManager?.setValue(name, value);
-          }
-        );
-      }
-
-      if (nonStandardBones) {
-        if (nonStandardBones === true) {
-          nonStandardBones = Object.keys(pose.bones);
+      if (target?.type === 'avatar') {
+        const avatar = target.avatar;
+        if (extraBlendShapes) {
+          Object.entries(pose.morphs).map(([k, { value }]: [string, any]) => {
+            if (avatar.blendshapes?.[k]) avatar.blendshapes[k].value = value;
+          });
         }
 
-        nonStandardBones.map((name) => {
-          const bone = pose.bones[name];
-          const o = avatar.vrm.scene.getObjectByName(name)!;
-          if (!bone || !o) return;
+        if (presetExpressions) {
+          Object.entries(pose.blendShapeProxies).map(
+            ([name, value]: [string, number]) => {
+              avatar.vrm.expressionManager?.setValue(name, value);
+            }
+          );
+        }
 
-          o.position.set(...bone.position);
-          o.quaternion.set(...bone.quaternion);
-        });
-      }
+        if (nonStandardBones) {
+          if (nonStandardBones === true) {
+            nonStandardBones = Object.keys(pose.bones);
+          }
 
-      avatar.vrm.humanoid.setRawPose(pose.vrmPose);
+          nonStandardBones.map((name) => {
+            const bone = pose.bones[name];
+            const o = avatar.vrm.scene.getObjectByName(name)!;
+            if (!bone || !o) return;
 
-      if (pose.rootPosition) {
-        avatar.positionBone.position.fromArray(pose.rootPosition.position);
-        avatar.positionBone.quaternion.fromArray(pose.rootPosition.quaternion);
+            o.position.set(...bone.position);
+            o.quaternion.set(...bone.quaternion);
+          });
+        }
+        if (pose.rootPosition) {
+          avatar.positionBone.position.fromArray(pose.rootPosition.position);
+          avatar.positionBone.quaternion.fromArray(
+            pose.rootPosition.quaternion
+          );
+          avatar.positionBone.scale.fromArray(
+            pose.rootPosition.scale ?? [1, 1, 1]
+          );
+        }
+
+        avatar.vrm.humanoid.setRawPose(pose.vrmPose);
+      } else if (target?.type === 'object') {
+        const { obj } = target;
+        obj.rootBone.position.fromArray(pose.rootPosition.position);
+        obj.rootBone.quaternion.fromArray(pose.rootPosition.quaternion);
+        obj.rootBone.scale.fromArray(pose.rootPosition.scale ?? [1, 1, 1]);
       }
     }
   );
 
   const handleClickLoadPoseOnly = useFunc((params: ItemParams) => {
-    const { avatar, uid } = stage?.activeAvatar ?? {};
-
+    const activeTarget = stage?.activeTarget;
     const poseId = params.props.poseId;
     let pose = poses.find((p) => p.uid === poseId);
 
-    if (!avatar || !uid || !pose) return;
-    pose = migrateVRM0PoseToV1(pose, avatar.vrm.meta.metaVersion);
+    if (!pose || !activeTarget) return;
 
-    applyPoseToActiveAvatar.current(pose, {
+    pose = migrateVRM0PoseToV1(
+      pose,
+      activeTarget?.type === 'avatar'
+        ? activeTarget.avatar.vrm.meta.metaVersion
+        : '1'
+    )!;
+
+    applyPoseToActiveTarget.current(pose, {
       camera: false,
       presetExpressions: true,
       extraBlendShapes: true,
@@ -505,9 +576,9 @@ export const PhotoBooth = memo(function PhotoBooth({
     });
 
     setState((next) => {
-      next.loadedPoses[uid] = {
+      next.loadedPoses[activeTarget.uid] = {
         poseId,
-        poseName: pose.name,
+        poseName: pose!.name,
       };
     });
   });
@@ -546,7 +617,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     pose = migrateVRM0PoseToV1(pose, avatar.vrm.meta.metaVersion);
 
     if (avatar) {
-      applyPoseToActiveAvatar.current(pose, {
+      applyPoseToActiveTarget.current(pose, {
         camera: true,
         presetExpressions: true,
         extraBlendShapes: true,
@@ -554,7 +625,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       });
 
       setState((next) => {
-        next.loadedPoses[stage.activeAvatar.uid] = {
+        next.loadedPoses[stage.activeTarget.uid] = {
           poseId,
           poseName: pose.name,
         };
@@ -672,24 +743,25 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleClickOverwritePoseMenu = useEvent((params: ItemParams) => {
-    if (!stage?.activeAvatar) return;
+    const activeTarget = stage?.activeTarget;
+    if (!activeTarget) return;
 
-    const originalPoseId = params.props.poseId;
+    let originalPoseId: string | null | undefined = undefined;
+    let pose: UnsavedVirsePose | undefined = undefined;
+    if (activeTarget?.type === 'avatar') {
+      pose = serializeCurrentPose.current();
+      originalPoseId = params.props.poseId;
+    } else if (activeTarget?.type === 'object') {
+      pose = serializeObjectDeployment.current();
+      originalPoseId = params.props.poseId;
+    }
 
-    const original = poses.find((p) => p.uid === originalPoseId);
-    const currentPose = serializeCurrentPose.current();
-    if (!original || !currentPose) return;
-
-    executeOperation(
-      editorOps.savePose,
-      { ...currentPose, name: original.name, uid: originalPoseId },
-      { overwrite: true }
-    );
+    if (!pose || !originalPoseId) return;
 
     setState((next) => {
-      next.loadedPoses[stage.activeAvatar.uid] = {
-        poseId: originalPoseId,
-        poseName: original.name,
+      next.loadedPoses[stage.activeTarget!.uid] = {
+        poseId: originalPoseId!,
+        poseName: pose!.name,
       };
     });
   });
@@ -786,7 +858,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       stage.setActiveAvatar(avatar.uid);
 
-      applyPoseToActiveAvatar.current(
+      applyPoseToActiveTarget.current(
         migrateVRM0PoseToV1(pose, avatar.vrm.meta.metaVersion),
         {
           camera: false,
@@ -851,9 +923,17 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  const handleClickStagedObject = useEvent(
+    ({ currentTarget }: MouseEvent<HTMLLIElement>) => {
+      stage?.setActiveObject(currentTarget.dataset.objectUid!);
+    }
+  );
+
   const handleClickStagedModelToggleVisible = useEvent(
-    ({ currentTarget }: MouseEvent<SVGElement>) => {
-      const uid = currentTarget.dataset.avatarUid!;
+    (e: MouseEvent<SVGElement>) => {
+      e.stopPropagation();
+
+      const uid = e.currentTarget.dataset.avatarUid!;
       const entry = stage?.avatarsIterator.find((m) => m.uid === uid);
       if (!stage || !entry) return;
 
@@ -861,9 +941,23 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
+  const handleClickStagedObjectToggleVisible = useEvent(
+    (e: MouseEvent<SVGElement>) => {
+      e.stopPropagation();
+
+      const uid = e.currentTarget.dataset.objectUid!;
+      const entry = stage?.objectsIterator.find((m) => m.uid === uid);
+      if (!entry) return;
+
+      entry.obj.visible = !entry.obj.visible;
+    }
+  );
+
   const handleClickStagedModelLicense = useEvent(
-    ({ currentTarget }: MouseEvent<SVGElement>) => {
-      const uid = currentTarget.dataset.avatarUid!;
+    (e: MouseEvent<SVGElement>) => {
+      e.stopPropagation();
+
+      const uid = e.currentTarget.dataset.avatarUid!;
       const entry = stage?.avatarsIterator.find((m) => m.uid === uid);
       if (!stage || !entry) return;
 
@@ -922,7 +1016,6 @@ export const PhotoBooth = memo(function PhotoBooth({
     const prevBgColor = stage.backgroundColor;
 
     stage!.setShowBones(false);
-    console.log(prevBgColor);
     stage.setBackgroundColor({ ...prevBgColor, a: type === 'png' ? 0 : 1 });
 
     await new Promise((r) => setTimeout(r, 100));
@@ -1176,11 +1269,26 @@ export const PhotoBooth = memo(function PhotoBooth({
     openModal(KeyboardHelp, { temporalyShow: false });
   });
 
-  const handleClickToggleMirror = useEvent(() => {
-    const avatar = stage?.activeAvatar;
-    if (!avatar) return;
+  const handleClickToggleBoneControllerSpace = useEvent(() => {
+    if (!stage?.avatars) return;
+    const next =
+      stage.activeAvatar?.ui.controllerSpace === 'world' ? 'local' : 'world';
 
-    avatar.ui.mirrorBone = !avatar.ui.mirrorBone;
+    stage.avatarsIterator.forEach(({ ui }) => {
+      ui.controllerSpace = next;
+    });
+
+    rerender();
+  });
+
+  const handleClickToggleMirror = useEvent(() => {
+    if (!stage?.activeAvatar) return;
+
+    const next = !stage.activeAvatar.ui.mirrorBone;
+    stage.avatarsIterator.forEach(({ ui }) => {
+      ui.mirrorBone = next;
+    });
+
     rerender();
   });
 
@@ -1210,7 +1318,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           openContextMenu();
           abort.abort();
         },
-        { signal: abort.signal }
+        { once: true, signal: abort.signal }
       );
       document.addEventListener(
         'touchend',
@@ -1218,7 +1326,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           openContextMenu();
           abort.abort();
         },
-        { signal: abort.signal }
+        { once: true, signal: abort.signal }
       );
     },
     {
@@ -1356,7 +1464,13 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   useBindMousetrap(shortcutBindElRef, rightHandShortcuts.nextAvatar, () => {
     const currentUid = stage?.activeAvatar?.uid;
-    if (!stage || !currentUid) return;
+    if (!stage) return;
+
+    if (!currentUid) {
+      const avatars = stage.avatarsIterator;
+      if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
+      return;
+    }
 
     const avatars = stage.avatarsIterator;
     const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
@@ -1369,7 +1483,13 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   useBindMousetrap(shortcutBindElRef, rightHandShortcuts.previousAvatar, () => {
     const currentUid = stage?.activeAvatar?.uid;
-    if (!stage || !currentUid) return;
+    if (!stage) return;
+
+    if (!currentUid) {
+      const avatars = stage.avatarsIterator;
+      if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
+      return;
+    }
 
     const avatars = stage.avatarsIterator;
     const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
@@ -1446,13 +1566,27 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
   );
 
-  useBindMousetrap(shortcutBindElRef, 'c', () => {
-    changeCamKind.current('editorial');
-  });
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.changeCamToEditorial,
+    () => {
+      changeCamKind.current('editorial');
+    }
+  );
 
-  useBindMousetrap(shortcutBindElRef, 'shift+c', () => {
-    changeCamKind.current('capture');
-  });
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.changeCamToCapture,
+    () => {
+      changeCamKind.current('capture');
+    }
+  );
+
+  useBindMousetrap(
+    shortcutBindElRef,
+    rightHandShortcuts.toggleBoneControllerSpace,
+    handleClickToggleBoneControllerSpace
+  );
 
   // useEffect(() => {
   //   openModal(KeyboardHelp, {});
@@ -1632,6 +1766,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   }, [stage?.canvas]);
 
   const activeAvatar = stage ? stage.activeAvatar : null;
+  const activeTarget = stage ? stage.activeTarget : null;
 
   //// Render
   return (
@@ -1658,13 +1793,13 @@ export const PhotoBooth = memo(function PhotoBooth({
           align-items: center;
           justify-content: center;
           pointer-events: none;
+          min-height: 0;
           ${transitionCss}
         `}
       >
         <Sidebar
           css={`
-            position: absolute;
-            left: 0;
+            margin-right: auto;
             width: 172px;
             height: 100%;
             pointer-events: all;
@@ -1698,12 +1833,25 @@ export const PhotoBooth = memo(function PhotoBooth({
               >
                 {activeAvatar?.ui.activeBoneName ?? t('noBoneSelected')}
 
+                <RiEarthFill
+                  css={css`
+                    margin-left: 2px;
+                    vertical-align: bottom;
+                  `}
+                  fill="#555"
+                  size={16}
+                  opacity={
+                    activeAvatar?.ui.controllerSpace === 'world' ? 1 : 0.3
+                  }
+                  onClick={handleClickToggleBoneControllerSpace}
+                />
+
                 <RiSplitCellsHorizontal
                   css={css`
                     margin-left: 2px;
                     vertical-align: bottom;
                   `}
-                  fill="#000)"
+                  fill="#555"
                   size={16}
                   opacity={activeAvatar?.ui.mirrorBone ? 1 : 0.3}
                   onClick={handleClickToggleMirror}
@@ -2154,6 +2302,49 @@ export const PhotoBooth = memo(function PhotoBooth({
                     </ListItem>
                   ))}
 
+                  {stage?.objectsIterator.map(({ uid, obj }) => (
+                    <ListItem
+                      key={uid}
+                      css={css`
+                        display: flex;
+                      `}
+                      data-object-uid={uid}
+                      active={stage.activeTarget?.uid === uid}
+                      onClick={handleClickStagedObject}
+                      // onContextMenu={handleStagedModelsContextMenu}
+                    >
+                      <div
+                        css={css`
+                          flex: 1;
+                        `}
+                      >
+                        <div>{obj.name}</div>
+                      </div>
+                      <div
+                        css={css`
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          gap: 4px;
+                        `}
+                      >
+                        {obj.visible ? (
+                          <RiEyeFill
+                            fontSize={16}
+                            onClick={handleClickStagedObjectToggleVisible}
+                            data-object-uid={uid}
+                          />
+                        ) : (
+                          <RiEyeCloseFill
+                            fontSize={16}
+                            onClick={handleClickStagedObjectToggleVisible}
+                            data-object-uid={uid}
+                          />
+                        )}
+                      </div>
+                    </ListItem>
+                  ))}
+
                   <ListItem
                     css={css`
                       margin-top: 6px;
@@ -2209,9 +2400,8 @@ export const PhotoBooth = memo(function PhotoBooth({
 
         <Sidebar
           css={`
-            position: absolute;
-            right: 0;
             display: flex;
+            margin-left: auto;
             flex-flow: column;
             width: 240px;
             height: 100%;
@@ -2625,7 +2815,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                 `}
               >
                 <Input
-                  value={state.loadedPoses[activeAvatar?.uid ?? '']?.poseName}
+                  value={state.loadedPoses[activeTarget?.uid ?? '']?.poseName}
                   onChange={handleChangePoseName}
                 />
 
@@ -2636,11 +2826,11 @@ export const PhotoBooth = memo(function PhotoBooth({
                 <Button
                   type="button"
                   kind="primary"
-                  disabled={!state.loadedPoses[activeAvatar?.uid ?? '']?.poseId}
+                  disabled={!state.loadedPoses[activeTarget?.uid ?? '']?.poseId}
                   onClick={handleClickOverwritePose}
                 >
                   {t('pose/overwrite')}
-                  {state.loadedPoses[activeAvatar?.uid ?? '']?.poseId && (
+                  {state.loadedPoses[activeTarget?.uid ?? '']?.poseId && (
                     <span
                       css={css`
                         width: 100%;
@@ -2653,7 +2843,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                         poses.find(
                           (p) =>
                             p.uid ===
-                            state.loadedPoses[activeAvatar?.uid ?? '']?.poseId
+                            state.loadedPoses[activeTarget?.uid ?? '']?.poseId
                         )?.name
                       }
                       )

@@ -92,7 +92,7 @@ export default function Home() {
         executeOperation(editorOps.addVrm, file);
         stage!.loadVRM(url);
       } else if (file.name.endsWith('.gltf') || file.name.endsWith('.glb')) {
-        stage!.loadGltf(url);
+        stage!.loadGltf(url, file.name);
       } else if (file.name.endsWith('.virse')) {
         const options = await openModal(LoadProjectOption, {});
         if (!options) return;
@@ -245,6 +245,7 @@ export default function Home() {
         width: 100%;
         height: 100%;
         background-color: #fafafa;
+        min-height: 0;
       `}
     >
       <Head>

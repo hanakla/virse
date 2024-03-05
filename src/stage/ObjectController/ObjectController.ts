@@ -10,6 +10,7 @@ import { createTransformController } from '../VRMToyBox/vrmPoseController/utils'
 type Events = {
   selectChange: { selected: boolean };
   dragChange: { dragging: boolean };
+  updated: void;
 };
 
 export class ObjectController {
@@ -18,13 +19,14 @@ export class ObjectController {
   #rootScene: THREE.Scene = new THREE.Scene();
   #gltf: THREE.Group;
 
-  #controller: InteractableObject;
+  #controller!: InteractableObject;
   #interactableObjects: InteractableObject[] = [];
   #positionBone: THREE.Bone;
 
   #disposeSignal: AbortController = new AbortController();
   #transformController: TransformControls;
 
+  #name: string = '';
   #enable: boolean = true;
   #visible: boolean = true;
 
@@ -69,6 +71,10 @@ export class ObjectController {
     });
   }
 
+  public get name() {
+    return this.#name;
+  }
+
   public get rootScene() {
     return this.#rootScene;
   }
@@ -83,6 +89,16 @@ export class ObjectController {
 
   public set controlMode(mode: 'rotate' | 'translate') {
     this.#transformController.setMode(mode);
+  }
+
+  public get visible() {
+    return this.#visible;
+  }
+
+  public set visible(v: boolean) {
+    this.#gltf.visible = this.#visible = v;
+    this.#controller.visible = v;
+    this.events.emit('updated');
   }
 
   public setVisible(visible: boolean) {
@@ -114,7 +130,7 @@ export class ObjectController {
     this.#stage.rootScene.remove(this.#rootScene);
   }
 
-  public async loadGltf(url: string) {
+  public async loadGltf(url: string, name: string) {
     const gltf = new GLTFLoader();
 
     this.gltfBin = await (await fetch(url)).blob();
@@ -123,6 +139,7 @@ export class ObjectController {
       gltf.load(url, resolve, undefined, reject);
     });
 
+    this.#name = name;
     this.#gltf = scene;
     this.#positionBone.add(scene);
     this.#rootScene.add(this.#positionBone);
@@ -253,7 +270,7 @@ export class ObjectController {
     }
 
     this.#interactableObjects.forEach((obj) => (obj.enabled = false));
-    interactObj.dispatchEvent({ type: 'select' });
+    interactObj.selected();
   };
 
   public setAxis(axis: 'X' | 'Y' | 'Z' | 'all') {
@@ -274,7 +291,7 @@ export class ObjectController {
 
   private _dispatchUnselect = () => {
     this.#transformController.detach();
-    this._selectedObject?.dispatchEvent({ type: 'unselect' });
+    this._selectedObject?.unselected();
     this._selectedObject = null;
 
     this.#interactableObjects.forEach((obj) => (obj.enabled = this.#visible));
@@ -289,7 +306,7 @@ export class ObjectController {
       return;
     }
 
-    interactObj.dispatchEvent({ type: 'hover' });
+    interactObj.hovered();
     // this.events.emit('boneHoverChanged', { bone: interactObj.controlTarget });
   };
 
@@ -300,7 +317,7 @@ export class ObjectController {
 
     const _hoveredObject = this._hoveredObject;
 
-    this._hoveredObject?.dispatchEvent({ type: 'blur' });
+    this._hoveredObject?.blurred();
     this._hoveredObject = null;
 
     // if (_hoveredObject != null) {

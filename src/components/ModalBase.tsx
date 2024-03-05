@@ -48,6 +48,7 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
       `}
       className={className}
       onClick={onBackdropClick}
+      tabIndex={-1}
     >
       <div
         css={`

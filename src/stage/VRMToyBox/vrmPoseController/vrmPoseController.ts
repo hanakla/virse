@@ -135,7 +135,7 @@ export class VrmPoseController {
     canvas.addEventListener('mousedown', this._handleMouseDown, {
       signal: this.disposeSignal.signal,
     });
-    canvas.addEventListener('dblclick', this._dispatchUnselect, {
+    canvas.addEventListener('dblclick', this._unselectAllBones, {
       signal: this.disposeSignal.signal,
     });
     canvas.addEventListener('mousemove', this._handleMouseMove, {
@@ -154,7 +154,7 @@ export class VrmPoseController {
 
   public set activeBone(bone: Object3D | null) {
     if (!bone?.isBone) {
-      this._dispatchUnselect();
+      this._unselectAllBones();
       return;
     }
 
@@ -164,8 +164,8 @@ export class VrmPoseController {
     );
     if (!interactObj) return;
 
-    this._selectedObject?.dispatchEvent({ type: 'unselect' });
-    interactObj.dispatchEvent({ type: 'select' });
+    this._selectedObject?.unselected();
+    interactObj.selected();
 
     this._transformController.attach(interactObj.controlTarget);
     this._transformController.setMode(interactObj.tag);
@@ -191,6 +191,14 @@ export class VrmPoseController {
   public set fkControlMode(mode: 'rotate' | 'translate') {
     // if (this._selectedObject?.targetType === 'fk')
     this._transformController.setMode(mode);
+  }
+
+  public get controllerSpace(): 'local' | 'world' {
+    return this._transformController.space;
+  }
+
+  public set controllerSpace(space: 'local' | 'world') {
+    this._transformController.setSpace(space);
   }
 
   public get mirrorBone(): boolean {
@@ -295,7 +303,7 @@ export class VrmPoseController {
   };
 
   private _handleRightClick = () => {
-    this._dispatchUnselect();
+    this._unselectAllBones();
   };
 
   private _handleLeftClick = (event: MouseEvent) => {
@@ -338,7 +346,7 @@ export class VrmPoseController {
   private _handleUiClick = (event: THREE.Event): void => {
     const interactObj = event.target;
     if (interactObj instanceof InteractableObject) {
-      this._dispatchSelect(interactObj);
+      this._selectBone(interactObj);
     }
   };
 
@@ -352,13 +360,13 @@ export class VrmPoseController {
   };
 
   // TODO: rename
-  private _dispatchSelect = (interactObj: InteractableObject) => {
+  private _selectBone = (interactObj: InteractableObject) => {
     if (this._selectedObject === interactObj) {
       return;
     }
 
-    this._dispatchUnselect();
-    // this._selectedObject = interactObj;
+    this._unselectAllBones();
+    this._selectedObject = interactObj;
 
     if (interactObj.tag === 'rotate' || interactObj.tag === 'translate') {
       this._transformController.attach(interactObj.controlTarget);
@@ -369,17 +377,15 @@ export class VrmPoseController {
       this.events.emit('boneChanged', { bone: interactObj.controlTarget });
     }
 
-    this._interactableObjects.forEach((obj) => (obj.enabled = false));
-    interactObj.dispatchEvent({ type: 'select' });
+    this._interactableObjects.forEach((obj) => obj.unselected());
+    interactObj.selected();
   };
 
-  private _dispatchUnselect = () => {
+  private _unselectAllBones = () => {
     this._transformController.detach();
-    this._selectedObject?.dispatchEvent({ type: 'unselect' });
     this._selectedObject = null;
     this.#activeBone = null;
-
-    this._interactableObjects.forEach((obj) => (obj.enabled = this.#visible));
+    this._interactableObjects.forEach((obj) => obj.unselected());
     this.events.emit('boneChanged', { bone: null });
   };
 
@@ -391,7 +397,7 @@ export class VrmPoseController {
       return;
     }
 
-    interactObj.dispatchEvent({ type: 'hover' });
+    interactObj.hovered();
     this.events.emit('boneHoverChanged', { bone: interactObj.controlTarget });
   };
 
@@ -402,7 +408,7 @@ export class VrmPoseController {
 
     const _hoveredObject = this._hoveredObject;
 
-    this._hoveredObject?.dispatchEvent({ type: 'blur' });
+    this._hoveredObject?.blurred();
     this._hoveredObject = null;
 
     if (_hoveredObject != null) {

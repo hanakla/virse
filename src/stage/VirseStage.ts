@@ -33,15 +33,18 @@ type Events = {
 };
 
 type AvatarData = {
+  type: 'avatar';
   uid: string;
   avatar: Avatar;
   ui: VrmPoseController;
   vrm: VRM;
 };
 
+type ObjectData = { type: 'object'; uid: string; obj: ObjectController };
+
 export type VirseScene = {
   vrms: Record<string, Uint8Array>;
-  gltfObjects: Record<string, Uint8Array>;
+  gltfObjects: Record<string, Uint8Array | { name: string; bin: Uint8Array }>;
   canvas: {
     width: number;
     height: number;
@@ -125,7 +128,7 @@ export class VirseStage {
   } = Object.create(null);
 
   public gltfObjects: {
-    [K: string]: { uid: string; control: ObjectController };
+    [K: string]: ObjectData;
   } = Object.create(null);
 
   constructor(public canvas: HTMLCanvasElement) {
@@ -147,7 +150,8 @@ export class VirseStage {
       canvas,
     });
 
-    this.renderer.outputEncoding = THREE.sRGBEncoding;
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.useLegacyLights = true;
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(this.#size.width, this.#size.height);
     this.renderer.setClearColor('#ffffff', 0);
@@ -251,6 +255,10 @@ export class VirseStage {
     return Object.values(this.avatars);
   }
 
+  public get objectsIterator() {
+    return Object.values(this.gltfObjects);
+  }
+
   public get vrms() {
     return this.avatars;
   }
@@ -269,12 +277,13 @@ export class VirseStage {
       ),
       gltfObjects: Object.fromEntries(
         await Promise.all(
-          Object.entries(this.gltfObjects).map(
-            async ([uid, { control: ui }]) => [
-              uid,
-              new Uint8ClampedArray(await ui.gltfBin!.arrayBuffer()),
-            ]
-          )
+          Object.entries(this.gltfObjects).map(async ([uid, { obj }]) => [
+            uid,
+            {
+              name: obj.name,
+              bin: new Uint8ClampedArray(await obj.gltfBin!.arrayBuffer()),
+            },
+          ])
         )
       ),
 
@@ -338,7 +347,7 @@ export class VirseStage {
         ])
       ),
       objects: Object.fromEntries(
-        Object.entries(this.gltfObjects).map(([uid, { control: ui }]) => [
+        Object.entries(this.gltfObjects).map(([uid, { obj: ui }]) => [
           uid,
           {
             position: ui.rootBone.position.toArray(),
@@ -362,7 +371,7 @@ export class VirseStage {
     });
 
     Object.values(this.gltfObjects).map((obj) => {
-      obj.control.dispose();
+      obj.obj.dispose();
       delete this.gltfObjects[obj.uid];
     });
 
@@ -403,18 +412,30 @@ export class VirseStage {
     const objUidMap: { [old: string]: string } = {};
 
     if (gltfObjects) {
+      let objCount = 0;
+
       await Promise.all(
-        Object.entries(gltfObjects).map(async ([uid, gltfBin]) => {
-          const blob = new Blob([gltfBin], { type: 'model/gltf+json' });
+        Object.entries(gltfObjects).map(async ([uid, entity]) => {
+          let name: string = `Object ${objCount++}`;
+          let bin: Uint8Array;
+
+          if ('name' in entity) {
+            bin = entity.bin;
+            name = entity.name;
+          } else {
+            bin = entity;
+          }
+
+          const blob = new Blob([bin], { type: 'model/gltf+json' });
           const url = URL.createObjectURL(blob);
-          const obj = await this.loadGltf(url);
+          const obj = await this.loadGltf(url, name);
           URL.revokeObjectURL(url);
 
           objUidMap[uid] = obj.uid;
 
-          obj.control.rootBone.position.fromArray(objects[uid].position);
-          obj.control.rootBone.quaternion.fromArray(objects[uid].quaternion);
-          obj.control.rootBone.scale.fromArray(objects[uid].scale);
+          obj.obj.rootBone.position.fromArray(objects[uid].position);
+          obj.obj.rootBone.quaternion.fromArray(objects[uid].quaternion);
+          obj.obj.rootBone.scale.fromArray(objects[uid].scale);
         })
       );
     }
@@ -495,10 +516,8 @@ export class VirseStage {
       mode === 'perspective' ? this.pCam : this.oCam);
 
     // this.activeCamera.position.set(0.0, 1.4, 0.7);
-    if (cam instanceof PerspectiveCamera && opt.fov != null)
-      this.camFov = opt.fov;
-    if (cam instanceof OrthographicCamera && opt.zoom != null)
-      cam.zoom = opt.zoom;
+    if (opt.fov != null) this.camFov = opt.fov;
+    if (opt.zoom != null) cam.zoom = opt.zoom;
     if (opt.position != null) cam.position.fromArray(opt.position);
     if (opt.rotation != null) cam.rotation.fromArray(opt.rotation);
     if (opt.quaternion != null) cam.quaternion.fromArray(opt.quaternion);
@@ -558,7 +577,7 @@ export class VirseStage {
     if (this.#activeTarget.type === 'avatar') {
       return this.avatars[this.#activeTarget.uid].ui.fkControlMode;
     } else if (this.#activeTarget.type === 'object') {
-      return this.gltfObjects[this.#activeTarget.uid].control.controlMode;
+      return this.gltfObjects[this.#activeTarget.uid].obj.controlMode;
     }
   }
 
@@ -569,8 +588,8 @@ export class VirseStage {
     });
 
     Object.values(this.gltfObjects).map((o) => {
-      o.control.controlMode = mode as any;
-      o.control.setAxis('all');
+      o.obj.controlMode = mode as any;
+      o.obj.setAxis('all');
     });
   }
 
@@ -584,6 +603,7 @@ export class VirseStage {
     }
   }
 
+  /** @deprecated Use activeTarget instead */
   public get activeAvatar() {
     return this.#activeTarget?.type === 'avatar'
       ? this.avatars[this.#activeTarget.uid]
@@ -594,27 +614,46 @@ export class VirseStage {
     return this.avatars[uid];
   }
 
+  /** @deprecated */
   public setActiveAvatar(uid: string) {
     if (!this.avatars[uid]) return;
-
-    this.#activeAvatarUid = uid;
-    this.#activeTarget = { type: 'avatar', uid };
-
-    this.avatarsIterator.forEach((avatar) => {
-      avatar.ui.setVisible(avatar.uid === uid && this.#showBones);
-      avatar.ui.setEnableControll(avatar.uid === uid);
-    });
-
-    this.events.emit('updated');
+    this.setActiveTarget(uid);
   }
 
+  /** @deprecated */
   public setActiveObject(uid: string) {
     if (!this.gltfObjects[uid]) return;
+    this.setActiveTarget(uid);
+  }
 
-    this.#activeTarget = { type: 'object', uid };
-    Object.values(this.gltfObjects).forEach((o) => {
-      o.control.setEnableControll(o.uid === uid);
-    });
+  public setActiveTarget(uid: string) {
+    if (this.avatars[uid]) {
+      this.#activeAvatarUid = uid;
+      this.#activeTarget = { type: 'avatar', uid };
+
+      this.avatarsIterator.forEach((avatar) => {
+        avatar.ui.setVisible(avatar.uid === uid && this.#showBones);
+        avatar.ui.setEnableControll(avatar.uid === uid);
+      });
+
+      this.objectsIterator.forEach((o) => {
+        o.obj.setVisible(false);
+        o.obj.setEnableControll(false);
+      });
+    } else if (this.gltfObjects[uid]) {
+      this.#activeAvatarUid = null;
+      this.#activeTarget = { type: 'object', uid };
+
+      this.avatarsIterator.forEach((avatar) => {
+        avatar.ui.setVisible(false);
+        avatar.ui.setEnableControll(false);
+      });
+
+      this.objectsIterator.forEach((o) => {
+        o.obj.setVisible(o.uid === uid);
+        o.obj.setEnableControll(o.uid === uid);
+      });
+    }
 
     this.events.emit('updated');
   }
@@ -626,8 +665,8 @@ export class VirseStage {
       avatar.ui.setVisible(avatar.uid === this.#activeAvatarUid && visible);
     });
 
-    Object.values(this.gltfObjects).forEach((o) => {
-      o.control.setVisible(visible);
+    this.objectsIterator.forEach((o) => {
+      o.obj.setVisible(o.uid === this.#activeTarget?.uid && visible);
     });
 
     this.objects.forEach((o) => (o.visible = visible));
@@ -744,6 +783,7 @@ export class VirseStage {
 
     const uid = nanoid();
     this.avatars[uid] = {
+      type: 'avatar',
       uid,
       avatar,
       get ui() {
@@ -760,9 +800,9 @@ export class VirseStage {
     return this.avatars[uid];
   }
 
-  public async loadGltf(url: string) {
+  public async loadGltf(url: string, name: string) {
     const obj = new ObjectController(this);
-    await obj.loadGltf(url);
+    await obj.loadGltf(url, name);
 
     obj.events.on('dragChange', ({ dragging }) => {
       this.orbitControls.enabled = !dragging;
@@ -774,8 +814,16 @@ export class VirseStage {
       }
     });
 
+    obj.events.on('updated', () => {
+      this.events.emit('updated');
+    });
+
     const id = nanoid();
-    this.gltfObjects[id] = { uid: id, control: obj };
+    this.gltfObjects[id] = { type: 'object', uid: id, obj: obj };
+
+    this.#activeTarget = { type: 'object', uid: id };
+    this.setActiveObject(id);
+    this.events.emit('updated');
 
     return this.gltfObjects[id];
   }

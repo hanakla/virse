@@ -24,6 +24,7 @@ export type VirseProject = VirseScene & {
 };
 
 export type VirsePose = {
+  type?: 'avatar' | 'object';
   uid: string;
   name: string;
   canvas: any;
@@ -50,6 +51,7 @@ export type VirsePose = {
   rootPosition: {
     position: number[];
     quaternion: number[];
+    scale?: number[];
   };
   createdAt: Date;
   schemaVersion: 1 | 2 | 3 | 4 | void;
@@ -115,7 +117,7 @@ export const [EditorStore, editorOps] = minOps('Editor', {
       }).binaryToJSON(gltfBin);
 
       const meta = (gltfJson.extensions?.VRM as any)?.meta;
-      const name = meta?.title ?? vrm.name;
+      const name = meta?.title ?? meta?.name ?? vrm.name;
       const hash = await blobToHash('sha256', vrm, 'hex');
 
       const db = await connectIdb();
