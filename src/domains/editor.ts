@@ -23,6 +23,10 @@ export type VirseProject = VirseScene & {
   poseset: VirsePose[];
 };
 
+export type VirseProject = VirseScene & {
+  poseset: VirsePose[];
+};
+
 export type VirsePose = {
   type?: 'avatar' | 'object';
   uid: string;
