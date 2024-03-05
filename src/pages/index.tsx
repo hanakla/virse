@@ -250,6 +250,7 @@ export default function Home() {
     >
       <Head>
         <title>Virse</title>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
       </Head>
 
       <div
