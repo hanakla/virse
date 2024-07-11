@@ -10,8 +10,8 @@ export const Button = styled.button.withConfig<{
   size?: 'min';
   blocked?: boolean;
 }>({
-  shouldForwardProp(prop, valid) {
-    return prop !== 'kind' && valid(prop);
+  shouldForwardProp(prop) {
+    return prop !== 'kind';
   },
 })`
   display: flex;

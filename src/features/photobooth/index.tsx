@@ -87,6 +87,7 @@ import { ConfirmModal } from '../../modals/ConfirmModal';
 import { Trans } from '../../components/Trans';
 import { emptyCoalesce } from '../../utils/lang';
 import { SelectModel } from '../../modals/SelectModel';
+import { KeyframeEditor } from './KeyframeEditor';
 import escapeStringRegexp from 'escape-string-regexp';
 
 type StashedCam = {
@@ -377,6 +378,28 @@ export const PhotoBooth = memo(function PhotoBooth({
     if (!pose) return;
     executeOperation(editorOps.savePose, pose);
   });
+
+  const handleClickSaveVirseScene = ((typeof window === 'undefined'
+    ? {}
+    : (window as any)
+  ).v$saveScene = useEvent(async () => {
+    // msgpackr
+    const msgpackr = new Packr({ structuredClone: true });
+
+    const prj: VirseProject = {
+      ...(await stage?.serializeScene()!),
+      poseset: poses,
+    };
+    const data = msgpackr.pack(prj);
+
+    const blob = new Blob([data], {
+      type: 'application/octet-stream',
+    });
+    const url = URL.createObjectURL(blob);
+
+    letDownload(url, 'virse-scene.virse');
+    URL.revokeObjectURL(url);
+  }));
 
   useChangedEffect(() => {
     const pose = poses.find((p) => p.uid === latestSavedPoseUid);
@@ -762,6 +785,52 @@ export const PhotoBooth = memo(function PhotoBooth({
     const url = URL.createObjectURL(json);
 
     letDownload(url, `poseset.json`);
+  });
+
+  const handleClickLoadAndCapture = useEvent(async (param: ItemParams) => {
+    const avatar = stage?.activeAvatar;
+    if (!avatar) return;
+
+    const poseId = param.props.poseId;
+    const stashedPose = serializeCurrentPose.current();
+    if (!stashedPose) return;
+
+    const pose = migrateVRM0PoseToV1(
+      poses.find((p) => p.uid === poseId),
+      avatar.vrm.meta.metaVersion
+    );
+    if (!pose) return;
+
+    const currentCam: StashedCam = {
+      mode: stage.camMode,
+      fov: stage.camFov,
+      zoom: stage.camZoom,
+      target: stage.orbitControls.target.toArray(),
+      position: stage.activeCamera.position.toArray(),
+      quaternion: stage.activeCamera.quaternion.toArray() as Vector4Tuple,
+    };
+
+    applyPoseToActiveTarget.current(pose, {
+      camera: true,
+      presetExpressions: true,
+      extraBlendShapes: true,
+      nonStandardBones: false,
+    });
+
+    await captureAndSave.current(
+      param.event.shiftKey ? 'jpeg' : 'png',
+      pose.name
+    );
+
+    applyPoseToActiveTarget.current(stashedPose, {
+      camera: true,
+      presetExpressions: true,
+      extraBlendShapes: true,
+      nonStandardBones: false,
+    });
+
+    stage?.setCamMode(currentCam.mode, currentCam);
+    stage!.setShowBones(photoModeState.visibleBones);
   });
 
   const handleClickOverwritePoseMenu = useEvent((params: ItemParams) => {
@@ -2422,9 +2491,13 @@ export const PhotoBooth = memo(function PhotoBooth({
                   ))}
                 </List>
               </InputSection>
+
+              <___ capture={captureStage} />
             </div>
           </div>
         </Sidebar>
+
+        <KeyframeEditor stage={stage} />
 
         <Sidebar
           css={`
@@ -2879,6 +2952,17 @@ export const PhotoBooth = memo(function PhotoBooth({
                   )}
                 </Button>
               </div>
+
+              <div
+                css={`
+                  display: flex;
+                  flex-flow: column;
+                  gap: 8px;
+                  margin-top: auto;
+                `}
+              >
+                <Button onClick={handleClickSaveVirseScene}>Save</Button>
+              </div>
             </div>
           </div>
         </Sidebar>
@@ -2945,6 +3029,10 @@ export const PhotoBooth = memo(function PhotoBooth({
 
         <ContextItem onClick={handleClickDownloadPose}>
           {t('posemenu/download')}
+        </ContextItem>
+
+        <ContextItem onClick={handleClickLoadAndCapture}>
+          {t('posemenu/loadAndCapture')}
         </ContextItem>
 
         <ContextItem onClick={handleClickDownloadPoseSet}>
