@@ -19,6 +19,7 @@
     "@mediapipe/camera_utils": "^0.3.1640029074",
     "@mediapipe/drawing_utils": "^0.3.1620248257",
     "@mediapipe/holistic": "^0.5.1635989137",
+    "@napi-rs/canvas": "^0.1.51",
     "@pixiv/three-vrm": "^2.1.0",
     "@radix-ui/react-tooltip": "^1.0.5",
     "@react-hook/mouse-position": "^4.1.3",

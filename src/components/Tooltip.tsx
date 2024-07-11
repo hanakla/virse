@@ -18,21 +18,25 @@ export function Tooltip({
       <RadTooltip.Root
         open={open}
         disableHoverableContent={disableHoverableContent}
+        delayDuration={100}
       >
         <RadTooltip.Trigger asChild>{children}</RadTooltip.Trigger>
-        <TooltipContent>
-          {content}
-          <TooltipArrow />
-        </TooltipContent>
+        <RadTooltip.Portal>
+          <TooltipContent>
+            {content}
+            <TooltipArrow />
+          </TooltipContent>
+        </RadTooltip.Portal>
       </RadTooltip.Root>
     </RadTooltip.Provider>
   );
 }
 
 const TooltipContent = styled(RadTooltip.Content)`
+  z-index: 2;
   border-radius: 4px;
-  padding: 10px 15px;
-  font-size: 15px;
+  padding: 6px 8px;
+  font-size: 12px;
   line-height: 1;
   background-color: white;
   box-shadow: rgba(14, 18, 22, 0.35) 0px 10px 38px -10px,

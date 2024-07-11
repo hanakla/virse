@@ -2,6 +2,7 @@ import { rgba } from 'polished';
 import { ReactNode } from 'react';
 import useMeasure from 'react-use-measure';
 import { transitionCss } from '../styles/mixins';
+import { css } from 'styled-components';
 
 export const Sidebar = ({
   side,
@@ -17,7 +18,22 @@ export const Sidebar = ({
   const [sidebarRef, sidebarBBox] = useMeasure();
 
   return (
-    <div className={className}>
+    <div
+      css={css`
+        ${transitionCss}
+      `}
+      className={className}
+      style={{
+        transform:
+          side === 'left'
+            ? opened
+              ? 'translateX(0)'
+              : 'translateX(calc(-100% - 48px))'
+            : opened
+            ? 'translateX(0)'
+            : 'translateX(calc(100% + 48px))',
+      }}
+    >
       <div
         ref={sidebarRef}
         css={`
@@ -27,18 +43,7 @@ export const Sidebar = ({
           width: 100%;
           height: 100%;
           background-color: ${rgba('#34c0b9', 0.8)};
-          ${transitionCss}
         `}
-        style={{
-          transform:
-            side === 'left'
-              ? opened
-                ? 'translateX(0)'
-                : 'translateX(calc(-100% - 48px))'
-              : opened
-              ? 'translateX(0)'
-              : 'translateX(calc(100% + 48px))',
-        }}
       >
         {children}
 

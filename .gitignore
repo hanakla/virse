@@ -40,3 +40,6 @@ yarn-error.log*
 
 .yarn/
 !.yarn/releases/*
+
+private/
+credentials.json

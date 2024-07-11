@@ -12,6 +12,7 @@ export const Slider = memo(function Slider({
   min,
   max,
   step = 0.01,
+  defaultValue = 0,
   value,
   onChange,
 }: {
@@ -20,6 +21,7 @@ export const Slider = memo(function Slider({
   min: number;
   max: number;
   step?: number;
+  defaultValue?: number;
   value: number;
   onChange: (v: number) => void;
 }) {
@@ -92,7 +94,7 @@ export const Slider = memo(function Slider({
           `}
           kind="default"
           size="min"
-          onClick={() => onChange(0)}
+          onClick={() => onChange(defaultValue)}
         >
           <RiRefreshLine />
         </Button>
@@ -121,7 +123,7 @@ export const Slider = memo(function Slider({
 const RangeInput = styled.input`
   display: block;
   width: 100%;
-  height: 2px;
+  height: 4px;
   margin: 4px 0;
 
   appearance: none;
@@ -144,6 +146,7 @@ const RangeInput = styled.input`
     background: #fff;
     border-radius: 100px;
 
-    box-shadow: 0 0 2px #aaa;
+    /* box-shadow: 0 0 2px #aaa; */
+    border: 1px solid #aaa;
   }
 `;
