@@ -1,4 +1,4 @@
-import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import { ModalProps } from '@fleur/mordred';
 import { ReactNode } from 'react';
 import styled, { css } from 'styled-components';
 import { Button } from '../components/Button';

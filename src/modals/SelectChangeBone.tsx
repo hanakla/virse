@@ -1,5 +1,5 @@
 import useFocusTrap from '@charlietango/use-focus-trap';
-import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import { ModalProps } from '@fleur/mordred';
 import { ChangeEvent, useRef, useState } from 'react';
 import useEvent from 'react-use-event-hook';
 import { css } from 'styled-components';

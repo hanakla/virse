@@ -1,4 +1,4 @@
-import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import { ModalProps } from '@fleur/mordred';
 import { ChangeEvent, useState } from 'react';
 import { Button } from '../components/Button';
 import { ModalBase } from '../components/ModalBase';

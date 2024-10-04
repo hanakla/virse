@@ -255,15 +255,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@fleur/mordred@npm:^1.0.0-beta.6":
-  version: 1.0.0-beta.6
-  resolution: "@fleur/mordred@npm:1.0.0-beta.6"
+"@fleur/mordred@npm:^1.0.0-beta.11":
+  version: 1.0.1
+  resolution: "@fleur/mordred@npm:1.0.1"
   dependencies:
     focus-trap: ^6.2.3
   peerDependencies:
-    react: 16
-    react-dom: ^17.0.1
-  checksum: 61326ee303292437cbd8e2e376967418cf9d025e69fb08a3c8008352de1fe2527debae945bbad4e26fbbd933fd74a16985596196a31c837867b2b0cdbe05b05c
+    react: ^16||^17||^18
+    react-dom: ^16||^17||^18
+  checksum: 90287b4c25fd029b50626b2a103a92a7e186335c09ee256dcbd4f916be6f0d4517793cadc4719784d5d06f3daed0203ec0cda2c89f8f6635215b845f9d66a8b6
   languageName: node
   linkType: hard
 
@@ -537,6 +537,105 @@ __metadata:
   version: 3.0.2
   resolution: "@msgpackr-extract/msgpackr-extract-win32-x64@npm:3.0.2"
   conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@napi-rs/canvas-android-arm64@npm:0.1.56":
+  version: 0.1.56
+  resolution: "@napi-rs/canvas-android-arm64@npm:0.1.56"
+  conditions: os=android & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@napi-rs/canvas-darwin-arm64@npm:0.1.56":
+  version: 0.1.56
+  resolution: "@napi-rs/canvas-darwin-arm64@npm:0.1.56"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@napi-rs/canvas-darwin-x64@npm:0.1.56":
+  version: 0.1.56
+  resolution: "@napi-rs/canvas-darwin-x64@npm:0.1.56"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@napi-rs/canvas-linux-arm-gnueabihf@npm:0.1.56":
+  version: 0.1.56
+  resolution: "@napi-rs/canvas-linux-arm-gnueabihf@npm:0.1.56"
+  conditions: os=linux & cpu=arm
+  languageName: node
+  linkType: hard
+
+"@napi-rs/canvas-linux-arm64-gnu@npm:0.1.56":
+  version: 0.1.56
+  resolution: "@napi-rs/canvas-linux-arm64-gnu@npm:0.1.56"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@napi-rs/canvas-linux-arm64-musl@npm:0.1.56":
+  version: 0.1.56
+  resolution: "@napi-rs/canvas-linux-arm64-musl@npm:0.1.56"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@napi-rs/canvas-linux-x64-gnu@npm:0.1.56":
+  version: 0.1.56
+  resolution: "@napi-rs/canvas-linux-x64-gnu@npm:0.1.56"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@napi-rs/canvas-linux-x64-musl@npm:0.1.56":
+  version: 0.1.56
+  resolution: "@napi-rs/canvas-linux-x64-musl@npm:0.1.56"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@napi-rs/canvas-win32-x64-msvc@npm:0.1.56":
+  version: 0.1.56
+  resolution: "@napi-rs/canvas-win32-x64-msvc@npm:0.1.56"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@napi-rs/canvas@npm:^0.1.51":
+  version: 0.1.56
+  resolution: "@napi-rs/canvas@npm:0.1.56"
+  dependencies:
+    "@napi-rs/canvas-android-arm64": 0.1.56
+    "@napi-rs/canvas-darwin-arm64": 0.1.56
+    "@napi-rs/canvas-darwin-x64": 0.1.56
+    "@napi-rs/canvas-linux-arm-gnueabihf": 0.1.56
+    "@napi-rs/canvas-linux-arm64-gnu": 0.1.56
+    "@napi-rs/canvas-linux-arm64-musl": 0.1.56
+    "@napi-rs/canvas-linux-x64-gnu": 0.1.56
+    "@napi-rs/canvas-linux-x64-musl": 0.1.56
+    "@napi-rs/canvas-win32-x64-msvc": 0.1.56
+  dependenciesMeta:
+    "@napi-rs/canvas-android-arm64":
+      optional: true
+    "@napi-rs/canvas-darwin-arm64":
+      optional: true
+    "@napi-rs/canvas-darwin-x64":
+      optional: true
+    "@napi-rs/canvas-linux-arm-gnueabihf":
+      optional: true
+    "@napi-rs/canvas-linux-arm64-gnu":
+      optional: true
+    "@napi-rs/canvas-linux-arm64-musl":
+      optional: true
+    "@napi-rs/canvas-linux-x64-gnu":
+      optional: true
+    "@napi-rs/canvas-linux-x64-musl":
+      optional: true
+    "@napi-rs/canvas-win32-x64-msvc":
+      optional: true
+  checksum: b311b51b0e0521f7a11e0edceb3321e8b53d7d92fb72d87d25c1448cc862db02eaf1c930d577a2dde350a361d1fa8ee2848e62ee0d68f59eff3e82e208a76aeb
   languageName: node
   linkType: hard
 
@@ -6958,7 +7057,7 @@ __metadata:
   dependencies:
     "@charlietango/use-focus-trap": ^1.4.0
     "@fleur/fleur": ^3.1.0-beta.7
-    "@fleur/mordred": ^1.0.0-beta.6
+    "@fleur/mordred": ^1.0.0-beta.11
     "@fleur/next": ^1.0.0
     "@fleur/react": ^5.0.2
     "@gltf-transform/core": ^2.0.5
@@ -6967,6 +7066,7 @@ __metadata:
     "@mediapipe/camera_utils": ^0.3.1640029074
     "@mediapipe/drawing_utils": ^0.3.1620248257
     "@mediapipe/holistic": ^0.5.1635989137
+    "@napi-rs/canvas": ^0.1.51
     "@next/mdx": ^13.2.4
     "@pixiv/three-vrm": ^2.1.0
     "@radix-ui/react-tooltip": ^1.0.5

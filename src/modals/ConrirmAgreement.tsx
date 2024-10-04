@@ -1,7 +1,7 @@
 import { ModalBase } from '../components/ModalBase';
 import { css } from 'styled-components';
 import { Button } from '../components/Button';
-import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import { ModalProps } from '@fleur/mordred';
 import { Tooltip } from '../components/Tooltip';
 import { useState } from 'react';
 import useEvent from 'react-use-event-hook';

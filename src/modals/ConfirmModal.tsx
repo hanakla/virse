@@ -1,4 +1,4 @@
-import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import { ModalProps } from '@fleur/mordred';
 import { ReactNode } from 'react';
 import useEvent from 'react-use-event-hook';
 import { css } from 'styled-components';

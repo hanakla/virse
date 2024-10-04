@@ -1,4 +1,4 @@
-import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import { ModalProps } from '@fleur/mordred';
 import { useObjectState } from '@hanakla/arma';
 import { css } from 'styled-components';
 import { Button } from '../components/Button';
