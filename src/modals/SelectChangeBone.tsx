@@ -46,52 +46,48 @@ export function SelectChangeBones({
   });
 
   useBindMousetrap(
-    listRef,
-    rightHandShortcuts.boneListPrev,
-    (e) => {
-      e.stopPropagation();
-      setIndex((index) => (index - 1 + boneNames.length) % boneNames.length);
+    [
+      {
+        keys: rightHandShortcuts.boneListPrev,
+        handler: (e) => {
+          e.stopPropagation();
+          setIndex(
+            (index) => (index - 1 + boneNames.length) % boneNames.length
+          );
+        },
+      },
+      {
+        keys: rightHandShortcuts.boneListNext,
+        handler: (e) => {
+          e.stopPropagation();
+          setIndex((index) => (index + 1) % boneNames.length);
+        },
+      },
+      {
+        keys: [rightHandShortcuts.boneListOk, rightHandShortcuts.boneListOk2],
+        handler: (e) => {
+          e.stopPropagation();
+          handleClickOk();
+        },
+      },
+      {
+        keys: 'enter',
+        handler: (e) => {
+          e.stopPropagation();
+          handleClickOk();
+        },
+      },
+      {
+        keys: 'esc',
+        handler: () => {
+          handleClickCancel();
+        },
+      },
+    ],
+    {
+      stopCallback: (e) => false,
     },
-    { enableOnInput: true }
-  );
-
-  useBindMousetrap(
-    listRef,
-    rightHandShortcuts.boneListNext,
-    (e) => {
-      e.stopPropagation();
-      setIndex((index) => (index + 1) % boneNames.length);
-    },
-    { enableOnInput: true }
-  );
-
-  useBindMousetrap(
-    listRef,
-    [rightHandShortcuts.boneListOk, rightHandShortcuts.boneListOk2],
-    (e) => {
-      e.stopPropagation();
-      handleClickOk();
-    },
-    { enableOnInput: true }
-  );
-
-  useBindMousetrap(
-    listRef,
-    'enter',
-    (e) => {
-      e.stopPropagation();
-      handleClickOk();
-    },
-    { enableOnInput: true }
-  );
-
-  useBindMousetrap(
-    listRef,
-    'esc',
-    () => {
-      handleClickCancel();
-    },
-    { enableOnInput: true }
+    listRef
   );
 
   return (

@@ -115,12 +115,20 @@ export const LiveBooth = memo(function LiveBooth({
   ///// Keyboard shortcut
   /////
 
-  useBindMousetrap(rootRef, 'tab', (e) => {
-    e.preventDefault();
-
-    const { menuOpened } = getStore(EditorStore).state;
-    executeOperation(editorOps.setMenuOpened, !menuOpened);
-  });
+  useBindMousetrap(
+    [
+      {
+        keys: 'tab',
+        preventDefault: true,
+        handler: (e) => {
+          const { menuOpened } = getStore(EditorStore).state;
+          executeOperation(editorOps.setMenuOpened, !menuOpened);
+        },
+      },
+    ],
+    {},
+    rootRef
+  );
 
   /////
   //// Another

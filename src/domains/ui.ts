@@ -21,9 +21,9 @@ export const rightHandShortcuts = {
   changeToFacialTab: '5',
   changeToPoseTab: '6',
   toggleBoneControllerSpace: 'g',
-  undo: ['ctrl+z', 'command+z'],
+  undo: ['meta+z'],
   redo: ['ctrl+shift+z', 'ctrl+y', 'command+shift+z'],
-} as const;
+};
 
 export function humanizeShortcutKey(key: string) {
   return key

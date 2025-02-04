@@ -1457,247 +1457,242 @@ export const PhotoBooth = memo(function PhotoBooth({
   //   });
   // });
 
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.undo, () => {
-    console.log('undo');
-    stage?.history.undo();
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.redo, () => {
-    console.log('redo');
-    stage?.history.redo();
-  });
-
   useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.toggleDisplaySkeleton,
-    () => {
-      if (mode !== EditorMode.photo) return;
+    [
+      {
+        keys: rightHandShortcuts.undo,
+        handler: () => {
+          console.log('undo');
+          stage?.history.undo();
+        },
+      },
+      {
+        keys: rightHandShortcuts.redo,
+        handler: () => {
+          console.log('redo');
+          stage?.history.redo();
+        },
+      },
+      {
+        keys: rightHandShortcuts.selectSiblingBone,
+        handler: async () => {
+          const avatar = stage?.activeAvatar;
+          const bone = avatar?.ui.activeBone;
+          if (!bone) return;
 
-      handleClickDisplayBones();
-    }
+          const siblBones = (bone.parent?.children ?? []).filter(
+            (o: any): o is Bone => o.isBone
+          );
+          if (siblBones.length === 0) return;
+          else if (siblBones.length === 1) avatar.ui.activeBone = siblBones[0];
+          else {
+            const targetBoneName = await openModal(SelectChangeBones, {
+              boneNames: siblBones.map((o) => o.name),
+              activeBoneName: bone.name,
+            });
+            if (!targetBoneName) return;
+
+            const targetBone = siblBones.find((o) => o.name === targetBoneName);
+            if (!targetBone) return;
+
+            avatar.ui.activeBone = targetBone;
+          }
+        },
+      },
+      {
+        keys: rightHandShortcuts.selectChildBone,
+        handler: async () => {
+          const avatar = stage?.activeAvatar;
+          const bone = avatar?.ui.activeBone;
+          if (!bone) return;
+
+          const childBones = bone.children.filter(
+            (o: any): o is Bone => o.isBone
+          );
+          if (childBones.length === 0) return;
+          else if (childBones.length === 1)
+            avatar.ui.activeBone = childBones[0];
+          else {
+            const targetBoneName = await openModal(SelectChangeBones, {
+              boneNames: childBones.map((o) => o.name),
+            });
+            if (!targetBoneName) return;
+
+            const targetBone = childBones.find(
+              (o) => o.name === targetBoneName
+            );
+            if (!targetBone) return;
+
+            avatar.ui.activeBone = targetBone;
+          }
+        },
+      },
+      {
+        keys: rightHandShortcuts.selectParentBone,
+        handler: () => {
+          const avatar = stage?.activeAvatar;
+          if (!avatar) return;
+
+          const bone = avatar?.ui.activeBone;
+          if (!bone || !(bone.parent as any).isBone) return;
+
+          avatar.ui.activeBone = bone.parent;
+        },
+      },
+
+      {
+        keys: rightHandShortcuts.toggleBoneControlMode,
+
+        handler: () => {
+          if (mode !== EditorMode.photo) return;
+
+          const modes = ['translate', 'rotate'] as const;
+          const current = stage!.boneControlMode;
+
+          stage!.boneControlMode =
+            modes[(modes.indexOf(current) + 1) % modes.length];
+        },
+      },
+      {
+        keys: 't',
+        handler: () => {
+          if (mode !== EditorMode.photo) return;
+          stage!.boneControlMode = 'scale';
+        },
+      },
+      {
+        keys: rightHandShortcuts.toggleMirror,
+        handler: () => {
+          const avatar = stage?.activeAvatar;
+          if (!avatar) return;
+          avatar.ui.mirrorBone = !avatar.ui.mirrorBone;
+          rerender();
+        },
+      },
+      {
+        keys: rightHandShortcuts.nextAvatar,
+        handler: () => {
+          const currentUid = stage?.activeAvatar?.uid;
+          if (!stage) return;
+
+          if (!currentUid) {
+            const avatars = stage.avatarsIterator;
+            if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
+            return;
+          }
+
+          const avatars = stage.avatarsIterator;
+          const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
+          if (currentIdx === -1) return;
+
+          const nextIdx = (currentIdx + 1) % avatars.length;
+          const nextAvatarUID = avatars[nextIdx].uid;
+          stage.setActiveAvatar(nextAvatarUID);
+        },
+      },
+
+      {
+        keys: rightHandShortcuts.previousAvatar,
+        handler: () => {
+          const currentUid = stage?.activeAvatar?.uid;
+          if (!stage) return;
+
+          if (!currentUid) {
+            const avatars = stage.avatarsIterator;
+            if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
+            return;
+          }
+
+          const avatars = stage.avatarsIterator;
+          const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
+          if (currentIdx === -1) return;
+
+          const nextIdx = (currentIdx + avatars.length - 1) % avatars.length;
+          const nextAvatarUID = avatars[nextIdx].uid;
+          stage.setActiveAvatar(nextAvatarUID);
+        },
+      },
+      {
+        keys: rightHandShortcuts.axisX,
+        handler: (e) => {
+          stage?.activeTarget?.control?.setAxis('X');
+        },
+      },
+      {
+        keys: rightHandShortcuts.axisY,
+        handler: (e) => {
+          stage?.activeTarget?.control?.setAxis('Y');
+        },
+      },
+      {
+        keys: rightHandShortcuts.axisZ,
+        handler: (e) => {
+          stage?.activeTarget?.control?.setAxis('Z');
+        },
+      },
+      {
+        keys: rightHandShortcuts.keyboardShortcutHelp,
+        handler: (e) => {
+          if (e.repeat) return;
+
+          const abort = new AbortController();
+
+          window.addEventListener(
+            'keyup',
+            () => !abort.signal.aborted && abort.abort(),
+            { once: true }
+          );
+
+          openModal(
+            KeyboardHelp,
+            { temporalyShow: true },
+            { signal: abort.signal }
+          );
+        },
+      },
+      {
+        keys: rightHandShortcuts.resetCurrentBone,
+        handler: () => {
+          const avatar = stage?.activeAvatar?.avatar;
+          const bone = avatar?.ui.activeBone;
+          if (!avatar || !bone) return;
+
+          avatar.resetBone(bone.name);
+        },
+      },
+
+      {
+        keys: rightHandShortcuts.changeToPoseTab,
+        handler: () => {
+          setRightTab('poses');
+        },
+      },
+      {
+        keys: rightHandShortcuts.changeToFacialTab,
+        handler: () => {
+          setRightTab('expr');
+        },
+      },
+      {
+        keys: rightHandShortcuts.changeCamToEditorial,
+        handler: () => {
+          changeCamKind.current('editorial');
+        },
+      },
+      {
+        keys: rightHandShortcuts.changeCamToCapture,
+        handler: () => {
+          changeCamKind.current('capture');
+        },
+      },
+      {
+        keys: rightHandShortcuts.toggleBoneControllerSpace,
+        handler: handleClickToggleBoneControllerSpace,
+      },
+    ],
+    undefined,
+    shortcutBindElRef
   );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.selectSiblingBone,
-    async () => {
-      const avatar = stage?.activeAvatar;
-      const bone = avatar?.ui.activeBone;
-      if (!bone) return;
-
-      const siblBones = (bone.parent?.children ?? []).filter(
-        (o: any): o is Bone => o.isBone
-      );
-      if (siblBones.length === 0) return;
-      else if (siblBones.length === 1) avatar.ui.activeBone = siblBones[0];
-      else {
-        const targetBoneName = await openModal(SelectChangeBones, {
-          boneNames: siblBones.map((o) => o.name),
-          activeBoneName: bone.name,
-        });
-        if (!targetBoneName) return;
-
-        const targetBone = siblBones.find((o) => o.name === targetBoneName);
-        if (!targetBone) return;
-
-        avatar.ui.activeBone = targetBone;
-      }
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.selectChildBone,
-    async () => {
-      const avatar = stage?.activeAvatar;
-      const bone = avatar?.ui.activeBone;
-      if (!bone) return;
-
-      const childBones = bone.children.filter((o: any): o is Bone => o.isBone);
-      if (childBones.length === 0) return;
-      else if (childBones.length === 1) avatar.ui.activeBone = childBones[0];
-      else {
-        const targetBoneName = await openModal(SelectChangeBones, {
-          boneNames: childBones.map((o) => o.name),
-        });
-        if (!targetBoneName) return;
-
-        const targetBone = childBones.find((o) => o.name === targetBoneName);
-        if (!targetBone) return;
-
-        avatar.ui.activeBone = targetBone;
-      }
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.selectParentBone,
-    () => {
-      const avatar = stage?.activeAvatar;
-      if (!avatar) return;
-
-      const bone = avatar?.ui.activeBone;
-      if (!bone || !(bone.parent as any).isBone) return;
-
-      avatar.ui.activeBone = bone.parent;
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.toggleBoneControlMode,
-    () => {
-      if (mode !== EditorMode.photo) return;
-
-      const modes = ['translate', 'rotate'] as const;
-      const current = stage!.boneControlMode;
-
-      stage!.boneControlMode =
-        modes[(modes.indexOf(current) + 1) % modes.length];
-    }
-  );
-
-  useBindMousetrap(shortcutBindElRef, 't', () => {
-    if (mode !== EditorMode.photo) return;
-
-    // const current = stage!.boneControlMode;
-
-    stage!.boneControlMode = 'scale';
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.toggleMirror, () => {
-    const avatar = stage?.activeAvatar;
-    if (!avatar) return;
-    avatar.ui.mirrorBone = !avatar.ui.mirrorBone;
-    rerender();
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.nextAvatar, () => {
-    const currentUid = stage?.activeAvatar?.uid;
-    if (!stage) return;
-
-    if (!currentUid) {
-      const avatars = stage.avatarsIterator;
-      if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
-      return;
-    }
-
-    const avatars = stage.avatarsIterator;
-    const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
-    if (currentIdx === -1) return;
-
-    const nextIdx = (currentIdx + 1) % avatars.length;
-    const nextAvatarUID = avatars[nextIdx].uid;
-    stage.setActiveAvatar(nextAvatarUID);
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.previousAvatar, () => {
-    const currentUid = stage?.activeAvatar?.uid;
-    if (!stage) return;
-
-    if (!currentUid) {
-      const avatars = stage.avatarsIterator;
-      if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
-      return;
-    }
-
-    const avatars = stage.avatarsIterator;
-    const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
-    if (currentIdx === -1) return;
-
-    const nextIdx = (currentIdx + avatars.length - 1) % avatars.length;
-    const nextAvatarUID = avatars[nextIdx].uid;
-    stage.setActiveAvatar(nextAvatarUID);
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisX, (e) => {
-    stage?.activeTarget?.control?.setAxis('X');
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisY, (e) => {
-    stage?.activeTarget?.control?.setAxis('Y');
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisZ, (e) => {
-    stage?.activeTarget?.control?.setAxis('Z');
-  });
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.keyboardShortcutHelp,
-    (e) => {
-      if (e.repeat) return;
-
-      const abort = new AbortController();
-
-      window.addEventListener(
-        'keyup',
-        () => !abort.signal.aborted && abort.abort(),
-        { once: true }
-      );
-
-      openModal(
-        KeyboardHelp,
-        { temporalyShow: true },
-        { signal: abort.signal }
-      );
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.resetCurrentBone,
-    () => {
-      const avatar = stage?.activeAvatar?.avatar;
-      const bone = avatar?.ui.activeBone;
-      if (!avatar || !bone) return;
-
-      avatar.resetBone(bone.name);
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.changeToPoseTab,
-    () => {
-      setRightTab('poses');
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.changeToFacialTab,
-    () => {
-      setRightTab('expr');
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.changeCamToEditorial,
-    () => {
-      changeCamKind.current('editorial');
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.changeCamToCapture,
-    () => {
-      changeCamKind.current('capture');
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.toggleBoneControllerSpace,
-    handleClickToggleBoneControllerSpace
-  );
-
-  // useEffect(() => {
-  //   openModal(KeyboardHelp, {});
-  // });
 
   /////
   //// Another
