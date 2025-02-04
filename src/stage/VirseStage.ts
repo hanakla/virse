@@ -23,12 +23,15 @@ import { fit } from 'object-fit-math';
 import mitt from 'mitt';
 import { VrmPoseController } from './VRMToyBox/vrmPoseController';
 import { ObjectController } from './ObjectController/ObjectController';
+import { History } from './History';
 
 export type CamModes = 'perspective' | 'orthographic';
 
 type Events = {
   boneChanged: Bone | null;
   boneHoverChanged: Bone | Object3D | null;
+  cameraChanged: void;
+  cameraChangeStart: void;
   updated: void;
 };
 
@@ -96,6 +99,7 @@ export class VirseStage {
   public light: THREE.Light;
   public clock: THREE.Clock;
   public composer: EffectComposer;
+  public history: History = new History();
 
   public enableEffect = false;
   #showBones = true;
@@ -197,8 +201,17 @@ export class VirseStage {
 
     // controls
     this.orbitControls = new OrbitControls(this.pCam, this.canvas);
+    this.orbitControls.maxPolarAngle = Infinity;
     this.orbitControls.target.y = 1.0;
+    this.orbitControls.enableDamping = true;
     this.orbitControls.update();
+
+    this.orbitControls.addEventListener('start', () => {
+      this.events.emit('cameraChangeStart');
+    });
+    this.orbitControls.addEventListener('end', () => {
+      this.events.emit('cameraChanged');
+    });
 
     // composer
     const effectComposer = (this.composer = new EffectComposer(this.renderer));
@@ -480,12 +493,19 @@ export class VirseStage {
 
   public dispose() {
     Object.values(this.avatars).map((avatar) => {
-      // avatar.ui.dispose();
+      avatar.ui.dispose();
       VRMUtils.deepDispose(avatar.vrm.scene);
       this.rootScene.remove(avatar.vrm.scene);
     });
 
+    Object.values(this.gltfObjects).map((obj) => {
+      obj.obj.dispose();
+      this.rootScene.remove(obj.obj.rootBone);
+    });
+
+    this.orbitControls.dispose();
     this.renderer.dispose();
+    this.events.all.clear();
   }
 
   public get enablePhys() {
@@ -533,10 +553,18 @@ export class VirseStage {
 
     // this.activeCamera.lookAt(vec);
 
+    this.orbitControls.dispose();
     this.orbitControls = new OrbitControls(cam, this.canvas);
     this.orbitControls.screenSpacePanning = true;
     this.orbitControls.target.fromArray(opt.target ?? [0.0, 1.4, 0.0]);
     this.orbitControls.update();
+
+    this.orbitControls.addEventListener('start', () => {
+      this.events.emit('cameraChangeStart');
+    });
+    this.orbitControls.addEventListener('end', () => {
+      this.events.emit('cameraChanged');
+    });
 
     this.passes.render.camera = this.activeCamera;
 
@@ -640,6 +668,8 @@ export class VirseStage {
         o.obj.setVisible(false);
         o.obj.setEnableControll(false);
       });
+
+      this.events.emit('updated');
     } else if (this.gltfObjects[uid]) {
       this.#activeAvatarUid = null;
       this.#activeTarget = { type: 'object', uid };
@@ -653,9 +683,9 @@ export class VirseStage {
         o.obj.setVisible(o.uid === uid);
         o.obj.setEnableControll(o.uid === uid);
       });
-    }
 
-    this.events.emit('updated');
+      this.events.emit('updated');
+    }
   }
 
   public setShowBones(visible: boolean) {
@@ -779,6 +809,19 @@ export class VirseStage {
 
     avatar.kalidokit?.events.on('statusChanged', () => {
       this.events.emit('updated');
+    });
+
+    avatar.events.on('historyPushed', (entry) => {
+      this.history.push({
+        undo: () => {
+          this.setActiveTarget(uid);
+          entry.undo();
+        },
+        redo: () => {
+          this.setActiveTarget(uid);
+          entry.redo();
+        },
+      });
     });
 
     const uid = nanoid();

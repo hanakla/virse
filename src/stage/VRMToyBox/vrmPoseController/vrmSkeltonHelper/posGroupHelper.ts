@@ -6,7 +6,7 @@ import {
   sphereGeometry,
 } from './boneGizmo';
 
-export function createPosGroupHelper(group: THREE.Group) {
+export function createPoseGroupHelper(group: THREE.Group) {
   const obj = new InteractableObject(
     group,
     sphereGeometry,

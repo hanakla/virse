@@ -13,6 +13,7 @@ export const Input = styled.input.withConfig<{ sizing?: 'min' }>({
   border: none;
   border-radius: 4px;
   outline: none;
+  color: initial;
 
   ${({ sizing }) => styleWhen(sizing === 'min')`
     padding: 6px 8px;

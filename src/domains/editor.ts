@@ -6,6 +6,7 @@ import { WebIO } from '@gltf-transform/core';
 import { nanoid } from 'nanoid';
 import { Vector3Tuple, Vector4Tuple } from 'three';
 import { VirseScene } from '../stage/VirseStage';
+import { z } from 'zod';
 
 type State = {
   mode: EditorMode;
@@ -21,45 +22,68 @@ type State = {
 
 export type VirseProject = VirseScene & {
   poseset: VirsePose[];
-};
-
-export type VirseProject = VirseScene & {
-  poseset: VirsePose[];
-};
-
-export type VirsePose = {
-  type?: 'avatar' | 'object';
-  uid: string;
-  name: string;
-  canvas: any;
-  camera: {
-    fov: number;
-    mode: 'perspective' | 'orthographic';
-    position: Vector3Tuple;
-    quaternion: Vector4Tuple;
-    rotation: Vector3Tuple;
-    target: Vector3Tuple;
-    zoom: number;
-  };
-  blendShapeProxies: Record<string, number>;
-  morphs: Record<string, { value: number }>;
-  vrmVersion?: '1' | '0';
-  vrmPose: VRMPose;
-  bones: {
-    [boneName: string]: {
-      position: Vector3Tuple;
-      quaternion: Vector4Tuple;
-      scale?: Vector3Tuple;
+  selectedPoses: {
+    [avatarUid: string]: {
+      poseId: string | null;
+      poseName: string;
     };
   };
-  rootPosition: {
-    position: number[];
-    quaternion: number[];
-    scale?: number[];
-  };
-  createdAt: Date;
-  schemaVersion: 1 | 2 | 3 | 4 | void;
 };
+
+export const POSE_SCHEMA = z.object({
+  type: z.enum(['avatar', 'object']).optional(),
+  uid: z.string(),
+  name: z.string(),
+  canvas: z.object({
+    width: z.number(),
+    height: z.number(),
+  }),
+  camera: z.object({
+    fov: z.number(),
+    mode: z.enum(['perspective', 'orthographic']),
+    position: z.array(z.number()).length(3),
+    quaternion: z.array(z.number()).length(4),
+    rotation: z
+      .tuple([z.number(), z.number(), z.number(), z.string()])
+      .optional(),
+    target: z.array(z.number()).length(3).optional(),
+    zoom: z.number().optional(),
+  }),
+  blendShapeProxies: z.record(z.string(), z.number()),
+  morphs: z.record(z.string(), z.object({ value: z.number() })),
+  vrmVersion: z.enum(['1', '0']).optional(),
+  vrmPose: z.record(z.string(), z.any()),
+  bones: z.record(
+    z.string(),
+    z.object({
+      position: z.array(z.number()).length(3),
+      quaternion: z.array(z.number()).length(4),
+      scale: z.array(z.number()).length(3).optional(),
+    })
+  ),
+  rootPosition: z
+    .object({
+      position: z.array(z.number()).length(3),
+      quaternion: z.array(z.number()).length(4),
+      scale: z.array(z.number()).length(3).optional(),
+    })
+    .optional(),
+  createdAt: z.date().optional(),
+  schemaVersion: z
+    .union([
+      z.literal(1),
+      z.literal(2),
+      z.literal(3),
+      z.literal(4),
+      z.literal(undefined),
+    ])
+    .optional(),
+});
+
+export type VirsePose = z.infer<typeof POSE_SCHEMA>;
+
+export const POSESET_SCHEMA = z.object({ poseset: z.array(POSE_SCHEMA) });
+export type PoseSetSchema = z.infer<typeof POSESET_SCHEMA>;
 
 export type UnsavedVirsePose = Omit<
   VirsePose,
@@ -193,6 +217,7 @@ export const [EditorStore, editorOps] = minOps('Editor', {
       }
 
       for (const pose of poseSet) {
+        pose.createdAt ??= new Date();
         await db.add(POSE_STORE_NAME, pose);
       }
 

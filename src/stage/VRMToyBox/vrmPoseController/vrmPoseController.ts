@@ -1,22 +1,29 @@
 import * as THREE from 'three';
 import { VRM, VRMHumanBoneName, VRMPose } from '@pixiv/three-vrm';
-import { TransformControls } from './TransformControls';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
 import { VrmIK } from '../vrmIk';
-import { createSkeltonHelper } from './vrmSkeltonHelper';
-import { createPosGroupHelper } from './vrmSkeltonHelper/posGroupHelper';
+import { createVrmFKHelper } from './vrmSkeltonHelper';
+import { createPoseGroupHelper } from './vrmSkeltonHelper/posGroupHelper';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { InteractableObject } from './interactableObject';
 import { createVrmIkHelper } from './vrmIkHelper/vrmIkHelper';
 import { Object3D, Vector3 } from 'three';
 import { v1IKConfig } from '../vrmIk/v1IkConfig';
-// import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 import mitt from 'mitt';
-import { createTransformController } from './utils';
+import { createTransformController, isEqualToPrecision } from './utils';
+import { InitialBoneState } from '../Avatar';
 
 type Events = {
   boneChanged: { bone: THREE.Bone | THREE.Object3D | null };
   boneHoverChanged: { bone: THREE.Bone | THREE.Object3D | null };
   dragChange: { dragging: boolean };
+  poseChanged: { pose: VRMPose };
+};
+
+type ExtendedThreeEvent<T extends Event> = {
+  type: string;
+  target?: InteractableObject;
+  // nativeEvent: T;
 };
 
 /**
@@ -33,14 +40,18 @@ export class VrmPoseController {
   private disposeSignal: AbortController | null = null;
 
   #activeBone: Object3D | null = null;
+  #activeBones: Object3D[] = [];
   #enable: boolean = true;
   #visible: boolean = true;
   #mirrored: boolean = false;
+  #symmetricBoneMap: { [k: string]: THREE.Bone } = {};
+  #transformDragging: boolean = false;
 
   public readonly events = mitt<Events>();
 
   constructor(
     vrm: VRM,
+    symmetricBoneMap: { [k: string]: THREE.Bone },
     positionGroup: THREE.Bone,
     controllerScene: THREE.Scene,
     camera: THREE.Camera,
@@ -57,9 +68,9 @@ export class VrmPoseController {
     this._camera = camera;
     this.disposeSignal = new AbortController();
 
-    const skeltonHelper = createSkeltonHelper(vrm);
+    const skeltonHelper = createVrmFKHelper(vrm);
     const ikHelper = createVrmIkHelper(this._vrmIk);
-    const positionGroupHelper = createPosGroupHelper(positionGroup);
+    const positionGroupHelper = createPoseGroupHelper(positionGroup);
 
     this._interactableObjects = [
       ...skeltonHelper,
@@ -67,10 +78,7 @@ export class VrmPoseController {
       positionGroupHelper,
     ];
 
-    this._interactableObjects.map((obj) => {
-      obj.addEventListener('click', this._handleUiClick);
-      obj.addEventListener('hover', this._handleUiHover);
-    });
+    this.#symmetricBoneMap = symmetricBoneMap;
 
     this._transformController = createTransformController(
       camera,
@@ -79,35 +87,54 @@ export class VrmPoseController {
     );
 
     this._transformController.addEventListener('change', (e) => {
+      if (!this.#transformDragging) return;
       if (!this.activeBone) return;
       if (!this.#mirrored) return;
 
+      const activeBone = this.#activeBone as THREE.Bone;
+
       const [vrmBoneName, humanBone] =
         Object.entries(vrm.humanoid?.humanBones).find(([name, { node }]) => {
-          return node?.uuid === this.activeBone!.uuid;
+          return node?.uuid === activeBone!.uuid;
         }) ?? [];
 
-      if (!vrmBoneName || !humanBone) return;
+      if (vrmBoneName && humanBone) {
+        if (mirrorBoneMap[vrmBoneName as VRMHumanBoneName]) {
+          const mirrorBoneName = mirrorBoneMap[
+            vrmBoneName as VRMHumanBoneName
+          ] as VRMHumanBoneName;
 
-      if (mirrorBoneMap[vrmBoneName as VRMHumanBoneName]) {
-        const mirrorBoneName = mirrorBoneMap[
-          vrmBoneName as VRMHumanBoneName
-        ] as VRMHumanBoneName;
+          const mirrorBone = vrm.humanoid?.getRawBoneNode(mirrorBoneName);
 
-        const mirrorBone = vrm.humanoid?.getRawBoneNode(mirrorBoneName);
+          if (mirrorBone) {
+            mirrorBone.rotation.set(
+              humanBone.node.rotation.x,
+              humanBone.node.rotation.y * -1,
+              humanBone.node.rotation.z * -1
+            );
+            mirrorBone.scale.copy(humanBone.node.scale);
+          }
 
-        if (mirrorBone) {
-          mirrorBone.rotation.set(
-            humanBone.node.rotation.x,
-            humanBone.node.rotation.y * -1,
-            humanBone.node.rotation.z * -1
-          );
-          mirrorBone.scale.copy(humanBone.node.scale);
+          return;
         }
+      }
+
+      const mirrorBone = this.#symmetricBoneMap[this.activeBone.uuid];
+      console.log({ mirrorBone });
+      if (mirrorBone) {
+        mirrorBone.rotation.set(
+          activeBone.rotation.x,
+          activeBone.rotation.y * -1,
+          activeBone.rotation.z * -1
+        );
+        mirrorBone.scale.copy(activeBone.scale);
       }
     });
 
     this._transformController.addEventListener('dragging-changed', (event) => {
+      if (typeof event.value !== 'boolean') return;
+
+      this.#transformDragging = event.value;
       orbitControls.enabled = !event.value;
 
       this.events.emit('dragChange', { dragging: event.value });
@@ -126,19 +153,23 @@ export class VrmPoseController {
         );
       }
 
-      const pose = vrm.humanoid?.getNormalizedPose();
-      if (pose && onPoseChange && !event.target.dragging) {
-        onPoseChange(pose);
+      const pose = vrm.humanoid?.getRawPose();
+      if (pose && !event.target.dragging) {
+        onPoseChange?.(pose);
+
+        this.events.emit('poseChanged', {
+          pose,
+        });
       }
     });
 
-    canvas.addEventListener('mousedown', this._handleMouseDown, {
+    canvas.addEventListener('mousedown', this._handleCanvasMouseDown, {
       signal: this.disposeSignal.signal,
     });
     canvas.addEventListener('dblclick', this._unselectAllBones, {
       signal: this.disposeSignal.signal,
     });
-    canvas.addEventListener('mousemove', this._handleMouseMove, {
+    canvas.addEventListener('mousemove', this._handleCanvasMouseMove, {
       signal: this.disposeSignal.signal,
     });
   }
@@ -173,7 +204,12 @@ export class VrmPoseController {
 
     this._selectedObject = interactObj;
     this.#activeBone = interactObj.controlTarget;
+    this.#activeBones = [this.#activeBone];
     this.events.emit('boneChanged', { bone: interactObj.controlTarget });
+  }
+
+  public get mirrorBoneMap() {
+    return this.#symmetricBoneMap;
   }
 
   public get activeBoneName(): string | null {
@@ -260,12 +296,10 @@ export class VrmPoseController {
 
   // TODO: 負荷対策を考える
   // flag&update or throttle
-  private _handleMouseMove = (event: MouseEvent) => {
+  private _handleCanvasMouseMove = (event: MouseEvent) => {
     const canvas = event.currentTarget;
 
-    if (!(canvas instanceof HTMLCanvasElement)) {
-      return;
-    }
+    if (!(canvas instanceof HTMLCanvasElement)) return;
 
     // 左クリックでコントローラ選択 UI表示
     const x = event.clientX - canvas.offsetLeft;
@@ -282,36 +316,25 @@ export class VrmPoseController {
 
     const intersects = raycaster.intersectObjects(this._interactableObjects);
     if (intersects.length <= 0) {
-      this._dispatchBlur();
+      this._handleBoneBlur();
       return;
     }
 
     const interact = intersects[0].object.parent;
     if (interact instanceof InteractableObject) {
-      this._dispatchHover(interact);
+      this._handleBoneHover(interact);
     }
   };
 
-  private _handleMouseDown = (event: MouseEvent) => {
+  private _handleCanvasMouseDown = (event: MouseEvent) => {
     // 右クリックで解除
     if (event.button === 2) {
-      this._handleRightClick();
+      this._unselectAllBones();
     }
 
     // 左クリックで３DUIを選択
-    this._handleLeftClick(event);
-  };
-
-  private _handleRightClick = () => {
-    this._unselectAllBones();
-  };
-
-  private _handleLeftClick = (event: MouseEvent) => {
     const canvas = event.currentTarget;
-
-    if (!(canvas instanceof HTMLCanvasElement)) {
-      return;
-    }
+    if (!(canvas instanceof HTMLCanvasElement)) return;
 
     // 左クリックでコントローラ選択 UI表示
     const x = event.clientX - canvas.offsetLeft;
@@ -336,36 +359,25 @@ export class VrmPoseController {
     if (intersects.length > 0) {
       const interact = intersects[0].object.parent;
       if (interact instanceof InteractableObject) {
-        interact.dispatchEvent({
+        this._handleBoneClick({
           type: 'click',
+          target: interact,
+          nativeEvent: event,
         });
       }
     }
   };
 
-  private _handleUiClick = (event: THREE.Event): void => {
+  private _handleBoneClick = (event: ExtendedThreeEvent<MouseEvent>): void => {
     const interactObj = event.target;
-    if (interactObj instanceof InteractableObject) {
-      this._selectBone(interactObj);
-    }
-  };
+    const shiftKey = event.nativeEvent.shiftKey;
 
-  private _handleUiHover = (event: THREE.Event): void => {
-    const interactObj = event.target;
+    if (!(interactObj instanceof InteractableObject)) return;
+    if (this._selectedObject === interactObj) return;
 
-    if (interactObj instanceof InteractableObject) {
-      this._dispatchBlur();
-      this._hoveredObject = interactObj;
-    }
-  };
+    let nextActiveBones = [...this.#activeBones];
 
-  // TODO: rename
-  private _selectBone = (interactObj: InteractableObject) => {
-    if (this._selectedObject === interactObj) {
-      return;
-    }
-
-    this._unselectAllBones();
+    if (!shiftKey) this._unselectAllBones();
     this._selectedObject = interactObj;
 
     if (interactObj.tag === 'rotate' || interactObj.tag === 'translate') {
@@ -373,12 +385,36 @@ export class VrmPoseController {
       this._transformController.setMode(interactObj.tag);
       this.setAxis('all');
 
+      if (shiftKey) {
+        nextActiveBones.push(interactObj.controlTarget);
+      } else {
+        nextActiveBones = [interactObj.controlTarget];
+      }
+
       this.#activeBone = interactObj.controlTarget;
+      this.#activeBones = nextActiveBones;
       this.events.emit('boneChanged', { bone: interactObj.controlTarget });
     }
 
-    this._interactableObjects.forEach((obj) => obj.unselected());
+    this._interactableObjects.forEach(
+      (obj) => !nextActiveBones.includes(obj.controlTarget) && obj.unselected()
+    );
     interactObj.selected();
+  };
+
+  private _handleBoneHover = (interactObj: InteractableObject): void => {
+    if (
+      this._hoveredObject === interactObj ||
+      this._selectedObject === interactObj
+    ) {
+      return;
+    }
+
+    this._handleBoneBlur();
+
+    interactObj.hovered();
+    this._hoveredObject = interactObj;
+    this.events.emit('boneHoverChanged', { bone: interactObj.controlTarget });
   };
 
   private _unselectAllBones = () => {
@@ -389,19 +425,7 @@ export class VrmPoseController {
     this.events.emit('boneChanged', { bone: null });
   };
 
-  private _dispatchHover = (interactObj: InteractableObject) => {
-    if (
-      this._hoveredObject === interactObj ||
-      this._selectedObject === interactObj
-    ) {
-      return;
-    }
-
-    interactObj.hovered();
-    this.events.emit('boneHoverChanged', { bone: interactObj.controlTarget });
-  };
-
-  private _dispatchBlur = () => {
+  private _handleBoneBlur = () => {
     if (this._hoveredObject === this._selectedObject) {
       return;
     }

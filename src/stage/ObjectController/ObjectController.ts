@@ -3,7 +3,7 @@ import { VirseStage } from '../VirseStage';
 import * as THREE from 'three';
 import mitt from 'mitt';
 import { InteractableObject } from '../VRMToyBox/vrmPoseController/interactableObject';
-import { createPosGroupHelper } from '../VRMToyBox/vrmPoseController/vrmSkeltonHelper/posGroupHelper';
+import { createPoseGroupHelper } from '../VRMToyBox/vrmPoseController/vrmSkeltonHelper/posGroupHelper';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
 import { createTransformController } from '../VRMToyBox/vrmPoseController/utils';
 
@@ -145,7 +145,7 @@ export class ObjectController {
     this.#rootScene.add(this.#positionBone);
     this.#stage.rootScene.add(this.#rootScene);
 
-    this.#controller = createPosGroupHelper(this.#positionBone);
+    this.#controller = createPoseGroupHelper(this.#positionBone);
     this.#interactableObjects.push(this.#controller);
 
     this.#interactableObjects.map((obj) => {

@@ -1,6 +1,7 @@
 import { klona } from 'klona';
 import { UnsavedVirsePose, VirsePose } from './editor';
 import { VRMHumanBoneName, VRMPose } from '@pixiv/three-vrm';
+import { z } from 'zod';
 
 const expressionNameMap = {
   A: 'aa',
@@ -38,7 +39,10 @@ export function migrateVRM0PoseToV1<
   if (!pose) return pose;
 
   const next = klona(pose);
-  console.log('migrating pose', pose);
+  console.log('migrating pose', pose, {
+    poseVrmVersion: pose.vrmVersion,
+    targetVrmVersion,
+  });
 
   Object.entries(expressionNameMap).forEach(([oldKey, newKey]) => {
     next.blendShapeProxies[newKey] ??= pose.blendShapeProxies[oldKey] ?? 0;

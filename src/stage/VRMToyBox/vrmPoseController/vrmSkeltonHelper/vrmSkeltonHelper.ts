@@ -15,7 +15,7 @@ import { Bone, Object3D } from 'three';
 /**
  * FKの操作用の3DUIを生成する
  */
-export const createSkeltonHelper = (vrm: VRM): InteractableObject[] => {
+export const createVrmFKHelper = (vrm: VRM): InteractableObject[] => {
   const boneUIObjects = Array<InteractableObject>();
 
   const bones: Bone[] = [];

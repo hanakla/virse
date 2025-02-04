@@ -47,16 +47,13 @@ export function LoadPose({
           `}
         >
           <select
-            css={`
-              width: 100%;
-              height: 400px;
-            `}
+            className="w-full h-[400px] border border-gray-400"
             multiple
             value={selection}
             onChange={onChange}
           >
             {poses.map((pose) => (
-              <option key={pose.uid} value={pose.uid}>
+              <option key={pose.uid} className="py-[2px]" value={pose.uid}>
                 {pose.name}
               </option>
             ))}

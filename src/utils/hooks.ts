@@ -105,7 +105,7 @@ export const useMousetrap = (
 
 export const useBindMousetrap = (
   ref: MutableRefObject<HTMLElement | null>,
-  handlerKey: string | string[],
+  handlerKey: string | string[] | readonly string[],
   handlerCallback: MousetrapCallback,
   {
     enableOnInput = false,

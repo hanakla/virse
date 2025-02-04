@@ -11,6 +11,7 @@ import {
   VRM,
   VRMExpressionPresetName,
   VRMLoaderPlugin,
+  VRMPose,
   VRMUtils,
 } from '@pixiv/three-vrm';
 import { KalidokitCapture } from '../Kalidokit/capture';
@@ -25,12 +26,15 @@ import {
 import { VirseStage } from '../VirseStage';
 import mitt from 'mitt';
 import { VrmPoseController } from './vrmPoseController';
+import { HistoryEntry } from '../History';
+import { isEqualToPrecision } from './vrmPoseController/utils';
 
 type Events = {
   updated: void;
   boneChanged: Bone | null;
   boneDragging: { dragging: boolean };
   kalidokitStatusChanged: { initialized: boolean; running: boolean };
+  historyPushed: HistoryEntry;
 };
 
 type MorphProxy = {
@@ -46,6 +50,14 @@ type MorphProxy = {
   value: number;
 };
 
+export type InitialBoneState = {
+  name: string;
+  bone: Bone;
+  position: Vector3Tuple;
+  globalPos: Vector3Tuple;
+  quaternion: Vector4Tuple;
+};
+
 export class Avatar {
   private _stage: VirseStage;
 
@@ -58,11 +70,7 @@ export class Avatar {
 
   // private _vrmIK!: VrmIK;
   public needIKSolve: boolean = false;
-  public initialBones: Array<{
-    name: string;
-    position: Vector3Tuple;
-    quaternion: Vector4Tuple;
-  }> = [];
+  public initialBones: Array<InitialBoneState> = [];
 
   public readonly events = mitt<Events>();
   private controls: TransformControls[] = [];
@@ -72,6 +80,9 @@ export class Avatar {
   #controller!: VrmPoseController;
 
   #visible: boolean = true;
+
+  #bones: THREE.Bone[] = [];
+  #mirrorBoneMap: { [k: string]: THREE.Bone } = {};
 
   constructor(stage: VirseStage) {
     this._stage = stage;
@@ -170,11 +181,14 @@ export class Avatar {
     vrm.scene.traverse((o) => {
       if ((o as any).isBone) bones.push(o as Bone);
     });
+    this.#bones = bones;
 
     this.initialBones = bones.map((bone) => {
       return {
         name: bone.name,
+        bone,
         position: bone.position.toArray(),
+        globalPos: bone.getWorldPosition(new THREE.Vector3()).toArray(),
         quaternion: bone.quaternion.toArray() as [
           number,
           number,
@@ -184,14 +198,69 @@ export class Avatar {
       };
     });
 
+    this.#mirrorBoneMap = this.initialBones.reduce((acc, b) => {
+      const symmetricalBone = this.initialBones.find(
+        (bone) =>
+          b.bone.uuid !== bone.bone.uuid &&
+          isEqualToPrecision(bone.globalPos[0], -b.globalPos[0], 5) &&
+          isEqualToPrecision(bone.globalPos[1], b.globalPos[1], 5) &&
+          isEqualToPrecision(bone.globalPos[2], b.globalPos[2], 5)
+      );
+
+      if (!symmetricalBone) return acc;
+
+      acc[b.bone.uuid] = symmetricalBone.bone;
+
+      return acc;
+    }, Object.create(null));
+
     const ui = (this.#controller = new VrmPoseController(
       vrm,
+      this.#mirrorBoneMap,
       this._positionBone,
       this._avatarScene,
       this._stage.activeCamera,
       this._stage.canvas,
       this._stage.orbitControls
     ));
+
+    // ui.events.on('dragChange', (e) => {
+    //   if (e.dragging) {
+    //     this._stage.canvas.requestPointerLock();
+    //   } else {
+    //     document.pointerLockElement && document.exitPointerLock();
+    //   }
+    // });
+
+    let prevPose: {
+      pose: VRMPose;
+      position: Bone;
+    } = {
+      pose: vrm.humanoid.getRawPose(),
+      position: this.positionBone.clone(false),
+    };
+    ui.events.on('poseChanged', ({ pose }) => {
+      const undoPose = prevPose;
+      const nextPose = {
+        pose: pose,
+        position: this.positionBone.clone(false),
+      };
+      prevPose = nextPose;
+
+      this.events.emit('historyPushed', {
+        undo: () => {
+          this.positionBone.position.copy(undoPose.position.position);
+          this.positionBone.quaternion.copy(undoPose.position.quaternion);
+          vrm.humanoid.setRawPose(undoPose.pose);
+        },
+        redo: () => {
+          console.log(undoPose, nextPose, undoPose.pose === nextPose.pose);
+          this.positionBone.position.copy(nextPose.position.position);
+          this.positionBone.quaternion.copy(nextPose.position.quaternion);
+          vrm.humanoid.setRawPose(nextPose.pose);
+        },
+      });
+    });
 
     ui.events.on('boneChanged', (b) => this.events.emit('boneChanged', b.bone));
     ui.events.on('dragChange', (e) => this.events.emit('boneDragging', e));
@@ -210,6 +279,24 @@ export class Avatar {
     this.#controller.update();
 
     // if (!!this._vrmIK) this._vrmIK.solve();
+  }
+
+  public resetBone(boneName: string) {
+    const initial = this.getInitialBoneState(boneName);
+    const targetBone = this.#bones.find((b) => b.name === boneName);
+
+    if (!targetBone || !initial) return;
+
+    targetBone.position.fromArray(initial.position);
+    targetBone.quaternion.fromArray(initial.quaternion);
+
+    if (this.ui.mirrorBone) {
+      const symmetricalBone = this.#mirrorBoneMap[targetBone.uuid];
+      if (!symmetricalBone) return;
+
+      symmetricalBone.position.fromArray(initial.position);
+      symmetricalBone.quaternion.fromArray(initial.quaternion);
+    }
   }
 
   public resetPose() {

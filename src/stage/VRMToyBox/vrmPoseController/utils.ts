@@ -1,4 +1,5 @@
-import { TransformControls } from './TransformControls';
+import * as THREE from 'three';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
 
 export const createTransformController = (
   camera: THREE.Camera,
@@ -13,3 +14,12 @@ export const createTransformController = (
   scene.attach(controller);
   return controller;
 };
+
+export function isEqualToPrecision(
+  num1: number,
+  num2: number,
+  precision: number
+): boolean {
+  const factor = Math.pow(10, precision);
+  return Math.round(num1 * factor) === Math.round(num2 * factor);
+}

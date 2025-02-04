@@ -56,6 +56,7 @@ export const InputSectionDiv = ({
           width: 100%;
           margin-bottom: 4px;
           font-size: 14px;
+          font-weight: bold;
         `}
       >
         {title}
