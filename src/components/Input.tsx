@@ -1,21 +1,25 @@
-import { styleWhen } from '@hanakla/arma';
-import styled from 'styled-components';
+import { twx } from '@/utils/twx';
+import { DetailedHTMLProps, forwardRef, InputHTMLAttributes } from 'react';
 
-export const Input = styled.input.withConfig<{ sizing?: 'min' }>({
-  shouldForwardProp(prop, valid) {
-    return prop !== 'sizing' && valid(prop);
-  },
-})`
-  display: block;
-  width: 100%;
-  padding: 8px 12px;
-  background-color: #fff;
-  border: none;
-  border-radius: 4px;
-  outline: none;
-  color: initial;
+type Props = DetailedHTMLProps<
+  InputHTMLAttributes<HTMLInputElement>,
+  HTMLInputElement
+> & {
+  $size?: 'min';
+};
 
-  ${({ sizing }) => styleWhen(sizing === 'min')`
-    padding: 6px 8px;
-  `}
-`;
+export const Input = forwardRef<HTMLInputElement, Props>(
+  ({ className, $size, ...props }, ref) => {
+    return (
+      <input
+        ref={ref}
+        {...props}
+        className={twx(
+          'block w-full py-1 px-3 bg-white border-none rounded outline-none text-sm text-[initial]',
+          $size === 'min' && 'py-1 px-2',
+          className
+        )}
+      />
+    );
+  }
+);

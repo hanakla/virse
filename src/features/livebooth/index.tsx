@@ -300,7 +300,7 @@ export const LiveBooth = memo(function LiveBooth({
                       margin-left: 4px;
                     `}
                     type="number"
-                    sizing="min"
+                    $size="min"
                     value={state.fov}
                     onChange={({ currentTarget }) => {
                       stage.camFov = currentTarget.valueAsNumber;

@@ -1,16 +1,18 @@
+import { twx } from '@/utils/twx';
 import { ComponentProps, forwardRef } from 'react';
-import styled from 'styled-components';
 
 type Props = ComponentProps<'a'>;
 
 export const ExternalLink = forwardRef<HTMLAnchorElement, Props>(
-  function ExternalLink(props, ref) {
+  function ExternalLink({ className, ...props }, ref) {
     return (
-      <Anchor {...props} ref={ref} target="_blank" rel="noopener noreferrer" />
+      <a
+        {...props}
+        ref={ref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={twx('text-[#0070f3]', className)}
+      />
     );
   }
 );
-
-const Anchor = styled.a`
-  color: #0070f3;
-`;

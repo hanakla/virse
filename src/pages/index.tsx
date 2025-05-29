@@ -66,7 +66,8 @@ export default function Home() {
   const handleSceneContextMenu = useFunc((e: MouseEvent<HTMLCanvasElement>) => {
     const poseId = parseInt(e.currentTarget.dataset.poseId!);
 
-    showContextMenu(e, {
+    showContextMenu({
+      event: e,
       id: 'scene',
       props: {
         poseId,

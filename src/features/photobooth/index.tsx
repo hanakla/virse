@@ -18,6 +18,8 @@ import {
   useRef,
   useState,
   KeyboardEvent,
+  PropsWithChildren,
+  ComponentProps,
 } from 'react';
 import { ChromePicker, ColorChangeHandler } from 'react-color';
 import {
@@ -91,7 +93,7 @@ import { KeyframeEditor } from './KeyframeEditor';
 import escapeStringRegexp from 'escape-string-regexp';
 
 import { usePhotoboothStore } from './photoboothStore';
-import { useDocumentMicetrap } from '@hanakla/micetrap/react';
+import { twx } from '@/utils/twx';
 
 type StashedCam = {
   mode: CamModes;
@@ -493,7 +495,8 @@ export const PhotoBooth = memo(function PhotoBooth({
   const handlePoseContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
     const poseId = e.currentTarget.dataset.poseId!;
 
-    showContextMenu(e, {
+    showContextMenu({
+      event: e,
       id: 'posemenu',
       props: {
         poseId,
@@ -502,7 +505,8 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const handleResetContextMenu = useEvent((e: MouseEvent<HTMLElement>) => {
-    showContextMenu(e, {
+    showContextMenu({
+      event: e,
       id: 'resetMenu',
       props: {},
     });
@@ -927,7 +931,11 @@ export const PhotoBooth = memo(function PhotoBooth({
   const handleStagedModelsContextMenu = useEvent(
     (e: MouseEvent<HTMLElement>) => {
       const avatarUid = e.currentTarget.dataset.avatarUid!;
-      showContextMenu(e, { id: 'stagedModelMenu', props: { avatarUid } });
+      showContextMenu({
+        event: e,
+        id: 'stagedModelMenu',
+        props: { avatarUid },
+      });
     }
   );
 
@@ -1014,7 +1022,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
   const handleModelsContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
     const modelId = e.currentTarget.dataset.modelId!;
-    showContextMenu(e, { id: 'modelmenu', props: { modelId } });
+    showContextMenu({ event: e, id: 'modelmenu', props: { modelId } });
   });
 
   const handleClickStagedModel = useEvent(
@@ -1883,7 +1891,8 @@ export const PhotoBooth = memo(function PhotoBooth({
 
         e.preventDefault();
 
-        showContextMenu(e, {
+        showContextMenu({
+          event: e,
           id: 'sceneMenu',
           props: {},
         });
@@ -1902,74 +1911,25 @@ export const PhotoBooth = memo(function PhotoBooth({
   //// Render
   return (
     <div
-      css={css`
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        display: flex;
-        flex-flow: column;
-        pointer-events: none;
-      `}
+      className="absolute top-0 right-0 bottom-0 left-0 flex flex-col pointer-events-none"
       tabIndex={-1}
       {...bindLongPress()}
     >
       {/* Photomenu */}
-      <div
-        css={css`
-          position: relative;
-          display: flex;
-          flex: 1;
-          align-items: center;
-          justify-content: center;
-          pointer-events: none;
-          min-height: 0;
-          ${transitionCss}
-        `}
-      >
+      <div className="relative flex flex-1 min-h-0 items-center justify-center pointer-events-none">
         <Sidebar
-          css={`
-            margin-right: auto;
-            width: 172px;
-            height: 100%;
-            pointer-events: all;
-          `}
+          className="mr-auto w-[172px] h-full pointer-events-auto"
           side="left"
           opened={menuOpened}
         >
-          <div
-            css={css`
-              padding-top: 8px;
-              overflow: auto;
-            `}
-          >
-            <div
-              css={css`
-                position: absolute;
-                right: -48px;
-                top: 16px;
-                transform: translateX(100%);
-                user-select: none;
-                cursor: default;
-              `}
-            >
-              <span
-                css={css`
-                  display: inline-block;
-                  padding: 4px;
-                  background-color: rgb(255 255 255 / 68%);
-                  font-weight: bold;
-                  vertical-align: bottom;
-                `}
-              >
+          {/* アクティブボーン情報 */}
+          <div className="pt-2 overflow-auto">
+            <div className="absolute right-[-48px] top-[16px] translate-x-[100%] user-select-none cursor-default">
+              <span className="inline-block p-1 bg-[rgba(255,255,255,0.68)] !font-bold align-bottom">
                 {activeAvatar?.ui.activeBoneName ?? t('noBoneSelected')}
 
                 <RiEarthFill
-                  css={css`
-                    margin-left: 2px;
-                    vertical-align: bottom;
-                  `}
+                  className="ml-0.5 align-bottom"
                   fill="#555"
                   size={16}
                   opacity={
@@ -1979,10 +1939,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                 />
 
                 <RiSplitCellsHorizontal
-                  css={css`
-                    margin-left: 2px;
-                    vertical-align: bottom;
-                  `}
+                  className="ml-0.5 align-bottom"
                   fill="#555"
                   size={16}
                   opacity={activeAvatar?.ui.mirrorBone ? 1 : 0.3}
@@ -1993,37 +1950,15 @@ export const PhotoBooth = memo(function PhotoBooth({
               {activeAvatar?.ui.hoveredBone && (
                 <>
                   <br />
-                  <span
-                    css={css`
-                      display: inline-block;
-                      padding: 4px;
-                      background-color: rgb(255 255 255 / 68%);
-                      font-size: 14px;
-                      opacity: 0.8;
-                    `}
-                  >
+                  <span className="inline-block p-1 bg-[rgba(255,255,255,0.68)] font-bold align-bottom opacity-80">
                     {activeAvatar?.ui.hoveredBone.name}
                   </span>
                 </>
               )}
             </div>
-            <div
-              css={css`
-                position: absolute;
-                right: -48px;
-                bottom: 16px;
-                transform: translateX(100%);
-                display: flex;
-                flex-flow: row;
-                gap: 8px;
-                user-select: none;
-                cursor: default;
-              `}
-            >
+            <div className="absolute right-[-48px] bottom-4 translate-x-[100%] flex flex-row gap-2 user-select-none cursor-default">
               <Button
-                css={css`
-                  white-space: nowrap;
-                `}
+                className="whitespace-nowrap"
                 style={
                   state.currentCamKind === 'editorial'
                     ? { boxShadow: '0 0 0 2px #34c0b9' }
@@ -2035,52 +1970,20 @@ export const PhotoBooth = memo(function PhotoBooth({
                 {t('editorialCam')}
               </Button>
 
-              <div
-                css={css`
-                  display: flex;
-                  flex-flow: column;
-                  align-items: center;
-                  justify-content: center;
-                  color: #34c0b9;
-                  font-weight: bold;
-                  line-height: 0;
-                `}
-              >
+              <div className="flex flex-col items-center justify-center text-[#34c0b9] font-bold leading-0">
                 <RiArrowRightLine
-                  css={css`
-                    border-radius: 100px;
-                    cursor: pointer;
-                    background-color: #fff;
-                    ${transitionCss}
-
-                    &:hover {
-                      color: #fff;
-                      background-color: #34c0b9;
-                    }
-                  `}
+                  className="rounded-full transition-all bg-white cursor-pointer hover:text-white hover:bg-[#34c0b9]"
                   size={16}
                   onClick={handleClickApplyEditorialToCapture}
                 />
                 <RiArrowLeftLine
-                  css={css`
-                    border-radius: 100px;
-                    cursor: pointer;
-                    background-color: #fff;
-                    ${transitionCss}
-
-                    &:hover {
-                      color: #fff;
-                      background-color: #34c0b9;
-                    }
-                  `}
+                  className="rounded-full transition-all bg-white cursor-pointer hover:text-white hover:bg-[#34c0b9]"
                   onClick={handleClickApplyCaptureToEditorial}
                 />
               </div>
 
               <Button
-                css={css`
-                  white-space: nowrap;
-                `}
+                className="whitespace-nowrap"
                 style={
                   state.currentCamKind === 'capture'
                     ? { boxShadow: '0 0 0 2px #34c0b9' }
@@ -2093,37 +1996,16 @@ export const PhotoBooth = memo(function PhotoBooth({
               </Button>
             </div>
 
-            <MenuItem
-              css={`
-                position: relative;
-              `}
-              onClick={handleClickBackgroundColor}
-            >
+            <MenuItem className="relative" onClick={handleClickBackgroundColor}>
               <RiPaintFill css={menuIconCss} />
               {t('bgColor')}
               <div
                 ref={bgColorPaneRef}
                 data-ignore-click
-                css={`
-                  position: absolute;
-                  top: 0;
-                  left: 100%;
-                  z-index: 1;
-                  background-color: #fff;
-                  border-radius: 4px;
-                  overflow: hidden;
-                  box-shadow: 0 4px 12px ${rgba('#000', 0.2)};
-                  cursor: default;
-                `}
+                className="absolute top-0 left-full z-[1] bg-white rounded overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.2)] cursor-default"
                 style={{ display: state.showColorPane ? 'block' : 'none' }}
               >
-                <div
-                  css={css`
-                    display: flex;
-                    gap: 4px;
-                    padding: 4px;
-                  `}
-                >
+                <div className="flex gap-1 p-1">
                   <div
                     css={css`
                       width: 24px;
@@ -2151,23 +2033,11 @@ export const PhotoBooth = memo(function PhotoBooth({
                     onClick={handleClickBGTransparent}
                   />
                   <div
-                    css={css`
-                      width: 24px;
-                      height: 24px;
-                      background-color: #00f;
-                      border-radius: 4px;
-                      cursor: pointer;
-                    `}
+                    className="w-6 h-6 bg-[#00f] rounded cursor-pointer"
                     onClick={handleClickBGBlue}
                   />
                   <div
-                    css={css`
-                      width: 24px;
-                      height: 24px;
-                      background-color: #0f0;
-                      border-radius: 4px;
-                      cursor: pointer;
-                    `}
+                    className="w-6 h-6 bg-[#0f0] rounded cursor-pointer"
                     onClick={handleClickBGGreen}
                   />
                 </div>
@@ -2201,31 +2071,19 @@ export const PhotoBooth = memo(function PhotoBooth({
                 <br />
 
                 {stage && (
-                  <span
-                    css={css`
-                      font-size: 12px;
-                    `}
-                  >
+                  <span className="text-xs">
                     {t(`camMode/${stage.camMode}`)}
                   </span>
                 )}
               </div>
 
               {stage?.camMode === 'perspective' && (
-                <div
-                  css={`
-                    display: flex;
-                    align-items: center;
-                  `}
-                >
+                <div className="flex items-center">
                   <span>{t('camMode/fov')}</span>
                   <Input
-                    css={`
-                      flex: 1;
-                      margin-left: 4px;
-                    `}
+                    className="flex-1 ml-1"
                     type="number"
-                    sizing="min"
+                    $size="min"
                     value={stage.camFov}
                     onChange={({ currentTarget }) => {
                       stage.camFov = currentTarget.valueAsNumber;
@@ -2236,20 +2094,12 @@ export const PhotoBooth = memo(function PhotoBooth({
               )}
 
               {stage && (
-                <div
-                  css={`
-                    display: flex;
-                    align-items: center;
-                  `}
-                >
+                <div className="flex items-center">
                   <span>{t('camMode/zoom')}</span>
                   <Input
-                    css={`
-                      flex: 1;
-                      margin-left: 4px;
-                    `}
+                    className="flex-1 ml-1"
                     type="number"
-                    sizing="min"
+                    $size="min"
                     min={1}
                     step={0.1}
                     value={stage?.camZoom}
@@ -2266,11 +2116,7 @@ export const PhotoBooth = memo(function PhotoBooth({
               <div>
                 {t('showSkeleton')}(B)
                 <br />
-                <span
-                  css={css`
-                    font-size: 12px;
-                  `}
-                >
+                <span className="text-xs">
                   {photoModeState.visibleBones ? 'on' : 'off'}
                 </span>
               </div>
@@ -2392,13 +2238,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                             ? avatar.vrm.meta.title
                             : avatar.vrm.meta.name}
                         </div>
-                        <div
-                          css={css`
-                            margin-top: 6px;
-                            font-size: 12px;
-                            opacity: 0.8;
-                          `}
-                        >
+                        <div className="text-xs opacity-80">
                           {avatar.vrm.meta.version
                             ? avatar.vrm.meta.version
                             : t('noVersionInfo')}
@@ -2760,7 +2600,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                     top: 0;
                     margin-bottom: 8px;
                   `}
-                  sizing="min"
+                  $size="min"
                   placeholder={t('facial/filter')}
                   onKeyDown={handleKeyDownFacialFilter}
                   onChange={handleChangeFacialFilter}
@@ -3062,12 +2902,9 @@ export const PhotoBooth = memo(function PhotoBooth({
       </>
 
       <ContextMenu
-        css={`
-          padding: 4px;
-          font-size: 12px;
-        `}
         id="posemenu"
         animation={false}
+        className="p-1 text-xs pointer-events-auto"
       >
         <ContextItem onClick={handleClickLoadSceneAll}>
           {t('posemenu/loadAll')}
@@ -3113,12 +2950,9 @@ export const PhotoBooth = memo(function PhotoBooth({
       </ContextMenu>
 
       <ContextMenu
-        css={`
-          padding: 4px;
-          font-size: 12px;
-        `}
         id="resetMenu"
         animation={false}
+        className="p-1 text-xs pointer-events-auto"
       >
         <ContextItem onClick={handleClickResetSelectBone}>
           {t('resetmenu/resetSelectedBones')}
@@ -3130,12 +2964,9 @@ export const PhotoBooth = memo(function PhotoBooth({
       </ContextMenu>
 
       <ContextMenu
-        css={`
-          padding: 4px;
-          font-size: 12px;
-        `}
         id="stagedModelMenu"
         animation={false}
+        className="p-1 text-xs pointer-events-auto"
       >
         <ContextItem onClick={handleClickReplaceModel}>
           {t('stagedModelMenu/replaceModel')}
@@ -3146,12 +2977,9 @@ export const PhotoBooth = memo(function PhotoBooth({
       </ContextMenu>
 
       <ContextMenu
-        css={`
-          padding: 4px;
-          font-size: 12px;
-        `}
         id="sceneMenu"
         animation={false}
+        className="p-1 text-xs pointer-events-auto"
       >
         <ContextItem onClick={handleClickResetCurrentBone}>
           {t('stageContextMenu/resetBone')}
@@ -3159,12 +2987,9 @@ export const PhotoBooth = memo(function PhotoBooth({
       </ContextMenu>
 
       <ContextMenu
-        css={`
-          padding: 4px;
-          font-size: 12px;
-        `}
         id="modelmenu"
         animation={false}
+        className="p-1 text-xs pointer-events-auto"
       >
         <ContextItem onClick={handleClickLoadModel}>読み込む</ContextItem>
         <ContextItem onClick={handleClickRemoveModel}>削除</ContextItem>
@@ -3205,38 +3030,27 @@ const MenuItem = styled.div`
   }
 `;
 
-const TabBar = styled.div`
-  display: flex;
-  padding: 4px;
-  background-color: #34c0b9;
-  border-radius: 100px;
-`;
+const TabBar = ({ children }: PropsWithChildren<{}>) => (
+  <div className="flex p-1 bg-[#34c0b9] rounded-full">{children}</div>
+);
 
-const Tab = styled.div.withConfig<{ active: boolean }>({
-  shouldForwardProp(prop, valid) {
-    return prop !== 'active' && valid(prop);
-  },
-})`
-  flex: 1;
-  padding: 4px;
-  border-radius: 100px;
-  text-align: center;
-  user-select: none;
-
-  ${transitionCss}
-
-  ${({ active }) => styleWhen(active)`
-    color: #34c0b9;
-    background-color: #fff;
-  `}
-
-  ${({ active }) => styleWhen(!active)`
-    &:hover {
-      color: #fff;
-      background-color: #23a8a2;
-    }
-  `}
-`;
+const Tab = ({
+  className,
+  active,
+  children,
+  ...props
+}: ComponentProps<'div'> & { active: boolean }) => (
+  <div
+    className={twx(
+      'flex-1 py-0.5 px-1 rounded-full text-center select-none transition',
+      active && 'text-[#34c0b9] bg-white',
+      !active && 'hover:text-white hover:bg-[#23a8a2]'
+    )}
+    {...props}
+  >
+    {children}
+  </div>
+);
 
 const ExprHead = styled.div`
   display: flex;

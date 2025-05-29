@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { Packr } from 'msgpackr';
 import { VRM, VRMExpressionPresetName, VRMUtils } from '@pixiv/three-vrm';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import {
   Bone,
   Color,
@@ -18,7 +18,7 @@ import {
 } from 'three';
 import { nanoid } from 'nanoid';
 import { Avatar } from './VRMToyBox/Avatar';
-import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { fit } from 'object-fit-math';
 import mitt from 'mitt';
 import { VrmPoseController } from './VRMToyBox/vrmPoseController';
@@ -202,7 +202,7 @@ export class VirseStage {
     this.orbitControls = new OrbitControls(this.pCam, this.canvas);
     this.orbitControls.maxPolarAngle = Infinity;
     this.orbitControls.target.y = 1.0;
-    this.orbitControls.enableDamping = true;
+    this.orbitControls.enableDamping = false;
     this.orbitControls.update();
 
     this.orbitControls.addEventListener('start', () => {
@@ -838,6 +838,8 @@ export class VirseStage {
 
     this.#activeAvatarUid = uid;
     this.events.emit('updated');
+
+    this.setActiveTarget(uid);
 
     return this.avatars[uid];
   }

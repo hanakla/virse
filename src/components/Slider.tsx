@@ -65,7 +65,7 @@ export const Slider = memo(function Slider({
             }
           `}
           type="number"
-          sizing="min"
+          $size="min"
           step={step}
           value={bufferedValue}
           onChange={(e) => {

@@ -1,16 +1,17 @@
-import { rgba } from "polished";
-import styled from "styled-components";
+import { twx } from '@/utils/twx';
+import { ComponentProps, forwardRef } from 'react';
 
-export const Checkbox = styled.input.attrs((props) => ({
-  ...props,
-  type: "checkbox",
-}))`
-  margin: 0;
-  border: 1px solid ${rgba("#575757", 0.5)};
-  background-color: #ffffff;
-  outline: none;
+type Props = ComponentProps<'input'>;
 
-  &:checked {
-    border: 1px solid #575757;
-  }
-`;
+export const Checkbox = forwardRef<HTMLInputElement, Props>(
+  ({ className, ...props }, ref) => (
+    <input
+      ref={ref}
+      {...props}
+      type="checkbox"
+      className={twx(
+        'm-0 mr-1 border border-gray-600/50 bg-white outline-none checked:border-gray-600'
+      )}
+    />
+  )
+);

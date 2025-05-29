@@ -11,7 +11,7 @@ export const createTransformController = (
   controller.setSpace('local');
   controller.setSize(0.7);
 
-  controller.attach(scene);
+  scene.add(controller.getHelper());
   return controller;
 };
 
