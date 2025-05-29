@@ -49,7 +49,10 @@ export const POSE_SCHEMA = z.object({
     target: z.array(z.number()).length(3).optional(),
     zoom: z.number().optional(),
   }),
-  blendShapeProxies: z.record(z.string(), z.number()),
+  blendShapeProxies: z.record(
+    z.string(),
+    z.preprocess((v) => v ?? 0, z.number())
+  ),
   morphs: z.record(z.string(), z.object({ value: z.number() })),
   vrmVersion: z.enum(['1', '0']).optional(),
   vrmPose: z.record(z.string(), z.any()),
@@ -68,7 +71,10 @@ export const POSE_SCHEMA = z.object({
       scale: z.array(z.number()).length(3).optional(),
     })
     .optional(),
-  createdAt: z.date().optional(),
+  createdAt: z
+    .string()
+    .nullish()
+    .transform((v) => (v ? new Date(v) : null)),
   schemaVersion: z
     .union([
       z.literal(1),
