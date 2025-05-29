@@ -34,56 +34,50 @@ export class KalidokitCapture {
     avatar: Avatar,
     private video: HTMLVideoElement = document.createElement('video')
   ) {
-    this.vrm = avatar.vrm;
-
-    this.holistic = new Holistic({
-      locateFile: (file) => {
-        return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1635989137/${file}`;
-      },
-    });
-
-    this.holistic.setOptions({
-      modelComplexity: 1,
-      smoothLandmarks: true,
-      minDetectionConfidence: 0.7,
-      minTrackingConfidence: 0.7,
-      refineFaceLandmarks: true,
-    });
-
-    // Pass holistic a callback function
-    this.holistic.onResults(this.onResults);
-
-    this.camera = new Camera(this.video, {
-      onFrame: async () => {
-        await this.holistic.send({ image: this.video });
-      },
-      width: 640,
-      height: 480,
-    });
+    // this.vrm = avatar.vrm;
+    // this.holistic = new Holistic({
+    //   locateFile: (file) => {
+    //     return `https://cdn.jsdelivr.net/npm/@mediapipe/holistic@0.5.1635989137/${file}`;
+    //   },
+    // });
+    // this.holistic.setOptions({
+    //   modelComplexity: 1,
+    //   smoothLandmarks: true,
+    //   minDetectionConfidence: 0.7,
+    //   minTrackingConfidence: 0.7,
+    //   refineFaceLandmarks: true,
+    // });
+    // // Pass holistic a callback function
+    // this.holistic.onResults(this.onResults);
+    // this.camera = new Camera(this.video, {
+    //   onFrame: async () => {
+    //     await this.holistic.send({ image: this.video });
+    //   },
+    //   width: 640,
+    //   height: 480,
+    // });
   }
 
   public dispose() {
-    this.events.all.clear();
-    this.stop().then(() => {
-      this.holistic.close();
-    });
+    // this.events.all.clear();
+    // this.stop().then(() => {
+    //   this.holistic.close();
+    // });
   }
 
   public async start() {
-    this.#isInitializing = true;
-    this.events.emit('statusChanged', { initialized: false, running: false });
-
-    // Use `Mediapipe` utils to get camera - lower resolution = higher fps
-    await this.camera.start();
-
-    this.#isCaptureRunning = true;
+    // this.#isInitializing = true;
+    // this.events.emit('statusChanged', { initialized: false, running: false });
+    // // Use `Mediapipe` utils to get camera - lower resolution = higher fps
+    // await this.camera.start();
+    // this.#isCaptureRunning = true;
   }
 
   public async stop() {
-    await this.camera.stop();
-    this.#isCaptureRunning = false;
-    this.#isInitializing = false;
-    this.events.emit('statusChanged', { initialized: true, running: false });
+    // await this.camera.stop();
+    // this.#isCaptureRunning = false;
+    // this.#isInitializing = false;
+    // this.events.emit('statusChanged', { initialized: true, running: false });
   }
 
   public get isCaptureRunnging() {

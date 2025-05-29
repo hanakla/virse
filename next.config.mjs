@@ -1,12 +1,14 @@
-const nextTranslate = require('next-translate-plugin');
-const withMDX = require('@next/mdx')({
+import nextTranslate from 'next-translate-plugin';
+import createMDX from '@next/mdx';
+
+const withMDX = createMDX({
   extension: /\.mdx?$/,
 });
 
 /** @type {import('next').NextConfig} */
 const config = {
   experimental: {},
-  transpilePackages: ['kalidokit'],
+  transpilePackages: ['kalidokit', '@mediapipe/holistic'],
   compiler: {
     styledComponents: true,
   },
@@ -19,10 +21,8 @@ const config = {
       type: 'asset/resource',
     });
 
-    // (config.experiments ??= {}).syncWebAssembly = true;
-
     return config;
   },
 };
 
-module.exports = nextTranslate(withMDX(config));
+export default nextTranslate(withMDX(config));

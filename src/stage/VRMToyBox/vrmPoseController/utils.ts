@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
+import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 
 export const createTransformController = (
   camera: THREE.Camera,
@@ -11,7 +11,7 @@ export const createTransformController = (
   controller.setSpace('local');
   controller.setSize(0.7);
 
-  scene.attach(controller);
+  controller.attach(scene);
   return controller;
 };
 

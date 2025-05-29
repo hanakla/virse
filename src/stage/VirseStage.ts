@@ -154,8 +154,7 @@ export class VirseStage {
       canvas,
     });
 
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.useLegacyLights = true;
+    // this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(this.#size.width, this.#size.height);
     this.renderer.setClearColor('#ffffff', 0);
@@ -191,7 +190,7 @@ export class VirseStage {
     this.oCam.zoom = 200;
 
     // light
-    const light = (this.light = new THREE.DirectionalLight(0xffffff));
+    const light = (this.light = new THREE.DirectionalLight(0xffffff, Math.PI));
     light.position.set(1.0, 1.0, 1.0).normalize();
     scene.add(light);
 

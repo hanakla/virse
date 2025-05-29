@@ -347,31 +347,6 @@ export const PhotoBooth = memo(function PhotoBooth({
     );
   });
 
-  const handleClickSaveVirseScene = ((typeof window === 'undefined'
-    ? {}
-    : (window as any)
-  ).v$saveScene = useEvent(async () => {
-    // msgpackr
-    const msgpackr = new Packr({ structuredClone: true });
-
-    const prj: VirseProject = {
-      ...(await stage?.serializeScene()!),
-      poseset: poses,
-      selectedPoses: mapEntries(photoboothStore.get().loadedPoses, (pose) => {
-        return pose;
-      }),
-    };
-    const data = msgpackr.pack(prj);
-
-    const blob = new Blob([data], {
-      type: 'application/octet-stream',
-    });
-    const url = URL.createObjectURL(blob);
-
-    letDownload(url, 'virse-scene.virse');
-    URL.revokeObjectURL(url);
-  }));
-
   const handleClickSavePose = useEvent(() => {
     let pose: UnsavedVirsePose | null | undefined = null;
 
@@ -395,6 +370,9 @@ export const PhotoBooth = memo(function PhotoBooth({
     const prj: VirseProject = {
       ...(await stage?.serializeScene()!),
       poseset: poses,
+      selectedPoses: mapEntries(photoboothStore.get().loadedPoses, (pose) => {
+        return pose;
+      }),
     };
     const data = msgpackr.pack(prj);
 
