@@ -90,6 +90,9 @@ import { SelectModel } from '../../modals/SelectModel';
 import { KeyframeEditor } from './KeyframeEditor';
 import escapeStringRegexp from 'escape-string-regexp';
 
+import { usePhotoboothStore } from './photoboothStore';
+import { useDocumentMicetrap } from '@hanakla/micetrap/react';
+
 type StashedCam = {
   mode: CamModes;
   fov: number;
@@ -1474,6 +1477,13 @@ export const PhotoBooth = memo(function PhotoBooth({
         },
       },
       {
+        keys: rightHandShortcuts.toggleDisplaySkeleton,
+        handler: () => {
+          if (mode !== EditorMode.photo) return;
+          handleClickDisplayBones();
+        },
+      },
+      {
         keys: rightHandShortcuts.selectSiblingBone,
         handler: async () => {
           const avatar = stage?.activeAvatar;
@@ -1539,10 +1549,8 @@ export const PhotoBooth = memo(function PhotoBooth({
           avatar.ui.activeBone = bone.parent;
         },
       },
-
       {
         keys: rightHandShortcuts.toggleBoneControlMode,
-
         handler: () => {
           if (mode !== EditorMode.photo) return;
 
@@ -1590,7 +1598,6 @@ export const PhotoBooth = memo(function PhotoBooth({
           stage.setActiveAvatar(nextAvatarUID);
         },
       },
-
       {
         keys: rightHandShortcuts.previousAvatar,
         handler: () => {
@@ -1660,7 +1667,6 @@ export const PhotoBooth = memo(function PhotoBooth({
           avatar.resetBone(bone.name);
         },
       },
-
       {
         keys: rightHandShortcuts.changeToPoseTab,
         handler: () => {

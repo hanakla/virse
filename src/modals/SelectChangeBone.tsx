@@ -50,7 +50,6 @@ export function SelectChangeBones({
       {
         keys: rightHandShortcuts.boneListPrev,
         handler: (e) => {
-          e.stopPropagation();
           setIndex(
             (index) => (index - 1 + boneNames.length) % boneNames.length
           );
@@ -59,21 +58,18 @@ export function SelectChangeBones({
       {
         keys: rightHandShortcuts.boneListNext,
         handler: (e) => {
-          e.stopPropagation();
           setIndex((index) => (index + 1) % boneNames.length);
         },
       },
       {
         keys: [rightHandShortcuts.boneListOk, rightHandShortcuts.boneListOk2],
         handler: (e) => {
-          e.stopPropagation();
           handleClickOk();
         },
       },
       {
         keys: 'enter',
         handler: (e) => {
-          e.stopPropagation();
           handleClickOk();
         },
       },
@@ -85,6 +81,7 @@ export function SelectChangeBones({
       },
     ],
     {
+      stopPropagation: true,
       stopCallback: (e) => false,
     },
     listRef
