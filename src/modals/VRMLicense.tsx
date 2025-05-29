@@ -1,4 +1,4 @@
-import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import { ModalProps } from '@fleur/mordred';
 import { VRM0Meta, VRM1Meta, VRMMeta } from '@pixiv/three-vrm';
 import { ReactNode } from 'react';
 import styled, { css } from 'styled-components';

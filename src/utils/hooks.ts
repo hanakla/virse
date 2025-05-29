@@ -1,7 +1,7 @@
 import { StoreClass } from '@fleur/fleur';
 import { ExtractStateOfStoreClass } from '@fleur/fleur/dist/Store';
 import { useStore } from '@fleur/react';
-import mousetrap from 'mousetrap';
+import { useDocumentMicetrap, useMicetrap } from '@hanakla/micetrap/react';
 import {
   MutableRefObject,
   useCallback,
@@ -78,67 +78,8 @@ export const useBufferedState = <T, S = T>(
   return [state as T, setState] as any;
 };
 
-type MousetrapCallback = (
-  e: mousetrap.ExtendedKeyboardEvent,
-  combo: string
-) => void;
-
-export const useMousetrap = (
-  handlerKey: string,
-  handlerCallback: MousetrapCallback,
-  evtType = undefined
-) => {
-  const handlerRef = useStableLatestRef(handlerCallback);
-
-  useEffect(() => {
-    mousetrap.bind(
-      handlerKey,
-      (...args) => handlerRef.current(...args),
-      evtType
-    );
-
-    return () => {
-      mousetrap.unbind(handlerKey);
-    };
-  }, [handlerKey]);
-};
-
-export const useBindMousetrap = (
-  ref: MutableRefObject<HTMLElement | null>,
-  handlerKey: string | string[],
-  handlerCallback: MousetrapCallback,
-  {
-    enableOnInput = false,
-    evtType = undefined,
-  }: { enableOnInput?: boolean; evtType?: string } = {}
-) => {
-  const handlerRef = useStableLatestRef(handlerCallback);
-
-  useEffect(() => {
-    if (!ref.current) return;
-
-    const trap = mousetrap(ref.current);
-
-    trap.bind(
-      handlerKey,
-      (e, combo) => {
-        if (
-          !enableOnInput &&
-          (e.target as HTMLElement).matches('input, textarea, select')
-        ) {
-          return;
-        }
-
-        handlerRef.current(e, combo);
-      },
-      evtType
-    );
-
-    return () => {
-      trap.reset();
-    };
-  }, [ref.current, handlerKey]);
-};
+export const useMousetrap = useDocumentMicetrap;
+export const useBindMousetrap = useMicetrap;
 
 export const useObjectStateWithRef = <T extends object>(
   initialState: T

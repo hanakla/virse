@@ -85,12 +85,13 @@ import { SelectExpressions } from '../../modals/SelectExpressions';
 import { VRMLicense } from '../../modals/VRMLicense';
 import { ConfirmModal } from '../../modals/ConfirmModal';
 import { Trans } from '../../components/Trans';
-import { emptyCoalesce } from '../../utils/lang';
+import { emptyCoalesce, mapEntries } from '../../utils/lang';
 import { SelectModel } from '../../modals/SelectModel';
 import { KeyframeEditor } from './KeyframeEditor';
 import escapeStringRegexp from 'escape-string-regexp';
 
-import { ___ } from '@/private/novelai/___';
+import { usePhotoboothStore } from './photoboothStore';
+import { useDocumentMicetrap } from '@hanakla/micetrap/react';
 
 type StashedCam = {
   mode: CamModes;
@@ -126,15 +127,8 @@ export const PhotoBooth = memo(function PhotoBooth({
   const { show: showContextMenu, hideAll } = useContextMenu({});
 
   const [rightTab, setRightTab] = useState<'expr' | 'poses'>('expr');
+  const photoboothStore = usePhotoboothStore();
   const [state, setState] = useObjectStateWithRef({
-    loadedPoses: {
-      '': {
-        poseId: null,
-        poseName: '',
-      },
-    } as {
-      [avatarUid: string]: { poseId: string | null; poseName: string };
-    },
     rotation: false,
     syncEyes: true,
     eyeLeft: { x: 0, y: 0 },
@@ -217,7 +211,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   });
 
   const serializeCurrentPose = useStableLatestRef(() => {
-    if (!stage?.activeAvatar) return;
+    if (!stage?.activeTarget) return;
 
     return serializeAvatarPose.current(stage.activeTarget.uid);
   });
@@ -230,18 +224,21 @@ export const PhotoBooth = memo(function PhotoBooth({
     const pose: UnsavedVirsePose = {
       type: 'object',
       name: emptyCoalesce(
-        state.loadedPoses[target.uid]?.poseName,
+        photoboothStore.get().loadedPoses[target.uid]?.poseName,
         'New Object Deployment'
       ),
       canvas: stage.getSize(),
       camera: {
         mode: stage.camMode,
         fov: stage.camFov,
-        zoom: stage.activeCamera.zoom,
-        position: stage.activeCamera.position.toArray(),
-        target: stage.orbitControls.target.toArray(),
-        rotation: stage.activeCamera.rotation.toArray(),
-        quaternion: stage.activeCamera.quaternion.toArray(),
+        zoom: state.editorialCam?.zoom ?? stage.activeCamera.zoom,
+        position:
+          state.editorialCam?.position ?? stage.activeCamera.position.toArray(),
+        target:
+          state.editorialCam?.target ?? stage.orbitControls.target.toArray(),
+        quaternion:
+          state.editorialCam?.quaternion ??
+          stage.activeCamera.quaternion.toArray(),
       },
       blendShapeProxies: {},
       morphs: {},
@@ -271,12 +268,17 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     const vrmPose = vrm.humanoid.getRawPose();
 
-    const original = state.loadedPoses[avatarUid]
-      ? poses.find((p) => p.uid === state.loadedPoses[avatarUid]?.poseId)
+    const original = photoboothStore.getLoadedPose(avatarUid)
+      ? poses.find(
+          (p) => p.uid === photoboothStore.getLoadedPose(avatarUid)?.poseId
+        )
       : null;
 
     const pose: UnsavedVirsePose = {
-      name: emptyCoalesce(state.loadedPoses[avatarUid]?.poseName, 'New Pose'),
+      name: emptyCoalesce(
+        photoboothStore.getLoadedPose(avatarUid)?.poseName,
+        'New Pose'
+      ),
       canvas: stage.getSize(),
       camera: {
         mode: stage.camMode,
@@ -284,7 +286,6 @@ export const PhotoBooth = memo(function PhotoBooth({
         zoom: stage.activeCamera.zoom,
         position: stage.activeCamera.position.toArray(),
         target: stage.orbitControls.target.toArray(),
-        rotation: stage.activeCamera.rotation.toArray(),
         quaternion: stage.activeCamera.quaternion.toArray(),
       },
       blendShapeProxies: Object.values(VRMExpressionPresetName).reduce(
@@ -331,10 +332,10 @@ export const PhotoBooth = memo(function PhotoBooth({
     let pose: UnsavedVirsePose | undefined = undefined;
     if (activeTarget?.type === 'avatar') {
       pose = serializeCurrentPose.current();
-      originalPoseId = state.loadedPoses[activeTarget.uid].poseId;
+      originalPoseId = photoboothStore.getLoadedPose(activeTarget.uid).poseId;
     } else if (activeTarget?.type === 'object') {
       pose = serializeObjectDeployment.current();
-      originalPoseId = state.loadedPoses[activeTarget.uid].poseId;
+      originalPoseId = photoboothStore.getLoadedPose(activeTarget.uid).poseId;
     }
 
     if (!pose || !originalPoseId) return;
@@ -356,6 +357,9 @@ export const PhotoBooth = memo(function PhotoBooth({
     const prj: VirseProject = {
       ...(await stage?.serializeScene()!),
       poseset: poses,
+      selectedPoses: mapEntries(photoboothStore.get().loadedPoses, (pose) => {
+        return pose;
+      }),
     };
     const data = msgpackr.pack(prj);
 
@@ -407,12 +411,15 @@ export const PhotoBooth = memo(function PhotoBooth({
     const pose = poses.find((p) => p.uid === latestSavedPoseUid);
     if (!pose) return;
 
-    setState((next) => {
-      next.loadedPoses[stage!.activeTarget!.uid] = {
-        poseId: pose.uid,
-        poseName: pose.name,
-      };
-    });
+    photoboothStore.set((prev) => ({
+      loadedPoses: {
+        ...prev.loadedPoses,
+        [stage!.activeTarget!.uid]: {
+          poseId: pose.uid,
+          poseName: pose.name,
+        },
+      },
+    }));
   }, [latestSavedPoseUid]);
 
   const handleClickResetPose = useFunc(() => {
@@ -422,12 +429,15 @@ export const PhotoBooth = memo(function PhotoBooth({
     activeAvatar.avatar.resetPose();
     activeAvatar.avatar.resetExpressions();
 
-    setState((next) => {
-      next.loadedPoses[activeAvatar.uid] = {
-        poseId: null,
-        poseName: '',
-      };
-    });
+    photoboothStore.set((prev) => ({
+      loadedPoses: {
+        ...prev.loadedPoses,
+        [activeAvatar.uid]: {
+          poseId: null,
+          poseName: '',
+        },
+      },
+    }));
   });
 
   const handleClickResetCamera = useEvent(() => {
@@ -490,14 +500,15 @@ export const PhotoBooth = memo(function PhotoBooth({
     ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
       if (!stage?.activeTarget) return;
 
-      setState((next) => {
-        next.loadedPoses[stage.activeTarget!.uid] ??= {
-          poseId: null,
-          poseName: '',
-        };
-        next.loadedPoses[stage.activeTarget!.uid].poseName =
-          currentTarget.value;
-      });
+      photoboothStore.set((prev) => ({
+        loadedPoses: {
+          ...prev.loadedPoses,
+          [stage.activeTarget!.uid]: {
+            poseId: prev.loadedPoses[stage.activeTarget!.uid]?.poseId,
+            poseName: currentTarget.value,
+          },
+        },
+      }));
     }
   );
 
@@ -543,8 +554,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           fov: pose.camera.fov,
           zoom: pose.camera.zoom,
           position: pose.camera.position,
-          rotation: pose.camera.rotation,
-          // quaternion: pose.camera.quaternion,
+          quaternion: pose.camera.quaternion,
           target: pose.camera.target,
         });
 
@@ -622,12 +632,15 @@ export const PhotoBooth = memo(function PhotoBooth({
       nonStandardBones: false,
     });
 
-    setState((next) => {
-      next.loadedPoses[activeTarget.uid] = {
-        poseId,
-        poseName: pose!.name,
-      };
-    });
+    photoboothStore.set((prev) => ({
+      loadedPoses: {
+        ...prev.loadedPoses,
+        [activeTarget.uid]: {
+          poseId,
+          poseName: pose.name,
+        },
+      },
+    }));
   });
 
   const handleClickLoadScene = useFunc((params: ItemParams) => {
@@ -643,8 +656,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       fov: pose.camera.fov,
       zoom: pose.camera.zoom,
       position: pose.camera.position,
-      rotation: pose.camera.rotation,
-      // quaternion: pose.camera.quaternion,
+      quaternion: pose.camera.quaternion,
       target: pose.camera.target,
     });
     stage.setSize(pose.canvas.width, pose.canvas.height);
@@ -671,12 +683,15 @@ export const PhotoBooth = memo(function PhotoBooth({
         nonStandardBones: false,
       });
 
-      setState((next) => {
-        next.loadedPoses[stage.activeTarget.uid] = {
-          poseId,
-          poseName: pose.name,
-        };
-      });
+      photoboothStore.set((prev) => ({
+        loadedPoses: {
+          ...prev.loadedPoses,
+          [stage.activeTarget!.uid]: {
+            poseId,
+            poseName: pose.name,
+          },
+        },
+      }));
     }
 
     setState({
@@ -756,6 +771,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       poses.find((p) => p.uid === poseId),
       '1'
     );
+
     if (!pose) return;
 
     const json = new Blob([JSON.stringify(pose, null, '  ')], {
@@ -857,12 +873,15 @@ export const PhotoBooth = memo(function PhotoBooth({
       { overwrite: true }
     );
 
-    setState((next) => {
-      next.loadedPoses[stage.activeTarget!.uid] = {
-        poseId: originalPoseId!,
-        poseName: pose!.name,
-      };
-    });
+    photoboothStore.set((prev) => ({
+      loadedPoses: {
+        ...prev.loadedPoses,
+        [activeTarget.uid]: {
+          poseId: originalPoseId,
+          poseName: pose!.name,
+        },
+      },
+    }));
   });
 
   const handleClickLoadCamera = useFunc((params: ItemParams) => {
@@ -878,8 +897,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       fov: pose.camera.fov,
       zoom: pose.camera.zoom,
       position: pose.camera.position,
-      rotation: pose.camera.rotation,
-      // quaternion: pose.camera.quaternion,
+      quaternion: pose.camera.quaternion,
       target: pose.camera.target,
     });
     // stage.setSize(pose.canvas.width, pose.canvas.height);
@@ -969,13 +987,18 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       stage.removeAvatar(prevAvatarUid);
 
-      setState((next) => {
-        next.loadedPoses[avatar.uid] = {
-          poseId: next.loadedPoses[prevAvatarUid]?.poseId ?? null,
-          poseName: next.loadedPoses[prevAvatarUid]?.poseName ?? '',
-        };
+      photoboothStore.set((prev) => {
+        delete prev.loadedPoses[prevAvatarUid];
 
-        delete next.loadedPoses[prevAvatarUid];
+        return {
+          loadedPoses: {
+            ...prev.loadedPoses,
+            [avatar.uid]: {
+              poseId: prev.loadedPoses[prevAvatarUid]?.poseId ?? null,
+              poseName: prev.loadedPoses[prevAvatarUid]?.poseName ?? '',
+            },
+          },
+        };
       });
     }
   );
@@ -1156,7 +1179,8 @@ export const PhotoBooth = memo(function PhotoBooth({
     }
 
     const poseName =
-      state.loadedPoses[stage.activeAvatar?.uid ?? '']?.poseName ?? 'Untitled';
+      photoboothStore.getLoadedPose(stage.activeAvatar?.uid ?? '')?.poseName ??
+      'Untitled';
     await captureAndSave.current(e.shiftKey ? 'jpeg' : 'png', poseName);
 
     const cam =
@@ -1181,12 +1205,15 @@ export const PhotoBooth = memo(function PhotoBooth({
         stage?.loadVRM(url).then((avatar) => {
           stage.setActiveAvatar(avatar.uid);
 
-          setState((next) => {
-            next.loadedPoses[avatar.uid] = {
-              poseId: null,
-              poseName: '',
-            };
-          });
+          photoboothStore.set((prev) => ({
+            loadedPoses: {
+              ...prev.loadedPoses,
+              [avatar.uid]: {
+                poseId: null,
+                poseName: '',
+              },
+            },
+          }));
         });
       });
     }
@@ -1456,240 +1483,244 @@ export const PhotoBooth = memo(function PhotoBooth({
   // });
 
   useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.toggleDisplaySkeleton,
-    () => {
-      if (mode !== EditorMode.photo) return;
+    [
+      {
+        keys: rightHandShortcuts.undo,
+        handler: () => {
+          console.log('undo');
+          stage?.history.undo();
+        },
+      },
+      {
+        keys: rightHandShortcuts.redo,
+        handler: () => {
+          console.log('redo');
+          stage?.history.redo();
+        },
+      },
+      {
+        keys: rightHandShortcuts.toggleDisplaySkeleton,
+        handler: () => {
+          if (mode !== EditorMode.photo) return;
+          handleClickDisplayBones();
+        },
+      },
+      {
+        keys: rightHandShortcuts.selectSiblingBone,
+        handler: async () => {
+          const avatar = stage?.activeAvatar;
+          const bone = avatar?.ui.activeBone;
+          if (!bone) return;
 
-      handleClickDisplayBones();
-    }
+          const siblBones = (bone.parent?.children ?? []).filter(
+            (o: any): o is Bone => o.isBone
+          );
+          if (siblBones.length === 0) return;
+          else if (siblBones.length === 1) avatar.ui.activeBone = siblBones[0];
+          else {
+            const targetBoneName = await openModal(SelectChangeBones, {
+              boneNames: siblBones.map((o) => o.name),
+              activeBoneName: bone.name,
+            });
+            if (!targetBoneName) return;
+
+            const targetBone = siblBones.find((o) => o.name === targetBoneName);
+            if (!targetBone) return;
+
+            avatar.ui.activeBone = targetBone;
+          }
+        },
+      },
+      {
+        keys: rightHandShortcuts.selectChildBone,
+        handler: async () => {
+          const avatar = stage?.activeAvatar;
+          const bone = avatar?.ui.activeBone;
+          if (!bone) return;
+
+          const childBones = bone.children.filter(
+            (o: any): o is Bone => o.isBone
+          );
+          if (childBones.length === 0) return;
+          else if (childBones.length === 1)
+            avatar.ui.activeBone = childBones[0];
+          else {
+            const targetBoneName = await openModal(SelectChangeBones, {
+              boneNames: childBones.map((o) => o.name),
+            });
+            if (!targetBoneName) return;
+
+            const targetBone = childBones.find(
+              (o) => o.name === targetBoneName
+            );
+            if (!targetBone) return;
+
+            avatar.ui.activeBone = targetBone;
+          }
+        },
+      },
+      {
+        keys: rightHandShortcuts.selectParentBone,
+        handler: () => {
+          const avatar = stage?.activeAvatar;
+          if (!avatar) return;
+
+          const bone = avatar?.ui.activeBone;
+          if (!bone || !(bone.parent as any).isBone) return;
+
+          avatar.ui.activeBone = bone.parent;
+        },
+      },
+      {
+        keys: rightHandShortcuts.toggleBoneControlMode,
+        handler: () => {
+          if (mode !== EditorMode.photo) return;
+
+          const modes = ['translate', 'rotate'] as const;
+          const current = stage!.boneControlMode;
+
+          stage!.boneControlMode =
+            modes[(modes.indexOf(current) + 1) % modes.length];
+        },
+      },
+      {
+        keys: 't',
+        handler: () => {
+          if (mode !== EditorMode.photo) return;
+          stage!.boneControlMode = 'scale';
+        },
+      },
+      {
+        keys: rightHandShortcuts.toggleMirror,
+        handler: () => {
+          const avatar = stage?.activeAvatar;
+          if (!avatar) return;
+          avatar.ui.mirrorBone = !avatar.ui.mirrorBone;
+          rerender();
+        },
+      },
+      {
+        keys: rightHandShortcuts.nextAvatar,
+        handler: () => {
+          const currentUid = stage?.activeAvatar?.uid;
+          if (!stage) return;
+
+          if (!currentUid) {
+            const avatars = stage.avatarsIterator;
+            if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
+            return;
+          }
+
+          const avatars = stage.avatarsIterator;
+          const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
+          if (currentIdx === -1) return;
+
+          const nextIdx = (currentIdx + 1) % avatars.length;
+          const nextAvatarUID = avatars[nextIdx].uid;
+          stage.setActiveAvatar(nextAvatarUID);
+        },
+      },
+      {
+        keys: rightHandShortcuts.previousAvatar,
+        handler: () => {
+          const currentUid = stage?.activeAvatar?.uid;
+          if (!stage) return;
+
+          if (!currentUid) {
+            const avatars = stage.avatarsIterator;
+            if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
+            return;
+          }
+
+          const avatars = stage.avatarsIterator;
+          const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
+          if (currentIdx === -1) return;
+
+          const nextIdx = (currentIdx + avatars.length - 1) % avatars.length;
+          const nextAvatarUID = avatars[nextIdx].uid;
+          stage.setActiveAvatar(nextAvatarUID);
+        },
+      },
+      {
+        keys: rightHandShortcuts.axisX,
+        handler: (e) => {
+          stage?.activeTarget?.control?.setAxis('X');
+        },
+      },
+      {
+        keys: rightHandShortcuts.axisY,
+        handler: (e) => {
+          stage?.activeTarget?.control?.setAxis('Y');
+        },
+      },
+      {
+        keys: rightHandShortcuts.axisZ,
+        handler: (e) => {
+          stage?.activeTarget?.control?.setAxis('Z');
+        },
+      },
+      {
+        keys: rightHandShortcuts.keyboardShortcutHelp,
+        handler: (e) => {
+          if (e.repeat) return;
+
+          const abort = new AbortController();
+
+          window.addEventListener(
+            'keyup',
+            () => !abort.signal.aborted && abort.abort(),
+            { once: true }
+          );
+
+          openModal(
+            KeyboardHelp,
+            { temporalyShow: true },
+            { signal: abort.signal }
+          );
+        },
+      },
+      {
+        keys: rightHandShortcuts.resetCurrentBone,
+        handler: () => {
+          const avatar = stage?.activeAvatar?.avatar;
+          const bone = avatar?.ui.activeBone;
+          if (!avatar || !bone) return;
+
+          avatar.resetBone(bone.name);
+        },
+      },
+      {
+        keys: rightHandShortcuts.changeToPoseTab,
+        handler: () => {
+          setRightTab('poses');
+        },
+      },
+      {
+        keys: rightHandShortcuts.changeToFacialTab,
+        handler: () => {
+          setRightTab('expr');
+        },
+      },
+      {
+        keys: rightHandShortcuts.changeCamToEditorial,
+        handler: () => {
+          changeCamKind.current('editorial');
+        },
+      },
+      {
+        keys: rightHandShortcuts.changeCamToCapture,
+        handler: () => {
+          changeCamKind.current('capture');
+        },
+      },
+      {
+        keys: rightHandShortcuts.toggleBoneControllerSpace,
+        handler: handleClickToggleBoneControllerSpace,
+      },
+    ],
+    undefined,
+    shortcutBindElRef
   );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.selectSiblingBone,
-    async () => {
-      const avatar = stage?.activeAvatar;
-      const bone = avatar?.ui.activeBone;
-      if (!bone) return;
-
-      const siblBones = (bone.parent?.children ?? []).filter(
-        (o: any): o is Bone => o.isBone
-      );
-      if (siblBones.length === 0) return;
-      else if (siblBones.length === 1) avatar.ui.activeBone = siblBones[0];
-      else {
-        const targetBoneName = await openModal(SelectChangeBones, {
-          boneNames: siblBones.map((o) => o.name),
-          activeBoneName: bone.name,
-        });
-        if (!targetBoneName) return;
-
-        const targetBone = siblBones.find((o) => o.name === targetBoneName);
-        if (!targetBone) return;
-
-        avatar.ui.activeBone = targetBone;
-      }
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.selectChildBone,
-    async () => {
-      const avatar = stage?.activeAvatar;
-      const bone = avatar?.ui.activeBone;
-      if (!bone) return;
-
-      const childBones = bone.children.filter((o: any): o is Bone => o.isBone);
-      if (childBones.length === 0) return;
-      else if (childBones.length === 1) avatar.ui.activeBone = childBones[0];
-      else {
-        const targetBoneName = await openModal(SelectChangeBones, {
-          boneNames: childBones.map((o) => o.name),
-        });
-        if (!targetBoneName) return;
-
-        const targetBone = childBones.find((o) => o.name === targetBoneName);
-        if (!targetBone) return;
-
-        avatar.ui.activeBone = targetBone;
-      }
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.selectParentBone,
-    () => {
-      const avatar = stage?.activeAvatar;
-      if (!avatar) return;
-
-      const bone = avatar?.ui.activeBone;
-      if (!bone || !(bone.parent as any).isBone) return;
-
-      avatar.ui.activeBone = bone.parent;
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.toggleBoneControlMode,
-    () => {
-      if (mode !== EditorMode.photo) return;
-
-      const modes = ['translate', 'rotate'] as const;
-      const current = stage!.boneControlMode;
-
-      stage!.boneControlMode =
-        modes[(modes.indexOf(current) + 1) % modes.length];
-    }
-  );
-
-  useBindMousetrap(shortcutBindElRef, 't', () => {
-    if (mode !== EditorMode.photo) return;
-
-    // const current = stage!.boneControlMode;
-
-    stage!.boneControlMode = 'scale';
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.toggleMirror, () => {
-    const avatar = stage?.activeAvatar;
-    if (!avatar) return;
-    avatar.ui.mirrorBone = !avatar.ui.mirrorBone;
-    rerender();
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.nextAvatar, () => {
-    const currentUid = stage?.activeAvatar?.uid;
-    if (!stage) return;
-
-    if (!currentUid) {
-      const avatars = stage.avatarsIterator;
-      if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
-      return;
-    }
-
-    const avatars = stage.avatarsIterator;
-    const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
-    if (currentIdx === -1) return;
-
-    const nextIdx = (currentIdx + 1) % avatars.length;
-    const nextAvatarUID = avatars[nextIdx].uid;
-    stage.setActiveAvatar(nextAvatarUID);
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.previousAvatar, () => {
-    const currentUid = stage?.activeAvatar?.uid;
-    if (!stage) return;
-
-    if (!currentUid) {
-      const avatars = stage.avatarsIterator;
-      if (avatars.length > 0) stage.setActiveAvatar(avatars[0].uid);
-      return;
-    }
-
-    const avatars = stage.avatarsIterator;
-    const currentIdx = avatars.findIndex((o) => o.uid === currentUid);
-    if (currentIdx === -1) return;
-
-    const nextIdx = (currentIdx + avatars.length - 1) % avatars.length;
-    const nextAvatarUID = avatars[nextIdx].uid;
-    stage.setActiveAvatar(nextAvatarUID);
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisX, (e) => {
-    stage?.activeTarget?.control?.setAxis('X');
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisY, (e) => {
-    stage?.activeTarget?.control?.setAxis('Y');
-  });
-
-  useBindMousetrap(shortcutBindElRef, rightHandShortcuts.axisZ, (e) => {
-    stage?.activeTarget?.control?.setAxis('Z');
-  });
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.keyboardShortcutHelp,
-    (e) => {
-      if (e.repeat) return;
-
-      const abort = new AbortController();
-
-      window.addEventListener(
-        'keyup',
-        () => !abort.signal.aborted && abort.abort(),
-        { once: true }
-      );
-
-      openModal(
-        KeyboardHelp,
-        { temporalyShow: true },
-        { signal: abort.signal }
-      );
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.resetCurrentBone,
-    () => {
-      const avatar = stage?.activeAvatar?.avatar;
-      const bone = avatar?.ui.activeBone;
-      if (!avatar || !bone) return;
-
-      const initial = avatar.getInitialBoneState(bone.name);
-      if (!initial) return;
-
-      bone.position.fromArray(initial.position);
-      bone.quaternion.fromArray(initial.quaternion);
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.changeToPoseTab,
-    () => {
-      setRightTab('poses');
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.changeToFacialTab,
-    () => {
-      setRightTab('expr');
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.changeCamToEditorial,
-    () => {
-      changeCamKind.current('editorial');
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.changeCamToCapture,
-    () => {
-      changeCamKind.current('capture');
-    }
-  );
-
-  useBindMousetrap(
-    shortcutBindElRef,
-    rightHandShortcuts.toggleBoneControllerSpace,
-    handleClickToggleBoneControllerSpace
-  );
-
-  // useEffect(() => {
-  //   openModal(KeyboardHelp, {});
-  // });
 
   /////
   //// Another
@@ -1708,6 +1739,29 @@ export const PhotoBooth = memo(function PhotoBooth({
       stage.events.off('updated', rerender);
     };
   }, [stage]);
+
+  useEffect(() => {
+    if (!stage) return;
+
+    const onCameraChanged = () => {
+      let captureCam: StashedCam | undefined | null = undefined;
+
+      if (state.currentCamKind === 'capture') {
+        captureCam = syncCamFromStage.current()?.captureCam;
+      }
+
+      setState((d) => {
+        d.currentCamKind = 'editorial';
+        d.captureCam = captureCam ?? d.captureCam;
+      });
+    };
+
+    stage.events.on('cameraChangeStart', onCameraChanged);
+
+    return () => {
+      stage.events.off('cameraChangeStart', onCameraChanged);
+    };
+  }, [stage, state.currentCamKind]);
 
   useEffect(() => {
     let prevWindowSize = [window.innerWidth, window.innerHeight];
@@ -1737,11 +1791,11 @@ export const PhotoBooth = memo(function PhotoBooth({
     const cancelContextMenu = (e: Event) => e.preventDefault();
 
     window.addEventListener('click', hideAll);
-    window.addEventListener('contextmenu', cancelContextMenu);
+    // window.addEventListener('contextmenu', cancelContextMenu);
 
     return () => {
       window.removeEventListener('click', hideAll);
-      window.removeEventListener('contextmenu', cancelContextMenu);
+      // window.removeEventListener('contextmenu', cancelContextMenu);
     };
   }, []);
 
@@ -1909,6 +1963,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           <div
             css={css`
               padding-top: 8px;
+              overflow: auto;
             `}
           >
             <div
@@ -2493,8 +2548,6 @@ export const PhotoBooth = memo(function PhotoBooth({
                   ))}
                 </List>
               </InputSection>
-
-              <___ capture={captureStage} />
             </div>
           </div>
         </Sidebar>
@@ -2897,15 +2950,33 @@ export const PhotoBooth = memo(function PhotoBooth({
                   <ListItem
                     key={idx}
                     active={
-                      state.loadedPoses[activeAvatar?.uid ?? '']?.poseId ===
-                      pose.uid
+                      photoboothStore.getLoadedPose(activeAvatar?.uid ?? '')
+                        ?.poseId === pose.uid
                     }
                     onDoubleClick={handleDblClickPose}
                     onContextMenu={handlePoseContextMenu}
                     data-pose-id={pose.uid}
                     tabIndex={-1}
                   >
-                    <div>{pose.name}</div>
+                    <span
+                      css={css`
+                        display: inline-block;
+                        margin-right: 4px;
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                        background-color: #3452ff;
+                        opacity: 0;
+                        &[data-active='true'] {
+                          opacity: 0.8;
+                        }
+                      `}
+                      data-active={
+                        photoboothStore.getLoadedPose(activeTarget?.uid ?? '')
+                          ?.poseId === pose.uid
+                      }
+                    />
+                    {pose.name}
                   </ListItem>
                 ))}
               </List>
@@ -2918,7 +2989,10 @@ export const PhotoBooth = memo(function PhotoBooth({
                 `}
               >
                 <Input
-                  value={state.loadedPoses[activeTarget?.uid ?? '']?.poseName}
+                  value={
+                    photoboothStore.getLoadedPose(activeTarget?.uid ?? '')
+                      ?.poseName
+                  }
                   onChange={handleChangePoseName}
                 />
 
@@ -2929,11 +3003,15 @@ export const PhotoBooth = memo(function PhotoBooth({
                 <Button
                   type="button"
                   kind="primary"
-                  disabled={!state.loadedPoses[activeTarget?.uid ?? '']?.poseId}
+                  disabled={
+                    !photoboothStore.getLoadedPose(activeTarget?.uid ?? '')
+                      ?.poseId
+                  }
                   onClick={handleClickOverwritePose}
                 >
                   {t('pose/overwrite')}
-                  {state.loadedPoses[activeTarget?.uid ?? '']?.poseId && (
+                  {photoboothStore.getLoadedPose(activeTarget?.uid ?? '')
+                    ?.poseId && (
                     <span
                       css={css`
                         width: 100%;
@@ -2946,7 +3024,9 @@ export const PhotoBooth = memo(function PhotoBooth({
                         poses.find(
                           (p) =>
                             p.uid ===
-                            state.loadedPoses[activeTarget?.uid ?? '']?.poseId
+                            photoboothStore.getLoadedPose(
+                              activeTarget?.uid ?? ''
+                            )?.poseId
                         )?.name
                       }
                       )

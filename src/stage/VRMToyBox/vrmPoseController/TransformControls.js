@@ -1,6 +1,6 @@
 /*!
  * Copyright © 2010-2022 three.js authors
- * 
+ *
  * The original source code is distributed under MIT license
  * https://github.com/mrdoob/three.js/blob/master/LICENSE
  */
@@ -21,7 +21,7 @@ import {
 	MeshBasicMaterial,
 	Object3D,
 	OctahedronGeometry,
-	PlaneGeometry,	
+	PlaneGeometry,
 	Quaternion,
 	Raycaster,
 	SphereGeometry,

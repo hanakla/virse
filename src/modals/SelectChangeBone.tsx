@@ -1,5 +1,5 @@
 import useFocusTrap from '@charlietango/use-focus-trap';
-import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import { ModalProps } from '@fleur/mordred';
 import { ChangeEvent, useRef, useState } from 'react';
 import useEvent from 'react-use-event-hook';
 import { css } from 'styled-components';
@@ -46,52 +46,45 @@ export function SelectChangeBones({
   });
 
   useBindMousetrap(
-    listRef,
-    rightHandShortcuts.boneListPrev,
-    (e) => {
-      e.stopPropagation();
-      setIndex((index) => (index - 1 + boneNames.length) % boneNames.length);
+    [
+      {
+        keys: rightHandShortcuts.boneListPrev,
+        handler: (e) => {
+          setIndex(
+            (index) => (index - 1 + boneNames.length) % boneNames.length
+          );
+        },
+      },
+      {
+        keys: rightHandShortcuts.boneListNext,
+        handler: (e) => {
+          setIndex((index) => (index + 1) % boneNames.length);
+        },
+      },
+      {
+        keys: [rightHandShortcuts.boneListOk, rightHandShortcuts.boneListOk2],
+        handler: (e) => {
+          handleClickOk();
+        },
+      },
+      {
+        keys: 'enter',
+        handler: (e) => {
+          handleClickOk();
+        },
+      },
+      {
+        keys: 'esc',
+        handler: () => {
+          handleClickCancel();
+        },
+      },
+    ],
+    {
+      stopPropagation: true,
+      stopCallback: (e) => false,
     },
-    { enableOnInput: true }
-  );
-
-  useBindMousetrap(
-    listRef,
-    rightHandShortcuts.boneListNext,
-    (e) => {
-      e.stopPropagation();
-      setIndex((index) => (index + 1) % boneNames.length);
-    },
-    { enableOnInput: true }
-  );
-
-  useBindMousetrap(
-    listRef,
-    [rightHandShortcuts.boneListOk, rightHandShortcuts.boneListOk2],
-    (e) => {
-      e.stopPropagation();
-      handleClickOk();
-    },
-    { enableOnInput: true }
-  );
-
-  useBindMousetrap(
-    listRef,
-    'enter',
-    (e) => {
-      e.stopPropagation();
-      handleClickOk();
-    },
-    { enableOnInput: true }
-  );
-
-  useBindMousetrap(
-    listRef,
-    'esc',
-    () => {
-      handleClickCancel();
-    },
-    { enableOnInput: true }
+    listRef
   );
 
   return (

@@ -1,5 +1,5 @@
 import { ModalComponentType } from '@fleur/mordred';
-import { ModalProps } from '@fleur/mordred/dist/react-bind';
+import { ModalProps } from '@fleur/mordred';
 import escapeStringRegexp from 'escape-string-regexp';
 import { ChangeEvent, useState } from 'react';
 import { Button } from '../components/Button';

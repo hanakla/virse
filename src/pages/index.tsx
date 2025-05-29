@@ -12,6 +12,8 @@ import {
   EditorMode,
   editorOps,
   EditorStore,
+  POSE_SCHEMA,
+  POSESET_SCHEMA,
   VirseProject,
 } from '../domains/editor';
 import { transitionCss } from '../styles/mixins';
@@ -35,6 +37,7 @@ import { ConfirmAgreement } from '../modals/ConrirmAgreement';
 import { fitAndPosition } from 'object-fit-math';
 import { shallowEquals } from '../utils/object';
 import { LoadProjectOption } from '../modals/LoadProjectOption';
+import { usePhotoboothStore } from '@/features/photobooth/photoboothStore';
 
 export default function Home() {
   const router = useRouter();
@@ -48,6 +51,7 @@ export default function Home() {
   const { show: showContextMenu, hideAll } = useContextMenu({});
 
   const stage = useVirseStage(canvasRef);
+  const photoboothStore = usePhotoboothStore();
 
   const { executeOperation, getStore } = useFleurContext();
   const { mode, menuOpened, poses, photoModeState, modelIndex } = useStoreState(
@@ -74,12 +78,20 @@ export default function Home() {
   ///// Keyboard shortcut
   /////
 
-  useBindMousetrap(rootRef, 'tab', (e) => {
-    e.preventDefault();
-
-    const { menuOpened } = getStore(EditorStore).state;
-    executeOperation(editorOps.setMenuOpened, !menuOpened);
-  });
+  useBindMousetrap(
+    [
+      {
+        keys: 'tab',
+        preventDefault: true,
+        handler: (e) => {
+          const { menuOpened } = getStore(EditorStore).state;
+          executeOperation(editorOps.setMenuOpened, !menuOpened);
+        },
+      },
+    ],
+    undefined,
+    rootRef
+  );
 
   /////
   //// Another
@@ -102,7 +114,11 @@ export default function Home() {
         const packr = new Packr({ structuredClone: true });
         const data: VirseProject = packr.unpack(bin);
 
-        if (options.loadPoseSet) {
+        photoboothStore.set({
+          loadedPoses: data.selectedPoses ?? {},
+        });
+
+        if (options.loadPoseSet && data.poseset) {
           executeOperation(editorOps.importPoseSet, data.poseset, {
             clear: options.clearCurrentPoses,
           });
@@ -113,14 +129,24 @@ export default function Home() {
         const json = JSON.parse(await file.text());
 
         if (json.poseset) {
-          const result = await openModal(LoadPose, { poses: json.poseset });
+          const parsed = POSESET_SCHEMA.safeParse(json);
+          console.log(parsed);
+          if (!parsed.success) return;
+
+          const result = await openModal(LoadPose, {
+            poses: parsed.data.poseset,
+          });
           if (!result) return;
 
           executeOperation(editorOps.importPoseSet, result.poses, {
             clear: result.clearPoseSet,
           });
         } else {
-          executeOperation(editorOps.savePose, json);
+          const parsed = POSE_SCHEMA.safeParse(json);
+          console.log(parsed);
+          if (!parsed.success) return;
+
+          executeOperation(editorOps.savePose, parsed.data);
         }
       }
     },
@@ -216,17 +242,17 @@ export default function Home() {
     };
   });
 
-  useEffect(() => {
-    const cancelContextMenu = (e: Event) => e.preventDefault();
+  // useEffect(() => {
+  //   const cancelContextMenu = (e: Event) => e.preventDefault();
 
-    window.addEventListener('click', hideAll);
-    window.addEventListener('contextmenu', cancelContextMenu);
+  //   window.addEventListener('click', hideAll);
+  //   window.addEventListener('contextmenu', cancelContextMenu);
 
-    return () => {
-      window.addEventListener('click', hideAll);
-      window.addEventListener('contextmenu', cancelContextMenu);
-    };
-  }, []);
+  //   return () => {
+  //     window.addEventListener('click', hideAll);
+  //     window.addEventListener('contextmenu', cancelContextMenu);
+  //   };
+  // }, []);
 
   useEffectOnce(() => {
     if (isAgreed) return;
@@ -381,6 +407,7 @@ export default function Home() {
           `}
           ref={canvasRef}
           onContextMenu={handleSceneContextMenu}
+          tabIndex={-1}
         />
 
         <div
