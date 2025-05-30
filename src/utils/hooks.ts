@@ -11,7 +11,7 @@ import {
   useState,
 } from 'react';
 import { shallowEquals } from './object';
-import { useObjectState } from '@hanakla/arma';
+import { useObjectState } from '@hanakla/arma/react-hooks';
 
 export const useFunc = <T extends (...args: any[]) => any>(fn: T): T => {
   const stableRef = useRef<T>(fn);

@@ -131,7 +131,9 @@ const RangeInput = styled.input`
   outline: none;
   line-height: 1;
 
+  background-color: #fff;
   box-shadow: 0 0 4px ${rgba('#000', 0.2)};
+  border-radius: 100px;
 
   /* &::-ms-fill-lower,
   &::-moz-range-track,

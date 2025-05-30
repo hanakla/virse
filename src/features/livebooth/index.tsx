@@ -6,7 +6,8 @@ import {
   RiCameraSwitchFill,
   RiPaintFill,
 } from 'react-icons/ri';
-import { styleWhen, useObjectState } from '@hanakla/arma';
+import { styleWhen } from '@hanakla/arma';
+import { useObjectState } from '@hanakla/arma/react-hooks';
 import styled, { css } from 'styled-components';
 import { useFunc, useBindMousetrap, useStoreState } from '../../utils/hooks';
 import { useEffect } from 'react';

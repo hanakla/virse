@@ -406,15 +406,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hanakla/arma@npm:^0.3.3":
-  version: 0.3.3
-  resolution: "@hanakla/arma@npm:0.3.3"
+"@hanakla/arma@npm:^0.6.2":
+  version: 0.6.2
+  resolution: "@hanakla/arma@npm:0.6.2"
   dependencies:
     "@hanakla/rescue": "npm:^1.0.3"
-    immer: "npm:^8.0.0"
   peerDependencies:
-    react: ^17.0.1
-  checksum: 10/20a07d958fdfd78f7889f863071f4e39b6f9e34d178372dd5b7cbfbcee27d978c50c0704f2d15e9f99f7ae7df9d6b8f12e135a0177d26ce3591ad1df5d750367
+    immer: ^10.1.1
+    react: ^19.1.0
+  checksum: 10/0fffdb2b800cb7b5ab7d45c0a5e471dcb01b8aa535731e876bad77ac7bbf226be1c45cfb9a77432c353844ae4012442d041396a74ede4a87eb1452e08b3a4936
   languageName: node
   linkType: hard
 
@@ -4537,13 +4537,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"immer@npm:^8.0.0":
-  version: 8.0.4
-  resolution: "immer@npm:8.0.4"
-  checksum: 10/3d111e6a024743f422de244a900f6a2b6911ec88c071b0be9de3510f7accd21f5499dad54054fcde12396d9c385e7696059e421983bacc32f1372f20bf36f73a
-  languageName: node
-  linkType: hard
-
 "immer@npm:^9.0.12":
   version: 9.0.21
   resolution: "immer@npm:9.0.21"
@@ -8285,7 +8278,7 @@ __metadata:
     "@fleur/next": "npm:^1.0.0"
     "@fleur/react": "npm:^5.0.3"
     "@gltf-transform/core": "npm:^4.1.4"
-    "@hanakla/arma": "npm:^0.3.3"
+    "@hanakla/arma": "npm:^0.6.2"
     "@hanakla/micetrap": "npm:1.1.0"
     "@mdx-js/loader": "npm:3.1.0"
     "@mdx-js/react": "npm:3.1.0"

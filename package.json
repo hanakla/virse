@@ -15,7 +15,7 @@
     "@fleur/next": "^1.0.0",
     "@fleur/react": "^5.0.3",
     "@gltf-transform/core": "^4.1.4",
-    "@hanakla/arma": "^0.3.3",
+    "@hanakla/arma": "^0.6.2",
     "@hanakla/micetrap": "1.1.0",
     "@mediapipe/camera_utils": "^0.3.1640029074",
     "@mediapipe/drawing_utils": "^0.3.1620248257",

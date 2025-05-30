@@ -1,11 +1,7 @@
 import { useModalOpener } from '@fleur/mordred';
 import { useFleurContext } from '@fleur/react';
-import {
-  letDownload,
-  selectFile,
-  styleWhen,
-  useChangedEffect,
-} from '@hanakla/arma';
+import { letDownload, selectFile, styleWhen } from '@hanakla/arma';
+import { useChangedEffect } from '@hanakla/arma/react-hooks';
 import { VRMExpressionPresetName, VRMHumanBoneName } from '@pixiv/three-vrm';
 import useMouse from '@react-hook/mouse-position';
 import { nanoid } from 'nanoid';
@@ -1904,6 +1900,17 @@ export const PhotoBooth = memo(function PhotoBooth({
       abort.abort();
     };
   }, [stage?.canvas]);
+
+  // Prevent unload
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, [t]);
 
   const activeAvatar = stage ? stage.activeAvatar : null;
   const activeTarget = stage ? stage.activeTarget : null;

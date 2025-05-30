@@ -1,5 +1,5 @@
 import { ModalProps } from '@fleur/mordred';
-import { useObjectState } from '@hanakla/arma';
+import { useObjectState } from '@hanakla/arma/react-hooks';
 import { css } from 'styled-components';
 import { Button } from '../components/Button';
 import { ModalBase } from '../components/ModalBase';
