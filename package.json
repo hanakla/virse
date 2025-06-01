@@ -76,6 +76,7 @@
     "file-loader": "^6.2.0",
     "next-translate-plugin": "^2.6.2",
     "postcss": "^8.5.4",
+    "prettier": "^3.5.3",
     "tailwindcss": "^4.1.8",
     "typescript": "^5.8.3",
     "url-loader": "^4.1.1"
