@@ -1,10 +1,10 @@
-import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VirseStage } from '../VirseStage';
 import * as THREE from 'three';
 import mitt from 'mitt';
 import { InteractableObject } from '../VRMToyBox/vrmPoseController/interactableObject';
 import { createPoseGroupHelper } from '../VRMToyBox/vrmPoseController/vrmSkeltonHelper/posGroupHelper';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
+import { type TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { createTransformController } from '../VRMToyBox/vrmPoseController/utils';
 
 type Events = {
@@ -45,7 +45,7 @@ export class ObjectController {
     this.#transformController = createTransformController(
       stage.activeCamera,
       stage.canvas,
-      this.#rootScene
+      this.#rootScene,
     );
 
     this.#transformController.addEventListener('dragging-changed', (event) => {
@@ -55,7 +55,7 @@ export class ObjectController {
         this.#interactableObjects.forEach((obj) => (obj.visible = false));
       } else {
         this.#interactableObjects.forEach(
-          (obj) => (obj.visible = this.#visible)
+          (obj) => (obj.visible = this.#visible),
         );
       }
     });
@@ -222,7 +222,7 @@ export class ObjectController {
 
     // 非表示のオブジェクトは判定から除外する
     const visibleObjects = this.#interactableObjects.filter(
-      (obj) => obj.visible === true
+      (obj) => obj.visible === true,
     );
 
     const intersects = raycaster.intersectObjects(visibleObjects);

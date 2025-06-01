@@ -1,16 +1,20 @@
 import * as THREE from 'three';
 import { VRM, VRMHumanBoneName, VRMPose } from '@pixiv/three-vrm';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
+import { type TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import { VrmIK } from '../vrmIk';
 import { createVrmFKHelper } from './vrmSkeltonHelper';
 import { createPoseGroupHelper } from './vrmSkeltonHelper/posGroupHelper';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { InteractableObject } from './interactableObject';
 import { createVrmIkHelper } from './vrmIkHelper/vrmIkHelper';
 import { Object3D, Vector3 } from 'three';
 import { v1IKConfig } from '../vrmIk/v1IkConfig';
 import mitt from 'mitt';
-import { createTransformController, isEqualToPrecision } from './utils';
+import {
+  createTransformController,
+  isEqualToPrecision,
+  PointerLockTransformControls,
+} from './utils';
 import { InitialBoneState } from '../Avatar';
 
 type Events = {
@@ -32,7 +36,7 @@ type ExtendedThreeEvent<T extends Event> = {
 export class VrmPoseController {
   private _vrmIk: VrmIK;
   private _camera: THREE.Camera;
-  private _transformController: TransformControls;
+  private _transformController: PointerLockTransformControls;
   private _hoveredObject: InteractableObject | null = null;
   private _selectedObject: InteractableObject | null = null;
   private _interactableObjects: InteractableObject[];
@@ -57,7 +61,7 @@ export class VrmPoseController {
     camera: THREE.Camera,
     private canvas: HTMLCanvasElement,
     orbitControls: OrbitControls,
-    onPoseChange?: (vrmPose: VRMPose) => void
+    onPoseChange?: (vrmPose: VRMPose) => void,
   ) {
     if (vrm.meta?.metaVersion === '0') {
       this._vrmIk = new VrmIK(vrm);
@@ -83,7 +87,7 @@ export class VrmPoseController {
     this._transformController = createTransformController(
       camera,
       canvas,
-      controllerScene
+      controllerScene,
     );
 
     this._transformController.addEventListener('change', (e) => {
@@ -110,7 +114,7 @@ export class VrmPoseController {
             mirrorBone.rotation.set(
               humanBone.node.rotation.x,
               humanBone.node.rotation.y * -1,
-              humanBone.node.rotation.z * -1
+              humanBone.node.rotation.z * -1,
             );
             mirrorBone.scale.copy(humanBone.node.scale);
           }
@@ -125,7 +129,7 @@ export class VrmPoseController {
         mirrorBone.rotation.set(
           activeBone.rotation.x,
           activeBone.rotation.y * -1,
-          activeBone.rotation.z * -1
+          activeBone.rotation.z * -1,
         );
         mirrorBone.scale.copy(activeBone.scale);
       }
@@ -149,7 +153,7 @@ export class VrmPoseController {
         this._interactableObjects.forEach((obj) => (obj.visible = false));
       } else {
         this._interactableObjects.forEach(
-          (obj) => (obj.visible = this.#visible)
+          (obj) => (obj.visible = this.#visible),
         );
       }
 
@@ -191,7 +195,7 @@ export class VrmPoseController {
 
     const interactObj = bone?.children.find(
       (child): child is InteractableObject =>
-        child instanceof InteractableObject
+        child instanceof InteractableObject,
     );
     if (!interactObj) return;
 
@@ -351,7 +355,7 @@ export class VrmPoseController {
 
     // 非表示のオブジェクトは判定から除外する
     const visibleObjects = this._interactableObjects.filter(
-      (obj) => obj.visible === true
+      (obj) => obj.visible === true,
     );
 
     const intersects = raycaster.intersectObjects(visibleObjects);
@@ -397,7 +401,7 @@ export class VrmPoseController {
     }
 
     this._interactableObjects.forEach(
-      (obj) => !nextActiveBones.includes(obj.controlTarget) && obj.unselected()
+      (obj) => !nextActiveBones.includes(obj.controlTarget) && obj.unselected(),
     );
     interactObj.selected();
   };

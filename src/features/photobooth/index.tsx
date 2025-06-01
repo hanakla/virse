@@ -114,7 +114,7 @@ export const PhotoBooth = memo(function PhotoBooth({
   const { openModal } = useModalOpener();
 
   const shortcutBindElRef = useRef<HTMLElement | null>(
-    typeof document !== 'undefined' ? document.getElementById('ui') : null
+    typeof document !== 'undefined' ? document.getElementById('ui') : null,
   );
   const padLRef = useRef<HTMLDivElement>(null);
   const padRRef = useRef<HTMLDivElement>(null);
@@ -223,7 +223,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       type: 'object',
       name: emptyCoalesce(
         photoboothStore.get().loadedPoses[target.uid]?.poseName,
-        'New Object Deployment'
+        'New Object Deployment',
       ),
       canvas: stage.getSize(),
       camera: {
@@ -268,14 +268,14 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     const original = photoboothStore.getLoadedPose(avatarUid)
       ? poses.find(
-          (p) => p.uid === photoboothStore.getLoadedPose(avatarUid)?.poseId
+          (p) => p.uid === photoboothStore.getLoadedPose(avatarUid)?.poseId,
         )
       : null;
 
     const pose: UnsavedVirsePose = {
       name: emptyCoalesce(
         photoboothStore.getLoadedPose(avatarUid)?.poseName,
-        'New Pose'
+        'New Pose',
       ),
       canvas: stage.getSize(),
       camera: {
@@ -291,7 +291,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           a[name] = vrm.expressionManager?.getValue(name)!;
           return a;
         },
-        Object.create(null)
+        Object.create(null),
       ),
       morphs: {
         ...original?.morphs,
@@ -341,7 +341,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     executeOperation(
       editorOps.savePose,
       { ...pose, uid: originalPoseId },
-      { overwrite: true }
+      { overwrite: true },
     );
   });
 
@@ -485,7 +485,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           },
         },
       }));
-    }
+    },
   );
 
   const handlePoseContextMenu = useFunc((e: MouseEvent<HTMLLIElement>) => {
@@ -521,7 +521,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         presetExpressions: boolean;
         extraBlendShapes: boolean;
         nonStandardBones: boolean | string[];
-      }
+      },
     ) => {
       if (!stage?.activeTarget) return;
 
@@ -551,7 +551,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           Object.entries(pose.blendShapeProxies).map(
             ([name, value]: [string, number]) => {
               avatar.vrm.expressionManager?.setValue(name, value);
-            }
+            },
           );
         }
 
@@ -572,10 +572,10 @@ export const PhotoBooth = memo(function PhotoBooth({
         if (pose.rootPosition) {
           avatar.positionBone.position.fromArray(pose.rootPosition.position);
           avatar.positionBone.quaternion.fromArray(
-            pose.rootPosition.quaternion
+            pose.rootPosition.quaternion,
           );
           avatar.positionBone.scale.fromArray(
-            pose.rootPosition.scale ?? [1, 1, 1]
+            pose.rootPosition.scale ?? [1, 1, 1],
           );
         }
 
@@ -586,7 +586,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         obj.rootBone.quaternion.fromArray(pose.rootPosition.quaternion);
         obj.rootBone.scale.fromArray(pose.rootPosition.scale ?? [1, 1, 1]);
       }
-    }
+    },
   );
 
   const handleClickLoadPoseOnly = useFunc((params: ItemParams) => {
@@ -600,7 +600,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       pose,
       activeTarget?.type === 'avatar'
         ? activeTarget.avatar.vrm.meta.metaVersion
-        : '1'
+        : '1',
     )!;
 
     applyPoseToActiveTarget.current(pose, {
@@ -739,7 +739,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       ([name, value]: [string, number]) => {
         if (!morphs.includes(name)) return;
         avatar.vrm.expressionManager?.setValue(name, value);
-      }
+      },
     );
   });
 
@@ -747,7 +747,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const poseId = params.props.poseId;
     const pose = migrateVRM0PoseToV1(
       poses.find((p) => p.uid === poseId),
-      '1'
+      '1',
     );
 
     if (!pose) return;
@@ -771,12 +771,12 @@ export const PhotoBooth = memo(function PhotoBooth({
             }),
           },
           null,
-          '  '
+          '  ',
         ),
       ],
       {
         type: 'application/json',
-      }
+      },
     );
     const url = URL.createObjectURL(json);
 
@@ -793,7 +793,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     const pose = migrateVRM0PoseToV1(
       poses.find((p) => p.uid === poseId),
-      avatar.vrm.meta.metaVersion
+      avatar.vrm.meta.metaVersion,
     );
     if (!pose) return;
 
@@ -815,7 +815,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
     await captureAndSave.current(
       param.event.shiftKey ? 'jpeg' : 'png',
-      pose.name
+      pose.name,
     );
 
     applyPoseToActiveTarget.current(stashedPose, {
@@ -848,7 +848,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     executeOperation(
       editorOps.savePose,
       { ...pose!, uid: originalPoseId },
-      { overwrite: true }
+      { overwrite: true },
     );
 
     photoboothStore.set((prev) => ({
@@ -866,7 +866,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     const poseId = params.props.poseId;
     const pose = migrateVRM0PoseToV1(
       poses.find((p) => p.uid === poseId),
-      '1'
+      '1',
     );
 
     if (!stage || !pose) return;
@@ -900,7 +900,7 @@ export const PhotoBooth = memo(function PhotoBooth({
 
       stage?.setSize(num, stage.getSize().height);
       rerender();
-    }
+    },
   );
 
   const handleChangeSizeHeight = useEvent(
@@ -910,7 +910,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         : currentTarget.valueAsNumber;
       stage?.setSize(stage.getSize().width, num);
       rerender();
-    }
+    },
   );
 
   const handleClickSwapSize = useEvent(() => {
@@ -932,7 +932,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         id: 'stagedModelMenu',
         props: { avatarUid },
       });
-    }
+    },
   );
 
   const handleClickReplaceModel = useEvent(
@@ -964,7 +964,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           nonStandardBones: true,
           extraBlendShapes: true,
           presetExpressions: true,
-        }
+        },
       );
 
       stage.removeAvatar(prevAvatarUid);
@@ -982,7 +982,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           },
         };
       });
-    }
+    },
   );
 
   const handleClickRemoveStagedModel = useEvent(
@@ -998,7 +998,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       if (result !== true) return;
 
       stage?.removeAvatar(uid);
-    }
+    },
   );
 
   const handleClickResetCurrentBone = useEvent(() => {
@@ -1024,13 +1024,13 @@ export const PhotoBooth = memo(function PhotoBooth({
   const handleClickStagedModel = useEvent(
     ({ currentTarget }: MouseEvent<HTMLLIElement>) => {
       stage?.setActiveAvatar(currentTarget.dataset.avatarUid!);
-    }
+    },
   );
 
   const handleClickStagedObject = useEvent(
     ({ currentTarget }: MouseEvent<HTMLLIElement>) => {
       stage?.setActiveObject(currentTarget.dataset.objectUid!);
-    }
+    },
   );
 
   const handleClickStagedModelToggleVisible = useEvent(
@@ -1042,7 +1042,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       if (!stage || !entry) return;
 
       entry.avatar.visible = !entry.avatar.visible;
-    }
+    },
   );
 
   const handleClickStagedObjectToggleVisible = useEvent(
@@ -1054,7 +1054,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       if (!entry) return;
 
       entry.obj.visible = !entry.obj.visible;
-    }
+    },
   );
 
   const handleClickStagedModelLicense = useEvent(
@@ -1066,7 +1066,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       if (!stage || !entry) return;
 
       openModal(VRMLicense, { meta: entry.avatar.vrm?.meta });
-    }
+    },
   );
 
   const handleClickSelectVRM = useEvent(async () => {
@@ -1096,7 +1096,7 @@ export const PhotoBooth = memo(function PhotoBooth({
     async (
       type: 'png' | 'jpeg',
       filenameWithoutExt: string,
-      save: boolean = true
+      save: boolean = true,
     ) => {
       if (!stage) return;
 
@@ -1111,7 +1111,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       }
 
       return blob;
-    }
+    },
   );
 
   const captureStage = useStableLatestRef(async (type: 'png' | 'jpeg') => {
@@ -1198,13 +1198,13 @@ export const PhotoBooth = memo(function PhotoBooth({
           }));
         });
       });
-    }
+    },
   );
 
   const handleClickRemoveModel = useFunc(
     (params: ItemParams<{ modelId: string }>) => {
       executeOperation(editorOps.deleteVrm, params.props!.modelId);
-    }
+    },
   );
 
   const changeCamKind = useStableLatestRef(
@@ -1245,7 +1245,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           captureCam: current,
         });
       }
-    }
+    },
   );
 
   const handleClickChangeCam = useEvent(
@@ -1256,7 +1256,7 @@ export const PhotoBooth = memo(function PhotoBooth({
         .camMode as any;
 
       changeCamKind.current(camMode);
-    }
+    },
   );
 
   const syncCamFromStage = useStableLatestRef(() => {
@@ -1326,13 +1326,13 @@ export const PhotoBooth = memo(function PhotoBooth({
         currentTarget.value = '';
         setFacialFilter(null);
       }
-    }
+    },
   );
 
   const handleChangeFacialFilter = useEvent(
     ({ currentTarget }: ChangeEvent<HTMLInputElement>) => {
       setFacialFilter(new RegExp(escapeStringRegexp(currentTarget.value), 'i'));
-    }
+    },
   );
 
   // const handleChangeHandMix = useFunc((_, v) => {
@@ -1413,7 +1413,7 @@ export const PhotoBooth = memo(function PhotoBooth({
             screenX: e instanceof MouseEvent ? e.screenX : e.touches[0].screenX,
             screenY: e instanceof MouseEvent ? e.screenY : e.touches[0].screenY,
             buttons: 0,
-          })
+          }),
         );
       };
 
@@ -1426,7 +1426,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           openContextMenu();
           abort.abort();
         },
-        { once: true, signal: abort.signal }
+        { once: true, signal: abort.signal },
       );
       document.addEventListener(
         'touchend',
@@ -1434,12 +1434,12 @@ export const PhotoBooth = memo(function PhotoBooth({
           openContextMenu();
           abort.abort();
         },
-        { once: true, signal: abort.signal }
+        { once: true, signal: abort.signal },
       );
     },
     {
       cancelOnMovement: true,
-    }
+    },
   );
 
   const isMatchToFacialFilter = (name: string, displayName: string = '') => {
@@ -1495,7 +1495,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           if (!bone) return;
 
           const siblBones = (bone.parent?.children ?? []).filter(
-            (o: any): o is Bone => o.isBone
+            (o: any): o is Bone => o.isBone,
           );
           if (siblBones.length === 0) return;
           else if (siblBones.length === 1) avatar.ui.activeBone = siblBones[0];
@@ -1521,7 +1521,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           if (!bone) return;
 
           const childBones = bone.children.filter(
-            (o: any): o is Bone => o.isBone
+            (o: any): o is Bone => o.isBone,
           );
           if (childBones.length === 0) return;
           else if (childBones.length === 1)
@@ -1533,7 +1533,7 @@ export const PhotoBooth = memo(function PhotoBooth({
             if (!targetBoneName) return;
 
             const targetBone = childBones.find(
-              (o) => o.name === targetBoneName
+              (o) => o.name === targetBoneName,
             );
             if (!targetBone) return;
 
@@ -1651,13 +1651,13 @@ export const PhotoBooth = memo(function PhotoBooth({
           window.addEventListener(
             'keyup',
             () => !abort.signal.aborted && abort.abort(),
-            { once: true }
+            { once: true },
           );
 
           openModal(
             KeyboardHelp,
             { temporalyShow: true },
-            { signal: abort.signal }
+            { signal: abort.signal },
           );
         },
       },
@@ -1701,7 +1701,7 @@ export const PhotoBooth = memo(function PhotoBooth({
       },
     ],
     undefined,
-    shortcutBindElRef
+    shortcutBindElRef,
   );
 
   /////
@@ -1797,12 +1797,12 @@ export const PhotoBooth = memo(function PhotoBooth({
     const rateX = MathUtils.lerp(
       -0.3,
       0.3,
-      padLMouse.x! / padLMouse.elementWidth!
+      padLMouse.x! / padLMouse.elementWidth!,
     );
     const rateY = MathUtils.lerp(
       -0.3,
       0.3,
-      1 - padLMouse.y! / padLMouse.elementHeight!
+      1 - padLMouse.y! / padLMouse.elementHeight!,
     );
 
     vrm.humanoid
@@ -1814,7 +1814,7 @@ export const PhotoBooth = memo(function PhotoBooth({
               MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
               MathUtils.mapLinear(rateX, -0.3, 0.3, -0.8, 0),
               0,
-            ] as const))
+            ] as const)),
       );
 
     if (state.syncEyes) {
@@ -1827,7 +1827,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                 MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
                 MathUtils.mapLinear(rateX, -0.3, 0.3, 0, 1),
                 0,
-              ] as const))
+              ] as const)),
         );
     }
   }, [state.syncEyes, padLMouse.clientX, padLMouse.clientY, padLMouse.isDown]);
@@ -1840,12 +1840,12 @@ export const PhotoBooth = memo(function PhotoBooth({
     const rateX = MathUtils.lerp(
       -0.3,
       0.3,
-      padRMouse.x! / padRMouse.elementWidth!
+      padRMouse.x! / padRMouse.elementWidth!,
     );
     const rateY = MathUtils.lerp(
       -0.3,
       0.3,
-      1 - padRMouse.y! / padRMouse.elementHeight!
+      1 - padRMouse.y! / padRMouse.elementHeight!,
     );
 
     vrm.humanoid
@@ -1857,7 +1857,7 @@ export const PhotoBooth = memo(function PhotoBooth({
               MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
               MathUtils.mapLinear(rateX, -0.3, 0.3, 0, 1),
               0,
-            ] as const))
+            ] as const)),
       );
 
     if (state.syncEyes) {
@@ -1870,7 +1870,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                 MathUtils.mapLinear(rateY, -0.3, 0.3, 0.2, -0.2),
                 MathUtils.mapLinear(rateX, -0.3, 0.3, -0.8, 0),
                 0,
-              ] as const))
+              ] as const)),
         );
     }
   }, [state.syncEyes, padRMouse.clientX, padRMouse.clientY, padRMouse.isDown]);
@@ -1893,7 +1893,7 @@ export const PhotoBooth = memo(function PhotoBooth({
           props: {},
         });
       },
-      { signal: abort.signal }
+      { signal: abort.signal },
     );
 
     return () => {
@@ -2019,7 +2019,8 @@ export const PhotoBooth = memo(function PhotoBooth({
                       height: 24px;
                       border-radius: 4px;
                       cursor: pointer;
-                      background-image: linear-gradient(
+                      background-image:
+                        linear-gradient(
                           45deg,
                           rgba(100, 100, 100, 0.4) 25%,
                           transparent 25%,
@@ -2035,7 +2036,9 @@ export const PhotoBooth = memo(function PhotoBooth({
                         );
                       /* background-color: transparent; */
                       background-size: ${12}px ${12}px;
-                      background-position: 0 0, ${12 / 2}px ${12 / 2}px;
+                      background-position:
+                        0 0,
+                        ${12 / 2}px ${12 / 2}px;
                     `}
                     onClick={handleClickBGTransparent}
                   />
@@ -2535,12 +2538,12 @@ export const PhotoBooth = memo(function PhotoBooth({
                     <Circle
                       x={
                         state.syncEyes
-                          ? padLMouse.x ?? padRMouse.x
+                          ? (padLMouse.x ?? padRMouse.x)
                           : padLMouse.x
                       }
                       y={
                         state.syncEyes
-                          ? padLMouse.y ?? padRMouse.y
+                          ? (padLMouse.y ?? padRMouse.y)
                           : padLMouse.y
                       }
                       visible={padLMouse.isDown || padRMouse.isDown}
@@ -2562,12 +2565,12 @@ export const PhotoBooth = memo(function PhotoBooth({
                     <Circle
                       x={
                         state.syncEyes
-                          ? padLMouse.x ?? padRMouse.x
+                          ? (padLMouse.x ?? padRMouse.x)
                           : padRMouse.x
                       }
                       y={
                         state.syncEyes
-                          ? padLMouse.y ?? padRMouse.y
+                          ? (padLMouse.y ?? padRMouse.y)
                           : padRMouse.y
                       }
                       visible={padLMouse.isDown || padRMouse.isDown}
@@ -2642,14 +2645,14 @@ export const PhotoBooth = memo(function PhotoBooth({
                   `}
                 >
                   {Object.keys(
-                    activeAvatar?.vrm.expressionManager?.expressionMap ?? {}
+                    activeAvatar?.vrm.expressionManager?.expressionMap ?? {},
                   ).map(
                     (name) =>
                       isMatchToFacialFilter(
                         name,
                         t(`vrm/exprPreset/${name}`, null, {
                           fallback: name,
-                        })
+                        }),
                       ) && (
                         <Slider
                           key={name}
@@ -2665,17 +2668,17 @@ export const PhotoBooth = memo(function PhotoBooth({
                           max={1}
                           value={
                             activeAvatar?.vrm.expressionManager?.getValue(
-                              name
+                              name,
                             ) ?? 0
                           }
                           onChange={(v) =>
                             activeAvatar?.vrm.expressionManager?.setValue(
                               name,
-                              v
+                              v,
                             )
                           }
                         />
-                      )
+                      ),
                   )}
                 </div>
 
@@ -2708,7 +2711,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                       ([name, proxy]) =>
                         isMatchToFacialFilter(
                           name,
-                          replaceVRoidShapeNamePrefix(name)
+                          replaceVRoidShapeNamePrefix(name),
                         ) && (
                           <Slider
                             key={name}
@@ -2728,7 +2731,7 @@ export const PhotoBooth = memo(function PhotoBooth({
                               proxy.value = v;
                             }}
                           />
-                        )
+                        ),
                     )
                   ) : (
                     <div>{t('facial/customs/noAvailable')}</div>
@@ -2850,8 +2853,8 @@ export const PhotoBooth = memo(function PhotoBooth({
                           (p) =>
                             p.uid ===
                             photoboothStore.getLoadedPose(
-                              activeTarget?.uid ?? ''
-                            )?.poseId
+                              activeTarget?.uid ?? '',
+                            )?.poseId,
                         )?.name
                       }
                       )
@@ -3051,7 +3054,7 @@ const Tab = ({
     className={twx(
       'flex-1 py-0.5 px-1 rounded-full text-center select-none transition',
       active && 'text-[#34c0b9] bg-white',
-      !active && 'hover:text-white hover:bg-[#23a8a2]'
+      !active && 'hover:text-white hover:bg-[#23a8a2]',
     )}
     {...props}
   >

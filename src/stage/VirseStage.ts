@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { Packr } from 'msgpackr';
 import { VRM, VRMExpressionPresetName, VRMUtils } from '@pixiv/three-vrm';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { OrbitControls } from './OrbitControls.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
@@ -172,7 +173,7 @@ export class VirseStage {
 
     this.pCam = new THREE.PerspectiveCamera(
       15,
-      window.innerWidth / window.innerHeight
+      window.innerWidth / window.innerHeight,
     );
     this.pCam.position.set(0.0, 1.3, 3);
     this.pCam.rotation.set(0.0, Math.PI, 0);
@@ -184,7 +185,7 @@ export class VirseStage {
       this.#size.height / 2,
       this.#size.height / -2,
       1,
-      10000
+      10000,
     );
     this.oCam.position.set(0.0, 1.4, 0);
     this.oCam.zoom = 200;
@@ -284,8 +285,8 @@ export class VirseStage {
           Object.entries(this.avatars).map(async ([uid, { avatar }]) => [
             uid,
             new Uint8ClampedArray(await avatar.vrmBin!.arrayBuffer()),
-          ])
-        )
+          ]),
+        ),
       ),
       gltfObjects: Object.fromEntries(
         await Promise.all(
@@ -295,8 +296,8 @@ export class VirseStage {
               name: obj.name,
               bin: new Uint8ClampedArray(await obj.gltfBin!.arrayBuffer()),
             },
-          ])
-        )
+          ]),
+        ),
       ),
 
       canvas: {
@@ -331,14 +332,14 @@ export class VirseStage {
                 ac[name] = avatar.vrm.expressionManager!.getValue(name);
                 return ac;
               },
-              Object.create(null)
+              Object.create(null),
             ),
             morphs: Object.entries(avatar.blendshapes ?? {}).reduce(
               (ac, [name, proxy]) => {
                 ac[name] = proxy.value;
                 return ac;
               },
-              Object.create(null)
+              Object.create(null),
             ),
             bones: (() => {
               const bones: Bone[] = [];
@@ -356,7 +357,7 @@ export class VirseStage {
               }, Object.create(null));
             })(),
           },
-        ])
+        ]),
       ),
       objects: Object.fromEntries(
         Object.entries(this.gltfObjects).map(([uid, { obj: ui }]) => [
@@ -366,7 +367,7 @@ export class VirseStage {
             quaternion: ui.rootBone.quaternion.toArray() as Vector4Tuple,
             scale: ui.rootBone.scale.toArray(),
           },
-        ])
+        ]),
       ),
     };
 
@@ -413,12 +414,12 @@ export class VirseStage {
         uidMap[uid] = avatar.uid;
 
         avatar.avatar.positionBone.position.fromArray(
-          poses[uid].rootPosition.position
+          poses[uid].rootPosition.position,
         );
         avatar.avatar.positionBone.quaternion.fromArray(
-          poses[uid].rootPosition.quaternion
+          poses[uid].rootPosition.quaternion,
         );
-      })
+      }),
     );
 
     const objUidMap: { [old: string]: string } = {};
@@ -448,7 +449,7 @@ export class VirseStage {
           obj.obj.rootBone.position.fromArray(objects[uid].position);
           obj.obj.rootBone.quaternion.fromArray(objects[uid].quaternion);
           obj.obj.rootBone.scale.fromArray(objects[uid].scale);
-        })
+        }),
       );
     }
 
@@ -461,13 +462,13 @@ export class VirseStage {
       Object.entries(pose.vrmExpressions as Record<string, number>).forEach(
         ([name, value]) => {
           avatar.vrm.expressionManager!.setValue(name as any, value);
-        }
+        },
       );
 
       Object.entries(pose.morphs as Record<string, number>).forEach(
         ([name, value]) => {
           avatar.blendshapes![name]!.value = value;
-        }
+        },
       );
 
       Object.entries(
@@ -477,7 +478,7 @@ export class VirseStage {
             position: Vector3Tuple;
             quaternion: Vector4Tuple;
           }
-        >
+        >,
       ).forEach(([name, { position, quaternion }]) => {
         const bone = avatar.vrm.scene.getObjectByName(name) as Bone;
         bone.position.fromArray(position);
@@ -525,7 +526,7 @@ export class VirseStage {
       position0?: Vector3Tuple;
       rotation?: Vector3Tuple;
       quaternion?: Vector4Tuple;
-    } = {}
+    } = {},
   ) {
     this.orbitControls.dispose();
 
@@ -726,7 +727,7 @@ export class VirseStage {
     const size = fit(
       { width: window.innerWidth, height: window.innerHeight },
       this.#size,
-      'contain'
+      'contain',
     );
     this.canvas.style.setProperty('width', `${size.width}px`);
     this.canvas.style.setProperty('height', `${size.height}px`);
@@ -787,61 +788,69 @@ export class VirseStage {
     });
 
     const avatar = new Avatar(this);
-    await avatar.loadVRM(url);
 
-    avatar.ui.setVisible(this.#showBones);
+    try {
+      await avatar.loadVRM(url);
 
-    avatar.ui.events.on('boneChanged', () => {
-      this.events.emit('updated');
-    });
+      avatar.ui.setVisible(this.#showBones);
 
-    avatar.ui.events.on('boneHoverChanged', ({ bone }) => {
-      this.events.emit('boneHoverChanged', bone);
-      this.events.emit('updated');
-    });
-
-    avatar.ui.events.on('dragChange', ({ dragging }) => {
-      this.orbitControls.enabled = !dragging;
-    });
-
-    avatar.events.on('updated', () => this.events.emit('updated'));
-
-    avatar.kalidokit?.events.on('statusChanged', () => {
-      this.events.emit('updated');
-    });
-
-    avatar.events.on('historyPushed', (entry) => {
-      this.history.push({
-        undo: () => {
-          this.setActiveTarget(uid);
-          entry.undo();
-        },
-        redo: () => {
-          this.setActiveTarget(uid);
-          entry.redo();
-        },
+      avatar.ui.events.on('boneChanged', () => {
+        this.events.emit('updated');
       });
-    });
 
-    const uid = nanoid();
-    this.avatars[uid] = {
-      type: 'avatar',
-      uid,
-      avatar,
-      get ui() {
-        return avatar.ui;
-      },
-      get vrm() {
-        return avatar.vrm;
-      },
-    };
+      avatar.ui.events.on('boneHoverChanged', ({ bone }) => {
+        this.events.emit('boneHoverChanged', bone);
+        this.events.emit('updated');
+      });
 
-    this.#activeAvatarUid = uid;
-    this.events.emit('updated');
+      avatar.ui.events.on('dragChange', ({ dragging }) => {
+        this.orbitControls.enabled = !dragging;
+      });
 
-    this.setActiveTarget(uid);
+      avatar.events.on('updated', () => this.events.emit('updated'));
 
-    return this.avatars[uid];
+      avatar.kalidokit?.events.on('statusChanged', () => {
+        this.events.emit('updated');
+      });
+
+      avatar.events.on('historyPushed', (entry) => {
+        this.history.push({
+          undo: () => {
+            this.setActiveTarget(uid);
+            entry.undo();
+          },
+          redo: () => {
+            this.setActiveTarget(uid);
+            entry.redo();
+          },
+        });
+      });
+
+      const uid = nanoid();
+      this.avatars[uid] = {
+        type: 'avatar',
+        uid,
+        avatar,
+        get ui() {
+          return avatar.ui;
+        },
+        get vrm() {
+          return avatar.vrm;
+        },
+      };
+
+      this.#activeAvatarUid = uid;
+      this.events.emit('updated');
+
+      this.setActiveTarget(uid);
+      avatar.showModel();
+
+      return this.avatars[uid];
+    } catch (e) {
+      avatar.dispose();
+      console.error('Failed to load VRM:', e);
+      throw e;
+    }
   }
 
   public async loadGltf(url: string, name: string) {

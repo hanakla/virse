@@ -1,12 +1,11 @@
 import * as THREE from 'three';
-import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {
   WebIO,
   JSONDocument as GLTFJson,
   GLTF as GLTFSchema,
   Primitive as GLTFPrimitive,
 } from '@gltf-transform/core';
-import { TransformControls } from 'three/examples/jsm/controls/TransformControls';
 import {
   VRM,
   VRMExpressionPresetName,
@@ -73,7 +72,6 @@ export class Avatar {
   public initialBones: Array<InitialBoneState> = [];
 
   public readonly events = mitt<Events>();
-  private controls: TransformControls[] = [];
   public blendshapes: Record<string, MorphProxy> | null = null;
 
   #kalidokit: KalidokitCapture | null = null;
@@ -146,7 +144,7 @@ export class Avatar {
       (parser) =>
         new VRMLoaderPlugin(parser, {
           autoUpdateHumanBones: false,
-        })
+        }),
     );
 
     const gltf = await loader.loadAsync(url);
@@ -154,7 +152,7 @@ export class Avatar {
 
     const buffer = await (await fetch(url)).arrayBuffer();
     this.gltfJson = await new WebIO({ credentials: 'include' }).binaryToJSON(
-      new Uint8Array(buffer)
+      new Uint8Array(buffer),
     );
     this.vrmBin = new Blob([buffer], { type: 'model/gltf+json' });
 
@@ -170,7 +168,6 @@ export class Avatar {
     this._vrm = vrm;
     this._positionBone.add(vrm.scene);
     this._avatarScene.add(this._positionBone);
-    this._stage.rootScene.add(this._avatarScene);
 
     // this._stage.rootScene.add(this._positionRoot);
     // this._stage.rootScene.add(vrm.scene);
@@ -193,7 +190,7 @@ export class Avatar {
           number,
           number,
           number,
-          number
+          number,
         ],
       };
     });
@@ -204,7 +201,7 @@ export class Avatar {
           b.bone.uuid !== bone.bone.uuid &&
           isEqualToPrecision(bone.globalPos[0], -b.globalPos[0], 5) &&
           isEqualToPrecision(bone.globalPos[1], b.globalPos[1], 5) &&
-          isEqualToPrecision(bone.globalPos[2], b.globalPos[2], 5)
+          isEqualToPrecision(bone.globalPos[2], b.globalPos[2], 5),
       );
 
       if (!symmetricalBone) return acc;
@@ -221,7 +218,7 @@ export class Avatar {
       this._avatarScene,
       this._stage.activeCamera,
       this._stage.canvas,
-      this._stage.orbitControls
+      this._stage.orbitControls,
     ));
 
     // ui.events.on('dragChange', (e) => {
@@ -266,6 +263,10 @@ export class Avatar {
     ui.events.on('dragChange', (e) => this.events.emit('boneDragging', e));
 
     this.blendshapes = await this.buildGltfTargets();
+  }
+
+  public showModel() {
+    this._stage.rootScene.add(this._avatarScene);
   }
 
   public dispose() {
@@ -355,7 +356,7 @@ export class Avatar {
               if (node.mesh === meshIdx) {
                 nodesUsingByMesh.push(i);
               }
-            }
+            },
           );
 
           proxy[targetName] ??= Object.defineProperties(
@@ -383,7 +384,7 @@ export class Avatar {
                   return proxy[this.name]._value;
                 },
               },
-            }
+            },
           );
 
           proxy[targetName].binds.push({
@@ -395,8 +396,8 @@ export class Avatar {
               await Promise.all(
                 nodesUsingByMesh.map(
                   async (nodeIdx) =>
-                    await gltfExtractPrimitivesFromNode(this.gltf, nodeIdx)
-                )
+                    await gltfExtractPrimitivesFromNode(this.gltf, nodeIdx),
+                ),
               )
             )
               .flat()
@@ -422,11 +423,11 @@ export class Avatar {
  */
 export async function gltfExtractPrimitivesFromNode(
   gltf: GLTF,
-  nodeIndex: number
+  nodeIndex: number,
 ): Promise<SkinnedMesh[] | null> {
   const node: THREE.Object3D = await gltf.parser.getDependency(
     'node',
-    nodeIndex
+    nodeIndex,
   );
   return extractPrimitivesInternal(gltf, nodeIndex, node);
 }
@@ -437,7 +438,7 @@ export async function gltfExtractPrimitivesFromNode(
 function extractPrimitivesInternal(
   gltf: GLTF,
   nodeIndex: number,
-  node: THREE.Object3D
+  node: THREE.Object3D,
 ): SkinnedMesh[] | null {
   /**
    * Let's list up every possible patterns that parsed gltf nodes with a mesh can have,,,
