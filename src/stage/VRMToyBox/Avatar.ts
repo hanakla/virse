@@ -1,19 +1,19 @@
-import * as THREE from 'three';
-import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as THREE from "three";
+import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import {
   WebIO,
   JSONDocument as GLTFJson,
   GLTF as GLTFSchema,
   Primitive as GLTFPrimitive,
-} from '@gltf-transform/core';
+} from "@gltf-transform/core";
 import {
   VRM,
   VRMExpressionPresetName,
   VRMLoaderPlugin,
   VRMPose,
   VRMUtils,
-} from '@pixiv/three-vrm';
-import { KalidokitCapture } from '../Kalidokit/capture';
+} from "@pixiv/three-vrm";
+import { KalidokitCapture } from "../Kalidokit/capture";
 import {
   Bone,
   Group,
@@ -21,12 +21,12 @@ import {
   SkinnedMesh,
   Vector3Tuple,
   Vector4Tuple,
-} from 'three';
-import { VirseStage } from '../VirseStage';
-import mitt from 'mitt';
-import { VrmPoseController } from './vrmPoseController';
-import { HistoryEntry } from '../History';
-import { isEqualToPrecision } from './vrmPoseController/utils';
+} from "three";
+import { VirseStage } from "../VirseStage";
+import mitt from "mitt";
+import { VrmPoseController } from "./vrmPoseController";
+import { HistoryEntry } from "../History";
+import { isEqualToPrecision } from "./vrmPoseController/utils";
 
 type Events = {
   updated: void;
@@ -87,7 +87,7 @@ export class Avatar {
     // this._vrm = null;
     this._avatarScene = new THREE.Scene();
     this._positionBone = new THREE.Bone();
-    this._positionBone.name = 'ROOT_position';
+    this._positionBone.name = "ROOT_position";
   }
 
   public get vrm(): VRM {
@@ -102,8 +102,8 @@ export class Avatar {
     if (this.#kalidokit) return this.#kalidokit;
 
     this.#kalidokit = new KalidokitCapture(this);
-    this.#kalidokit.events.on('statusChanged', (status) => {
-      this.events.emit('kalidokitStatusChanged', status);
+    this.#kalidokit.events.on("statusChanged", (status) => {
+      this.events.emit("kalidokitStatusChanged", status);
     });
 
     return;
@@ -125,7 +125,7 @@ export class Avatar {
     this.#visible = v;
     this._avatarScene.visible = v;
     this.#controller.setVisible(v);
-    this.events.emit('updated');
+    this.events.emit("updated");
   }
 
   public getInitialBoneState(name: string) {
@@ -151,17 +151,17 @@ export class Avatar {
     this.gltf = gltf;
 
     const buffer = await (await fetch(url)).arrayBuffer();
-    this.gltfJson = await new WebIO({ credentials: 'include' }).binaryToJSON(
+    this.gltfJson = await new WebIO({ credentials: "include" }).binaryToJSON(
       new Uint8Array(buffer),
     );
-    this.vrmBin = new Blob([buffer], { type: 'model/gltf+json' });
+    this.vrmBin = new Blob([buffer], { type: "model/gltf+json" });
 
     const vrm: VRM = gltf.userData.vrm;
     vrm.scene.traverse((l) => {
       l.frustumCulled = false;
     });
 
-    VRMUtils.removeUnnecessaryJoints(vrm.scene);
+    VRMUtils.combineSkeletons(vrm.scene);
     VRMUtils.removeUnnecessaryVertices(vrm.scene);
     VRMUtils.rotateVRM0(vrm);
 
@@ -236,7 +236,7 @@ export class Avatar {
       pose: vrm.humanoid.getRawPose(),
       position: this.positionBone.clone(false),
     };
-    ui.events.on('poseChanged', ({ pose }) => {
+    ui.events.on("poseChanged", ({ pose }) => {
       const undoPose = prevPose;
       const nextPose = {
         pose: pose,
@@ -244,7 +244,7 @@ export class Avatar {
       };
       prevPose = nextPose;
 
-      this.events.emit('historyPushed', {
+      this.events.emit("historyPushed", {
         undo: () => {
           this.positionBone.position.copy(undoPose.position.position);
           this.positionBone.quaternion.copy(undoPose.position.quaternion);
@@ -259,8 +259,8 @@ export class Avatar {
       });
     });
 
-    ui.events.on('boneChanged', (b) => this.events.emit('boneChanged', b.bone));
-    ui.events.on('dragChange', (e) => this.events.emit('boneDragging', e));
+    ui.events.on("boneChanged", (b) => this.events.emit("boneChanged", b.bone));
+    ui.events.on("dragChange", (e) => this.events.emit("boneDragging", e));
 
     this.blendshapes = await this.buildGltfTargets();
   }
@@ -426,7 +426,7 @@ export async function gltfExtractPrimitivesFromNode(
   nodeIndex: number,
 ): Promise<SkinnedMesh[] | null> {
   const node: THREE.Object3D = await gltf.parser.getDependency(
-    'node',
+    "node",
     nodeIndex,
   );
   return extractPrimitivesInternal(gltf, nodeIndex, node);

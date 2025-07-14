@@ -153,6 +153,97 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@biomejs/biome@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "@biomejs/biome@npm:2.1.1"
+  dependencies:
+    "@biomejs/cli-darwin-arm64": "npm:2.1.1"
+    "@biomejs/cli-darwin-x64": "npm:2.1.1"
+    "@biomejs/cli-linux-arm64": "npm:2.1.1"
+    "@biomejs/cli-linux-arm64-musl": "npm:2.1.1"
+    "@biomejs/cli-linux-x64": "npm:2.1.1"
+    "@biomejs/cli-linux-x64-musl": "npm:2.1.1"
+    "@biomejs/cli-win32-arm64": "npm:2.1.1"
+    "@biomejs/cli-win32-x64": "npm:2.1.1"
+  dependenciesMeta:
+    "@biomejs/cli-darwin-arm64":
+      optional: true
+    "@biomejs/cli-darwin-x64":
+      optional: true
+    "@biomejs/cli-linux-arm64":
+      optional: true
+    "@biomejs/cli-linux-arm64-musl":
+      optional: true
+    "@biomejs/cli-linux-x64":
+      optional: true
+    "@biomejs/cli-linux-x64-musl":
+      optional: true
+    "@biomejs/cli-win32-arm64":
+      optional: true
+    "@biomejs/cli-win32-x64":
+      optional: true
+  bin:
+    biome: bin/biome
+  checksum: 10/f114f220d388b76c2c28f56e7477df6545e65c009af0d279d63ca30efa7eca1ffb67bb8ce8305b8d25dfb7176b8f1b71e650c34ef8bb09c805c7f9c36166b3a7
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-darwin-arm64@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@biomejs/cli-darwin-arm64@npm:2.1.1"
+  conditions: os=darwin & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-darwin-x64@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@biomejs/cli-darwin-x64@npm:2.1.1"
+  conditions: os=darwin & cpu=x64
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-linux-arm64-musl@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@biomejs/cli-linux-arm64-musl@npm:2.1.1"
+  conditions: os=linux & cpu=arm64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-linux-arm64@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@biomejs/cli-linux-arm64@npm:2.1.1"
+  conditions: os=linux & cpu=arm64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-linux-x64-musl@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@biomejs/cli-linux-x64-musl@npm:2.1.1"
+  conditions: os=linux & cpu=x64 & libc=musl
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-linux-x64@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@biomejs/cli-linux-x64@npm:2.1.1"
+  conditions: os=linux & cpu=x64 & libc=glibc
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-win32-arm64@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@biomejs/cli-win32-arm64@npm:2.1.1"
+  conditions: os=win32 & cpu=arm64
+  languageName: node
+  linkType: hard
+
+"@biomejs/cli-win32-x64@npm:2.1.1":
+  version: 2.1.1
+  resolution: "@biomejs/cli-win32-x64@npm:2.1.1"
+  conditions: os=win32 & cpu=x64
+  languageName: node
+  linkType: hard
+
 "@charlietango/use-focus-trap@npm:^1.4.0":
   version: 1.4.0
   resolution: "@charlietango/use-focus-trap@npm:1.4.0"
@@ -163,7 +254,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@dimforge/rapier3d-compat@npm:^0.12.0":
+"@dimforge/rapier3d-compat@npm:~0.12.0":
   version: 0.12.0
   resolution: "@dimforge/rapier3d-compat@npm:0.12.0"
   checksum: 10/56cd538b59d534d2ed91de3eb7efd804af5defe146f65294e8ce81982a4bd6c27d61c1014c15a77bb5f5eff0de7a12fbc9b16bf895a2ec56ea5496fd80c78e26
@@ -1120,139 +1211,139 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-core@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/three-vrm-core@npm:3.4.1"
+"@pixiv/three-vrm-core@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/three-vrm-core@npm:3.4.2"
   dependencies:
-    "@pixiv/types-vrm-0.0": "npm:3.4.1"
-    "@pixiv/types-vrmc-vrm-1.0": "npm:3.4.1"
+    "@pixiv/types-vrm-0.0": "npm:3.4.2"
+    "@pixiv/types-vrmc-vrm-1.0": "npm:3.4.2"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/e3e31b078b2519c05ece70050ffde867ad4338b78d0a901508ed28f94ac351029e0401175ea4bdbaa4b8fe1966b3eb24c229760162792d01d3607a16b2f95bf7
+  checksum: 10/9add9cf55f4e92d013ca26ab3682a52ecd562afe6d1b09b7e4cde5c8e7ea62ffdf507582bf8f44fd094107269286df78ecf23759eb0e42f56bea6a9d9416df8c
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-materials-hdr-emissive-multiplier@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/three-vrm-materials-hdr-emissive-multiplier@npm:3.4.1"
+"@pixiv/three-vrm-materials-hdr-emissive-multiplier@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/three-vrm-materials-hdr-emissive-multiplier@npm:3.4.2"
   dependencies:
-    "@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0": "npm:3.4.1"
+    "@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0": "npm:3.4.2"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/326e1e248996af9e85217cc96c7cb77ea92f97d83bf4996f788c4e8242ff2d90f28551bfdc3ccba2e1d298ed95d1df8ec7ddd2acb6faa7850a93dcef02894dd0
+  checksum: 10/758deadc157c50c4fba5b1c003505ff6c7177ad1365ce261e072db5daa2891c073d099eacbce2f3c7ff4257460baa52a5180a068bc7aeb48770cfd57be440386
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-materials-mtoon@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/three-vrm-materials-mtoon@npm:3.4.1"
+"@pixiv/three-vrm-materials-mtoon@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/three-vrm-materials-mtoon@npm:3.4.2"
   dependencies:
-    "@pixiv/types-vrm-0.0": "npm:3.4.1"
-    "@pixiv/types-vrmc-materials-mtoon-1.0": "npm:3.4.1"
+    "@pixiv/types-vrm-0.0": "npm:3.4.2"
+    "@pixiv/types-vrmc-materials-mtoon-1.0": "npm:3.4.2"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/7dd8ccb2d0bf413c5eddebdce857e08c27663c430092759322929dc71c4c900a76064ee48c57bdfa257d66fdb52954496c39bd14f9a64df0d9772d988734d278
+  checksum: 10/850c781c124308f94dcb703f382c0815a4ee508a28bf7a1f063b59e32cc8c07f43a5bb5ca128205a66513a9d2c7d3607b192fbcd5f169f4d9408eb2f4c77455b
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-materials-v0compat@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/three-vrm-materials-v0compat@npm:3.4.1"
+"@pixiv/three-vrm-materials-v0compat@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/three-vrm-materials-v0compat@npm:3.4.2"
   dependencies:
-    "@pixiv/types-vrm-0.0": "npm:3.4.1"
-    "@pixiv/types-vrmc-materials-mtoon-1.0": "npm:3.4.1"
+    "@pixiv/types-vrm-0.0": "npm:3.4.2"
+    "@pixiv/types-vrmc-materials-mtoon-1.0": "npm:3.4.2"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/ed532fc37e6b7a6347bfe7809d2ff0ffe0629c3495cdeca62f68ae4791c9853f71bdfa20320c012d5c1ddd84f7e23357a1f30d55a7463b4b0be1854cc25c0029
+  checksum: 10/95971038503ac7553744d7d39ec2f35536c69366afd4a3fb23e0b851bf01dd0c310c5be0464fe84e6503c46d35e0c216a1f4b946c8adbe6139da09582a372a94
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-node-constraint@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/three-vrm-node-constraint@npm:3.4.1"
+"@pixiv/three-vrm-node-constraint@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/three-vrm-node-constraint@npm:3.4.2"
   dependencies:
-    "@pixiv/types-vrmc-node-constraint-1.0": "npm:3.4.1"
+    "@pixiv/types-vrmc-node-constraint-1.0": "npm:3.4.2"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/893b51de8aace83b14e200acc8eba9e0ecff4aec32514682c52108ac0ceccde221c45259012b07b66ec0b78e159b8a171f141ccd41cf7fd3fd89b8cc3a9667a1
+  checksum: 10/de083cd2d5ed91fe26047c96a2a7d7bac1507150e90192af2a6578552bdf38f3feef28734e217ffe1cfff81c67f8824d3afbe8b01cdc45fc72e61b2b1d7b3ab8
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-springbone@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/three-vrm-springbone@npm:3.4.1"
+"@pixiv/three-vrm-springbone@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/three-vrm-springbone@npm:3.4.2"
   dependencies:
-    "@pixiv/types-vrm-0.0": "npm:3.4.1"
-    "@pixiv/types-vrmc-springbone-1.0": "npm:3.4.1"
-    "@pixiv/types-vrmc-springbone-extended-collider-1.0": "npm:3.4.1"
+    "@pixiv/types-vrm-0.0": "npm:3.4.2"
+    "@pixiv/types-vrmc-springbone-1.0": "npm:3.4.2"
+    "@pixiv/types-vrmc-springbone-extended-collider-1.0": "npm:3.4.2"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/3588dc7848bbfb1368b654cf723d57d7f954598df5c4b544165b3ed4ada0874fd24be020967f18ffc3fc62231700f85c87f1dd7cc5c4cb771de04f41f208a0df
+  checksum: 10/49c4c9fb54433d68e23734d06a2a086326c42f29fc6414f92917ff5d41058f09fa51f34ff96f2955e4e5feaa3f1728c846f10d0e3f2a3c569cf3e87c1d03b013
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm@npm:^3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/three-vrm@npm:3.4.1"
+"@pixiv/three-vrm@npm:^3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/three-vrm@npm:3.4.2"
   dependencies:
-    "@pixiv/three-vrm-core": "npm:3.4.1"
-    "@pixiv/three-vrm-materials-hdr-emissive-multiplier": "npm:3.4.1"
-    "@pixiv/three-vrm-materials-mtoon": "npm:3.4.1"
-    "@pixiv/three-vrm-materials-v0compat": "npm:3.4.1"
-    "@pixiv/three-vrm-node-constraint": "npm:3.4.1"
-    "@pixiv/three-vrm-springbone": "npm:3.4.1"
+    "@pixiv/three-vrm-core": "npm:3.4.2"
+    "@pixiv/three-vrm-materials-hdr-emissive-multiplier": "npm:3.4.2"
+    "@pixiv/three-vrm-materials-mtoon": "npm:3.4.2"
+    "@pixiv/three-vrm-materials-v0compat": "npm:3.4.2"
+    "@pixiv/three-vrm-node-constraint": "npm:3.4.2"
+    "@pixiv/three-vrm-springbone": "npm:3.4.2"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/46cdb3d5ba312e20fd6c9d3a6928c2008477ba2dac3be92c62b95515423c305097266c6f03feda28b046834868dafa36870209eaa83e7f222137cbd5fe7d9982
+  checksum: 10/0624fa97b5139ca2793c717e348d633f289a8cbc53783e11f57ee19ae140a24bcd6f669bbc6500ef05a8ca3b51c1adc24288fd3c1bf9d1adc8b3a7968b8252c9
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrm-0.0@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/types-vrm-0.0@npm:3.4.1"
-  checksum: 10/aa789021d6247f045a9460d1be0edf0c653b33b3ff9fc3c0767226b534afb7afbbb485f1e6abcb291a6619a62d3c82c637fa6266c9463ea297fda1f74017f368
+"@pixiv/types-vrm-0.0@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/types-vrm-0.0@npm:3.4.2"
+  checksum: 10/f6bdc19c1695aadd7e4f0d26c102abebdf11c9a1c85d3d3fd05571a94dd17c8534e0539503325204ec0b41bf0db783c990e59617ba5d3ae99a47e2a9a940788a
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0@npm:3.4.1"
-  checksum: 10/a8257131cbc9933e7b2be4a5088837137bd24a398809731f533fa93ed9f736618e1f8f04e8e7f038b0c5cd58ce2cd56e787aa2afa1b2a8fd768d0d37d78de0ad
+"@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0@npm:3.4.2"
+  checksum: 10/dd3945e48620fe9c9ebf5a9145094e952a44c4e1cf4c553379dbebc5701cc3a441f973a3937390ac8ec0f6a0d257adca5d9f22c0ecbf984ee2001b70c7c70e40
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-materials-mtoon-1.0@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/types-vrmc-materials-mtoon-1.0@npm:3.4.1"
-  checksum: 10/a1e1ce5a12be67dab36514a1a3604e330293731921d908879793beac3801744615a1e16b0f65e74cbfd36dcee8afb301442a733f8fa463e4f98b79c6d522fa4e
+"@pixiv/types-vrmc-materials-mtoon-1.0@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/types-vrmc-materials-mtoon-1.0@npm:3.4.2"
+  checksum: 10/3363642a236e4bcdbe634fe16f3f910ee66fe2b8bf92b459650c52684f0a532b9c84ce59a9e71c8f2bd4d904079473ccecd10551962fb4565fb690edcc57b384
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-node-constraint-1.0@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/types-vrmc-node-constraint-1.0@npm:3.4.1"
-  checksum: 10/4124f25d02642e79168a5bd7da7210a651e521c28751ed381c659372e266f83b73520c2528cf7b93ae84a421ba69148ae70646216b6fdd6222f485e2f4901af9
+"@pixiv/types-vrmc-node-constraint-1.0@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/types-vrmc-node-constraint-1.0@npm:3.4.2"
+  checksum: 10/5ecb8c637562c49363c3ddc189a5d58e58b0a912cbd30c8e42186a5dc3d5d51f4b9f0814251fa242f40431c5e824d96661bb055a6d9947c80c073b8e0db1ea70
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-springbone-1.0@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/types-vrmc-springbone-1.0@npm:3.4.1"
-  checksum: 10/d4393da9ba6444e5cd724d6c4f20cdce7c25f37838d5f5a28c8f69d59eee3509d9e73f83df500e320585442cfb331444520243e0046aa70154ef807de67e02bb
+"@pixiv/types-vrmc-springbone-1.0@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/types-vrmc-springbone-1.0@npm:3.4.2"
+  checksum: 10/13f112aead2fcdaceb71073d46c1750f7e6c4b6ed58eefe61233c56b3f20f9c5d293b491f75d8d7f8fa0d91bdb17e23983d1e852365161341d68f8aff83c8aca
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-springbone-extended-collider-1.0@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/types-vrmc-springbone-extended-collider-1.0@npm:3.4.1"
-  checksum: 10/aed474550410ae5b64c652824177d4042e784f7aa8fe11e96d92619a4039c00cfc5902aef51b5362e893eb68eac23a6ec2914c221c79745c55eb90ec599c8f67
+"@pixiv/types-vrmc-springbone-extended-collider-1.0@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/types-vrmc-springbone-extended-collider-1.0@npm:3.4.2"
+  checksum: 10/06ccb333fb5caa2a17b765f45dfd8d1a5f65e8c74c00420edde4dc5a0a5ae0edf50ef7c5d4f8ec47ecdbbe05186ffe68e70066939679159d0ab7ac34722f6cd1
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-vrm-1.0@npm:3.4.1":
-  version: 3.4.1
-  resolution: "@pixiv/types-vrmc-vrm-1.0@npm:3.4.1"
-  checksum: 10/f5b63f692ce7dce320eca8114161e8b2067796310ec9ee57ae232583ad8c674324f5b2f938938058190fe5ae878193c27a92745ae48b11017868c4719cf63864
+"@pixiv/types-vrmc-vrm-1.0@npm:3.4.2":
+  version: 3.4.2
+  resolution: "@pixiv/types-vrmc-vrm-1.0@npm:3.4.2"
+  checksum: 10/3a879b1e1ada8ad0673ccfa88603983ebc8d450353e61ff6036cd72ba49188adbde617ce53307ab621385c02441de46078664631c46f590ce4ce4f8ec97b2460
   languageName: node
   linkType: hard
 
@@ -2058,18 +2149,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/three@npm:^0.176.0":
-  version: 0.176.0
-  resolution: "@types/three@npm:0.176.0"
+"@types/three@npm:^0.178.1":
+  version: 0.178.1
+  resolution: "@types/three@npm:0.178.1"
   dependencies:
-    "@dimforge/rapier3d-compat": "npm:^0.12.0"
+    "@dimforge/rapier3d-compat": "npm:~0.12.0"
     "@tweenjs/tween.js": "npm:~23.1.3"
     "@types/stats.js": "npm:*"
     "@types/webxr": "npm:*"
     "@webgpu/types": "npm:*"
     fflate: "npm:~0.8.2"
     meshoptimizer: "npm:~0.18.1"
-  checksum: 10/e3aae7e9137e9f2c5eaba1b594e5848d09a81f02ef1fcf70aa0d21374c1a7d5f1d4f8514e9b1def577a3f971c5df016713ba1178aa5690be55c9777d96b3ed6d
+  checksum: 10/03620715835f31a2c7b79f16f12f840f8b7e69e9c1669a56cea903dcf8dadab1002abd920b4e45f8c92ec1c69fbbf6234689bda5c89dbe6e69ea637b5a39d676
   languageName: node
   linkType: hard
 
@@ -7822,10 +7913,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"three@npm:^0.176.0":
-  version: 0.176.0
-  resolution: "three@npm:0.176.0"
-  checksum: 10/b4081a211a9672bc38563ec75e8131f388f18d2d03672ccbc78dd1c4783018b0d490a67b02f5dcca5d7c8d0fa9d82b3a617d0e5ae0398877cdfe77e39f63dde0
+"three@npm:^0.178.0":
+  version: 0.178.0
+  resolution: "three@npm:0.178.0"
+  checksum: 10/1a682fc160163b73e5e1239679da33770f7af56a946838826f34b15a25e8a49939069948a8c9c8ff66e48cbb39b261438e1628e600cf77da2819c467197b128a
   languageName: node
   linkType: hard
 
@@ -8281,6 +8372,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "virse@workspace:."
   dependencies:
+    "@biomejs/biome": "npm:^2.1.1"
     "@charlietango/use-focus-trap": "npm:^1.4.0"
     "@fleur/fleur": "npm:^3.1.0-beta.7"
     "@fleur/mordred": "npm:^1.0.1"
@@ -8296,7 +8388,7 @@ __metadata:
     "@mediapipe/holistic": "npm:0.5.1675471629"
     "@napi-rs/canvas": "npm:^0.1.51"
     "@next/mdx": "npm:15.3.2"
-    "@pixiv/three-vrm": "npm:^3.4.1"
+    "@pixiv/three-vrm": "npm:^3.4.2"
     "@radix-ui/react-tooltip": "npm:^1.2.7"
     "@react-hook/mouse-position": "npm:^4.1.3"
     "@tailwindcss/postcss": "npm:4.1.8"
@@ -8304,11 +8396,11 @@ __metadata:
     "@types/dom-webcodecs": "npm:^0.1.15"
     "@types/mdx": "npm:2.0.13"
     "@types/node": "npm:22.15.24"
-    "@types/react": "npm:^19.1.6"
+    "@types/react": "npm:^19.1.8"
     "@types/react-color": "npm:^3.0.13"
     "@types/react-dom": "npm:^19.1.5"
     "@types/styled-components": "npm:^5.1.34"
-    "@types/three": "npm:^0.176.0"
+    "@types/three": "npm:^0.178.1"
     blob-to-hash: "npm:^0.0.1"
     core-js: "npm:^3.21.1"
     debundle: "npm:^0.5.4"
@@ -8341,7 +8433,7 @@ __metadata:
     styled-reset: "npm:^4.5.2"
     tailwind-merge: "npm:^3.3.0"
     tailwindcss: "npm:^4.1.8"
-    three: "npm:^0.176.0"
+    three: "npm:^0.178.0"
     typescript: "npm:^5.8.3"
     url-loader: "npm:^4.1.1"
     use-long-press: "npm:^3.3.0"
