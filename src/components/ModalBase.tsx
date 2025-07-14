@@ -2,6 +2,7 @@ import { rgba } from 'polished';
 import { forwardRef, MouseEvent, ReactNode, useEffect } from 'react';
 import { css } from 'styled-components';
 import { useFunc } from '../utils/hooks';
+import { twx } from '@/utils/twx';
 
 type Props = {
   header?: ReactNode;
@@ -14,7 +15,7 @@ type Props = {
 
 export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
   { className, header, content, footer, onClose, closeOnBackdropClick = true },
-  ref
+  ref,
 ) {
   const onBackdropClick = useFunc((e: MouseEvent) => {
     if (!closeOnBackdropClick) return;
@@ -34,19 +35,10 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
   return (
     <div
       ref={ref}
-      css={css`
-        position: fixed;
-        top: 0;
-        left: 0;
-        display: flex;
-        width: 100%;
-        height: 100%;
-        justify-content: center;
-        z-index: 1;
-        background-color: ${rgba('#000', 0.5)};
-        overflow: auto;
-      `}
-      className={className}
+      className={twx(
+        'fixed top-0 left-0 flex w-full h-full justify-center z-10 bg-black/50 overflow-auto',
+        className,
+      )}
       onClick={onBackdropClick}
       tabIndex={-1}
     >

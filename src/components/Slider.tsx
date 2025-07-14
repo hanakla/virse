@@ -29,41 +29,26 @@ export const Slider = memo(function Slider({
 
   return (
     <div>
-      <div
-        css={`
-          display: flex;
-          margin-bottom: 8px;
-          font-size: 14px;
-        `}
-        title={title}
-      >
+      <div title={title} className="flex mb-2 text-sm">
         <div
           css={`
-            flex: 1;
-            /* text-overflow: ellipsis; */
-            white-space: nowrap;
-            overflow: auto;
-            font-weight: bold;
-
             &::-webkit-scrollbar {
               width: 0;
               height: 0;
             }
           `}
+          className="flex whitespace-nowrap overflow-auto font-bold"
         >
           {label}
         </div>
 
         <Input
           css={`
-            width: 4em;
-            margin: 0 4px;
-            padding: 2px;
-
             &::-webkit-inner-spin-button {
               display: none;
             }
           `}
+          className="w-[4em] mx-1 p-0.5 border border-solid border-gray-200"
           type="number"
           $size="min"
           step={step}
@@ -87,11 +72,7 @@ export const Slider = memo(function Slider({
         />
 
         <Button
-          css={`
-            margin-left: auto;
-            flex: 0;
-            line-height: 1;
-          `}
+          className="ml-auto flex-[0] leading-none"
           kind="default"
           size="min"
           onClick={() => onChange(defaultValue)}
@@ -101,11 +82,7 @@ export const Slider = memo(function Slider({
       </div>
 
       <RangeInput
-        css={`
-          display: block;
-          width: calc(100% - 8px);
-          margin-left: 8px;
-        `}
+        className="block w-[calc(100%-8px)] ml-2"
         min={min}
         max={max}
         step={step}

@@ -1,9 +1,28 @@
 @import 'tailwindcss';
 
+@source "../";
+@source "../.tmp/";
+
+@theme {
+  /* Transitions */
+  --ease-default: ease-in-out;
+  --duration-default: 0.2s;
+}
+
 html,
 body {
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    Segoe UI,
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    Fira Sans,
+    Droid Sans,
+    Helvetica Neue,
+    sans-serif;
   color: rgb(51, 50, 56);
 
   @apply w-full h-full p-0 m-0 text-base;

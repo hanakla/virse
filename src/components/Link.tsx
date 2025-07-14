@@ -1,11 +1,19 @@
-import { styleWhen } from '@hanakla/arma';
+import { twx } from '@/utils/twx';
 import NextLink from 'next/link';
-import styled from 'styled-components';
+import { ComponentProps, forwardRef } from 'react';
 
-export const Link = styled(NextLink)`
-  color: #0070f3;
-  ${(props) => styleWhen(!!props['aria-disabled'])`
-    color: inherit;
-    pointer-events: none;
-  `}
-`;
+export const Link = forwardRef<
+  HTMLAnchorElement,
+  ComponentProps<typeof NextLink>
+>(({ className, ...props }, ref) => {
+  return (
+    <NextLink
+      {...props}
+      className={twx(
+        'text-[#0070f3] not-[[aria-disabled]]:text-gray-400 not-[[aria-disabled]]:pointer-events-none',
+        className,
+      )}
+      ref={ref}
+    />
+  );
+});

@@ -1,6 +1,6 @@
+import { twx } from '@/utils/twx';
 import * as RadTooltip from '@radix-ui/react-tooltip';
 import { ReactNode } from 'react';
-import styled, { css } from 'styled-components';
 
 export function Tooltip({
   content,
@@ -22,31 +22,18 @@ export function Tooltip({
       >
         <RadTooltip.Trigger asChild>{children}</RadTooltip.Trigger>
         <RadTooltip.Portal>
-          <TooltipContent>
+          <RadTooltip.Content
+            className={twx(
+              'z-[2] py-1.5 px-2 text-xs leading-none bg-white rounded',
+              'shadow-[0px_10px_38px_-10px_rgba(14,_18,_22,_0.35),_0px_10px_20px_-15px_rgba(14,_18,_22,_0.2)]',
+              'select-none [animation-duration:400ms] [animation-timing-function:cubic-bezier(0.16,_1,_0.3,_1)]',
+            )}
+          >
             {content}
-            <TooltipArrow />
-          </TooltipContent>
+            <RadTooltip.Arrow className="fill-white" />
+          </RadTooltip.Content>
         </RadTooltip.Portal>
       </RadTooltip.Root>
     </RadTooltip.Provider>
   );
 }
-
-const TooltipContent = styled(RadTooltip.Content)`
-  z-index: 2;
-  border-radius: 4px;
-  padding: 6px 8px;
-  font-size: 12px;
-  line-height: 1;
-  background-color: white;
-  box-shadow: rgba(14, 18, 22, 0.35) 0px 10px 38px -10px,
-    rgba(14, 18, 22, 0.2) 0px 10px 20px -15px;
-  user-select: none;
-  animation-duration: 400ms;
-  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, opacity;
-`;
-
-const TooltipArrow = styled(RadTooltip.Arrow)`
-  fill: white;
-`;

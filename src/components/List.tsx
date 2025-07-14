@@ -1,33 +1,38 @@
-import { styleWhen } from '@hanakla/arma';
-import { rgba } from 'polished';
-import styled from 'styled-components';
+import { twx } from '@/utils/twx';
+import { ComponentProps, forwardRef } from 'react';
 
-export const List = styled.ul`
-  display: flex;
-  flex-flow: column;
-  /* gap: 4px; */
-  padding: 8px 0;
-  background-color: ${rgba('#fff', 0.8)};
-  border-radius: 8px;
-  font-size: 14px;
-`;
+export const List = forwardRef<HTMLUListElement, ComponentProps<'ul'>>(
+  function List({ className, ...props }, ref) {
+    return (
+      <ul
+        className={twx(
+          'flex flex-col py-2 bg-white/80 rounded-lg text-sm',
+          className,
+        )}
+        ref={ref}
+        {...props}
+      />
+    );
+  },
+);
 
-export const ListItem = styled.li<{ active?: boolean }>`
-  padding: 6px;
-  color: #444;
-  user-select: none;
-  cursor: default;
-
-  ${({ active }) => styleWhen(!!active)`
-    color: #fff;
-    background-color: ${rgba('#31cde9', 0.8)};
-  `}
-
-  ${({ active }) => styleWhen(!active)`
-    &:active,
-    &:focus,
-    &:hover {
-        background-color: ${rgba('#31cde9', 0.5)};
-    }
-  `}
-`;
+export const ListItem = forwardRef<
+  HTMLLIElement,
+  ComponentProps<'li'> & { active?: boolean }
+>(function ListItem({ className, active, children, ...props }, ref) {
+  return (
+    <li
+      className={twx(
+        'p-[6px] text-[#444] user-select-none cursor-default',
+        active && 'text-white bg-[#31cde9]/80',
+        !active &&
+          'active:bg-[#31cde9]/50 focus:bg-[#31cde9]/50 hover:bg-[#31cde9]/50',
+        className,
+      )}
+      ref={ref}
+      {...props}
+    >
+      {children}
+    </li>
+  );
+});

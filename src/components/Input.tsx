@@ -1,10 +1,12 @@
 import { twx } from '@/utils/twx';
-import { DetailedHTMLProps, forwardRef, InputHTMLAttributes } from 'react';
+import {
+  ComponentProps,
+  DetailedHTMLProps,
+  forwardRef,
+  InputHTMLAttributes,
+} from 'react';
 
-type Props = DetailedHTMLProps<
-  InputHTMLAttributes<HTMLInputElement>,
-  HTMLInputElement
-> & {
+type Props = ComponentProps<'input'> & {
   $size?: 'min';
 };
 
@@ -17,9 +19,9 @@ export const Input = forwardRef<HTMLInputElement, Props>(
         className={twx(
           'block w-full py-1 px-3 bg-white border-none rounded outline-none text-sm text-[initial]',
           $size === 'min' && 'py-1 px-2',
-          className
+          className,
         )}
       />
     );
-  }
+  },
 );

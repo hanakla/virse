@@ -1,3 +1,4 @@
+import { twx } from '@/utils/twx';
 import { ReactNode } from 'react';
 
 export const InputSection = ({
@@ -10,24 +11,8 @@ export const InputSection = ({
   children: ReactNode;
 }) => {
   return (
-    <label
-      css={`
-        display: block;
-        width: 100%;
-      `}
-      className={className}
-    >
-      <span
-        css={`
-          display: flex;
-          width: 100%;
-          margin-bottom: 4px;
-          font-size: 14px;
-          font-weight: bold;
-        `}
-      >
-        {title}
-      </span>
+    <label className={twx('block w-full', className)}>
+      <span className="flex w-full mb-1 text-sm font-bold">{title}</span>
       {children}
     </label>
   );
@@ -43,24 +28,8 @@ export const InputSectionDiv = ({
   children: ReactNode;
 }) => {
   return (
-    <div
-      css={`
-        display: block;
-        width: 100%;
-      `}
-      className={className}
-    >
-      <span
-        css={`
-          display: block;
-          width: 100%;
-          margin-bottom: 4px;
-          font-size: 14px;
-          font-weight: bold;
-        `}
-      >
-        {title}
-      </span>
+    <div className={twx('block w-full', className)}>
+      <span className="block w-full mb-1 text-sm font-bold">{title}</span>
       {children}
     </div>
   );

@@ -3,6 +3,7 @@ import { ReactNode } from 'react';
 import useMeasure from 'react-use-measure';
 import { transitionCss } from '../styles/mixins';
 import { css } from 'styled-components';
+import { twx } from '@/utils/twx';
 
 export const Sidebar = ({
   side,
@@ -30,37 +31,22 @@ export const Sidebar = ({
               ? 'translateX(0)'
               : 'translateX(calc(-100% - 48px))'
             : opened
-            ? 'translateX(0)'
-            : 'translateX(calc(100% + 48px))',
+              ? 'translateX(0)'
+              : 'translateX(calc(100% + 48px))',
       }}
     >
       <div
         ref={sidebarRef}
-        css={`
-          display: flex;
-          flex-flow: column;
-          /* gap: 16px; */
-          width: 100%;
-          height: 100%;
-          background-color: ${rgba('#34c0b9', 0.8)};
-        `}
+        className="flex flex-col w-full h-full bg-[#34c0b9]/80"
       >
         {children}
 
         {side === 'left' ? (
           <div
-            css={`
-              position: absolute;
-              top: 0;
-              left: 100%;
-              background-image: url('wave.svg');
-              background-size: auto 40px;
-              background-position: center;
-              background-repeat: repeat-x;
-              transform: translateX(40px) rotateZ(90deg);
-              transform-origin: top left;
-              opacity: 0.8;
-            `}
+            className={twx(
+              'absolute top-0 left-full bg-[url("./wave.svg")] opacity-80 bg-[auto_40px] bg-center bg-repeat-x',
+              'transform-[translateX(40px)_rotateZ(90deg)] origin-top-left',
+            )}
             style={{
               width: sidebarBBox.height,
               height: 40,
@@ -71,18 +57,10 @@ export const Sidebar = ({
           />
         ) : (
           <div
-            css={`
-              position: absolute;
-              top: 0;
-              right: 100%;
-              background-image: url('wave.svg');
-              background-size: auto 40px;
-              background-position: center;
-              background-repeat: repeat-x;
-              /* transform: translateX(40px) rotateZ(90deg); */
-              transform-origin: top right;
-              opacity: 0.8;
-            `}
+            className={twx(
+              "absolute top-0 right-full bg-[url('./wave.svg')] opacity-80 bg-[auto_40px] bg-center bg-repeat-x",
+              'transform-[translateX(40px)_rotateZ(-90deg)] origin-top-right',
+            )}
             style={{
               width: sidebarBBox.height,
               height: 40,
