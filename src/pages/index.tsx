@@ -1,13 +1,10 @@
-import { MouseEvent, useRef } from 'react';
-import { rgba } from 'polished';
-import { useVirseStage } from '../stage';
-import { RiCamera2Line, RiLiveLine } from 'react-icons/ri';
-import { styleWhen } from '@hanakla/arma';
-import styled, { css } from 'styled-components';
-import { useFunc, useBindMousetrap, useStoreState } from '../utils/hooks';
-import { useEffect } from 'react';
-import { useFleurContext } from '@fleur/react';
-import { Packr } from 'msgpackr';
+import { ComponentProps, memo, MouseEvent, useRef } from "react";
+import { useVirseStage } from "../stage";
+import { RiCamera2Line, RiLiveLine } from "react-icons/ri";
+import { useFunc, useBindMousetrap, useStoreState } from "../utils/hooks";
+import { useEffect } from "react";
+import { useFleurContext } from "@fleur/react";
+import { Packr } from "msgpackr";
 import {
   EditorMode,
   editorOps,
@@ -15,29 +12,29 @@ import {
   POSE_SCHEMA,
   POSESET_SCHEMA,
   VirseProject,
-} from '../domains/editor';
-import { transitionCss } from '../styles/mixins';
+} from "../domains/editor";
 import {
   useDrop,
   useEffectOnce,
   useLocalStorage,
   useMount,
   useUpdate,
-} from 'react-use';
-import Head from 'next/head';
-import { useContextMenu } from 'react-contexify';
-import 'react-contexify/dist/ReactContexify.css';
-import { useModalOpener } from '@fleur/mordred';
-import { LoadPose } from '../modals/LoadPose';
-import { PhotoBooth } from '../features/photobooth';
-import { LiveBooth } from '../features/livebooth';
-import { useRouter } from 'next/router';
-import { Link } from '../components/Link';
-import { ConfirmAgreement } from '../modals/ConrirmAgreement';
-import { fitAndPosition } from 'object-fit-math';
-import { shallowEquals } from '../utils/object';
-import { LoadProjectOption } from '../modals/LoadProjectOption';
-import { usePhotoboothStore } from '@/features/photobooth/photoboothStore';
+} from "react-use";
+import Head from "next/head";
+import { useContextMenu } from "react-contexify";
+import "react-contexify/dist/ReactContexify.css";
+import { useModalOpener } from "@fleur/mordred";
+import { LoadPose } from "../modals/LoadPose";
+import { PhotoBooth } from "../features/photobooth";
+import { LiveBooth } from "../features/livebooth";
+import { useRouter } from "next/router";
+import { Link } from "../components/Link";
+import { ConfirmAgreement } from "../modals/ConrirmAgreement";
+import { fitAndPosition } from "object-fit-math";
+import { shallowEquals } from "../utils/object";
+import { LoadProjectOption } from "../modals/LoadProjectOption";
+import { usePhotoboothStore } from "@/features/photobooth/photoboothStore";
+import { twx } from "@/utils/twx";
 
 export default function Home() {
   const router = useRouter();
@@ -46,7 +43,7 @@ export default function Home() {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-  const [isAgreed, setAgreement] = useLocalStorage('virseAgreement', false);
+  const [isAgreed, setAgreement] = useLocalStorage("virseAgreement", false);
 
   const { show: showContextMenu, hideAll } = useContextMenu({});
 
@@ -57,7 +54,7 @@ export default function Home() {
   const { mode, menuOpened, poses, photoModeState, modelIndex } = useStoreState(
     (get) => ({
       ...get(EditorStore),
-    })
+    }),
   );
 
   /////
@@ -68,7 +65,7 @@ export default function Home() {
 
     showContextMenu({
       event: e,
-      id: 'scene',
+      id: "scene",
       props: {
         poseId,
       },
@@ -82,7 +79,7 @@ export default function Home() {
   useBindMousetrap(
     [
       {
-        keys: 'tab',
+        keys: "tab",
         preventDefault: true,
         handler: (e) => {
           const { menuOpened } = getStore(EditorStore).state;
@@ -91,7 +88,7 @@ export default function Home() {
       },
     ],
     undefined,
-    rootRef
+    rootRef,
   );
 
   /////
@@ -101,12 +98,12 @@ export default function Home() {
     onFiles: async ([file]) => {
       const url = URL.createObjectURL(file);
 
-      if (file.name.endsWith('.vrm')) {
+      if (file.name.endsWith(".vrm")) {
         executeOperation(editorOps.addVrm, file);
         stage!.loadVRM(url);
-      } else if (file.name.endsWith('.gltf') || file.name.endsWith('.glb')) {
+      } else if (file.name.endsWith(".gltf") || file.name.endsWith(".glb")) {
         stage!.loadGltf(url, file.name);
-      } else if (file.name.endsWith('.virse')) {
+      } else if (file.name.endsWith(".virse")) {
         const options = await openModal(LoadProjectOption, {});
         if (!options) return;
 
@@ -126,12 +123,12 @@ export default function Home() {
         }
 
         stage?.loadScene(data);
-      } else if (file.name.endsWith('.json')) {
+      } else if (file.name.endsWith(".json")) {
         const json = JSON.parse(await file.text());
 
         if (json.poseset) {
           const parsed = POSESET_SCHEMA.safeParse(json);
-          console.log(parsed);
+          console.log(parsed, await POSESET_SCHEMA.parse(json));
           if (!parsed.success) return;
 
           const result = await openModal(LoadPose, {
@@ -160,10 +157,10 @@ export default function Home() {
 
   useEffect(() => {
     if (!stage) return;
-    stage.events.on('boneChanged', rerender);
+    stage.events.on("boneChanged", rerender);
 
     return () => {
-      stage.events.off('boneChanged', rerender);
+      stage.events.off("boneChanged", rerender);
     };
   }, [stage]);
 
@@ -172,11 +169,11 @@ export default function Home() {
 
     executeOperation(
       editorOps.loadVrmBin,
-      '4b45a65eace31e24192c09717670a3a02a4ea16aa21b7a6a14ee9c9499ba9f0e',
+      "4b45a65eace31e24192c09717670a3a02a4ea16aa21b7a6a14ee9c9499ba9f0e",
       (blob) => {
         const url = URL.createObjectURL(blob);
         stage.loadVRM(url);
-      }
+      },
     );
   }, [stage]);
 
@@ -193,7 +190,7 @@ export default function Home() {
       };
     };
 
-    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
 
     id = requestAnimationFrame(function updatePosition() {
       id = requestAnimationFrame(updatePosition);
@@ -224,9 +221,9 @@ export default function Home() {
           width: size.width,
           height: size.height,
         },
-        'contain',
-        '50%',
-        '50%'
+        "contain",
+        "50%",
+        "50%",
       );
 
       canvas.style.left = `${result.x}px`;
@@ -238,7 +235,7 @@ export default function Home() {
     onResize();
 
     return () => {
-      window.removeEventListener('resize', onResize);
+      window.removeEventListener("resize", onResize);
       cancelAnimationFrame(id);
     };
   });
@@ -264,56 +261,21 @@ export default function Home() {
   });
 
   return (
-    <div
-      ref={rootRef}
-      css={css`
-        position: relative;
-        display: flex;
-        width: 100%;
-        height: 100%;
-        background-color: #fafafa;
-        min-height: 0;
-      `}
-    >
+    <div ref={rootRef} className="relative flex size-full bg-[#fafafa] min-h-0">
       <Head>
         <title>Virse</title>
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </Head>
 
       <div
-        css={css`
-          position: absolute;
-          display: flex;
-          flex-flow: column;
-          width: 100%;
-          height: 100%;
-          pointer-events: none;
-          outline: none;
-
-          &:focus,
-          &:active {
-            outline: none;
-          }
-        `}
         id="ui"
         tabIndex={-1}
+        className="absolute flex flex-col size-full pointer-events-none outline-none [&:is(:focus,:active)]:outline-none"
       >
         <nav
-          css={css`
-            position: relative;
-            z-index: 1;
-            display: flex;
-            justify-content: flex-start;
-            padding: 0 24px;
-            background-color: ${rgba('#fff', 0.8)};
-            box-shadow: 0 4px 5px ${rgba('#aaaa', 0.1)};
-            backdrop-filter: blur(4px);
-            user-select: none;
-            pointer-events: all;
-            ${transitionCss}
-          `}
+          className="relative z-[1] flex justify-start px-6 bg-white/80 shadow-[0_4px_5px_rgba(170,170,170,0.1)] [backdrop-filter:url(#glass_filter)] select-none pointer-events-auto transition-transform"
           style={{
-            transform: menuOpened ? 'translateY(0)' : 'translateY(-100%)',
+            transform: menuOpened ? "translateY(0)" : "translateY(-100%)",
           }}
         >
           <NavItem
@@ -322,104 +284,41 @@ export default function Home() {
               executeOperation(editorOps.setMode, EditorMode.photo)
             }
           >
-            <RiCamera2Line
-              css={`
-                margin-right: 8px;
-                font-size: 24px;
-              `}
-            />
+            <RiCamera2Line className="mr-2 text-2xl" />
             Photo
           </NavItem>
           <NavItem
             active={mode === EditorMode.live}
             onClick={() => executeOperation(editorOps.setMode, EditorMode.live)}
           >
-            <RiLiveLine
-              css={`
-                margin-right: 8px;
-                font-size: 24px;
-              `}
-            />
+            <RiLiveLine className="mr-2 text-2xl" />
             Live
           </NavItem>
 
-          <div
-            css={css`
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              margin-left: auto;
-              padding: 4px;
-              font-size: 12px;
-            `}
-          >
-            <div
-              css={css`
-                margin-right: 16px;
-              `}
-            >
-              <Link href="/" aria-disabled={router.locale === 'ja'} locale="ja">
+          <div className="inline-flex items-center justify-center ml-auto p-1 text-xs">
+            <div className="mr-4">
+              <Link href="/" aria-disabled={router.locale === "ja"} locale="ja">
                 JA
               </Link>
-              <span
-                css={css`
-                  display: inline-block;
-                  margin: 0 4px;
-                `}
-              >
-                ￤
-              </span>
-              <Link href="/" aria-disabled={router.locale === 'en'} locale="en">
+              <span className="inline-block mx-1">￤</span>
+              <Link href="/" aria-disabled={router.locale === "en"} locale="en">
                 EN
               </Link>
             </div>
-            <span
-              css={css`
-                padding: 4px;
-                color: #fff;
-                text-align: center;
-                background-color: #34c0b9;
-                transform: rotateZ(4deg);
-              `}
-            >
-              <span
-                css={css`
-                  transform: rotateZ(-4deg);
-                `}
-              >
-                V I R S E
-              </span>
+            <span className="p-1 text-white text-center bg-[#34c0b9] rotate-z-[4deg]">
+              <span className="rotate-z-[-4deg]">V I R S E</span>
             </span>
           </div>
         </nav>
 
         <canvas
-          css={css`
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            margin: auto;
-            vertical-align: bottom;
-            box-shadow: 0 0 5px ${rgba('#aaaa', 0.4)};
-            user-select: none;
-            pointer-events: all;
-          `}
           ref={canvasRef}
-          onContextMenu={handleSceneContextMenu}
           tabIndex={-1}
+          className="absolute top-0 left-0 size-full m-auto align-bottom shadow-[0_0_5px_rgba(170,170,170,0.4)] select-none pointer-events-auto"
+          onContextMenu={handleSceneContextMenu}
         />
 
-        <div
-          css={css`
-            position: relative;
-            display: flex;
-            width: 100%;
-            height: 100%;
-            flex: 1;
-          `}
-        >
+        <div className="relative flex size-full flex-1">
           {mode === EditorMode.photo ? (
             <PhotoBooth stage={stage} />
           ) : (
@@ -431,30 +330,20 @@ export default function Home() {
   );
 }
 
-const NavItem = styled.div<{ active: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-
-  color: #34c0b9;
-  font-size: 12px;
-  text-transform: uppercase;
-  user-select: none;
-  cursor: pointer;
-
-  &:hover {
-    color: #34c0b9;
-    background-color: ${rgba('#aaa', 0.3)};
-  }
-
-  ${({ active }) => styleWhen(active)`
-    color: #fff;
-    background-color: #34c0b9;
-
-    &:hover {
-      color: #fff;
-      background-color: #23a8a2;
-    }
-  `}
-`;
+const NavItem = memo(function NavItem({
+  active,
+  className,
+  ...props
+}: ComponentProps<"div"> & { active: boolean }) {
+  return (
+    <div
+      {...props}
+      className={twx(
+        "inline-flex items-center justify-center p-2 text-[#34c0b9] text-xs uppercase select-none cursor-pointer",
+        "hover:text-[#34c0b9] hover:bg-gray-400/30",
+        active && "text-white bg-[#34c0b9] hover:text-white hover:bg-[#23a8a2]",
+        className,
+      )}
+    />
+  );
+});

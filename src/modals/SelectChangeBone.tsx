@@ -1,14 +1,13 @@
-import useFocusTrap from '@charlietango/use-focus-trap';
-import { ModalProps } from '@fleur/mordred';
-import { ChangeEvent, useRef, useState } from 'react';
-import useEvent from 'react-use-event-hook';
-import { css } from 'styled-components';
-import { Button } from '../components/Button';
+import useFocusTrap from "@charlietango/use-focus-trap";
+import { ModalProps } from "@fleur/mordred";
+import { ChangeEvent, useRef, useState } from "react";
+import useEvent from "react-use-event-hook";
+import { Button } from "../components/Button";
 
-import { ModalBase } from '../components/ModalBase';
-import { humanizeShortcutKey, rightHandShortcuts } from '../domains/ui';
-import { useTranslation } from '../hooks/useTranslation';
-import { useFunc, useBindMousetrap, useFocusRestore } from '../utils/hooks';
+import { ModalBase } from "../components/ModalBase";
+import { humanizeShortcutKey, rightHandShortcuts } from "../domains/ui";
+import { useTranslation } from "../hooks/useTranslation";
+import { useFunc, useBindMousetrap, useFocusRestore } from "../utils/hooks";
 
 export function SelectChangeBones({
   boneNames,
@@ -18,7 +17,7 @@ export function SelectChangeBones({
   { boneNames: string[]; activeBoneName?: string },
   string | null
 >) {
-  const t = useTranslation('common');
+  const t = useTranslation("common");
 
   useFocusRestore();
 
@@ -26,15 +25,15 @@ export function SelectChangeBones({
   const listRef = useRef<HTMLSelectElement | null>(null);
 
   const [selectedIndex, setIndex] = useState(() => {
-    return boneNames.indexOf(activeBoneName ?? '') === -1
+    return boneNames.indexOf(activeBoneName ?? "") === -1
       ? 0
-      : boneNames.indexOf(activeBoneName ?? '');
+      : boneNames.indexOf(activeBoneName ?? "");
   });
 
   const onChange = useFunc(
     ({ currentTarget }: ChangeEvent<HTMLSelectElement>) => {
       setIndex(currentTarget.selectedIndex);
-    }
+    },
   );
 
   const handleClickOk = useEvent(() => {
@@ -51,7 +50,7 @@ export function SelectChangeBones({
         keys: rightHandShortcuts.boneListPrev,
         handler: (e) => {
           setIndex(
-            (index) => (index - 1 + boneNames.length) % boneNames.length
+            (index) => (index - 1 + boneNames.length) % boneNames.length,
           );
         },
       },
@@ -68,13 +67,13 @@ export function SelectChangeBones({
         },
       },
       {
-        keys: 'enter',
+        keys: "enter",
         handler: (e) => {
           handleClickOk();
         },
       },
       {
-        keys: 'esc',
+        keys: "esc",
         handler: () => {
           handleClickCancel();
         },
@@ -84,30 +83,19 @@ export function SelectChangeBones({
       stopPropagation: true,
       stopCallback: (e) => false,
     },
-    listRef
+    listRef,
   );
 
   return (
     <ModalBase
       ref={focusTrapRef}
-      css={css`
-        background-color: transparent;
-      `}
+      className="bg-transparent"
       onClose={onClose}
       content={
-        <div
-          css={`
-            display: flex;
-            flex-flow: column;
-            gap: 8px;
-          `}
-        >
+        <div className="flex flex-col gap-2">
           <select
             ref={listRef}
-            css={`
-              width: 100%;
-              height: 400px;
-            `}
+            className="w-full h-[400px]"
             multiple
             onChange={onChange}
             autoFocus
@@ -127,11 +115,11 @@ export function SelectChangeBones({
       footer={
         <>
           <Button kind="primary" onClick={handleClickOk}>
-            {t('ok')} ({humanizeShortcutKey(rightHandShortcuts.boneListOk)} or{' '}
+            {t("ok")} ({humanizeShortcutKey(rightHandShortcuts.boneListOk)} or{" "}
             {humanizeShortcutKey(rightHandShortcuts.boneListOk2)})
           </Button>
           <Button kind="default" onClick={handleClickCancel}>
-            {t('cancel')}
+            {t("cancel")}
           </Button>
         </>
       }

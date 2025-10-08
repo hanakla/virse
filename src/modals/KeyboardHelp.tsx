@@ -1,38 +1,32 @@
-import { ModalProps } from '@fleur/mordred';
-import { ReactNode } from 'react';
-import styled, { css } from 'styled-components';
-import { Button } from '../components/Button';
-import { ModalBase } from '../components/ModalBase';
-import { Trans } from '../components/Trans';
-import { humanizeShortcutKey, rightHandShortcuts } from '../domains/ui';
-import { useTranslation } from '../hooks/useTranslation';
-import { useFocusRestore } from '../utils/hooks';
+import { ModalProps } from "@fleur/mordred";
+import { memo, ReactNode } from "react";
+import { Button } from "../components/Button";
+import { ModalBase } from "../components/ModalBase";
+import { Trans } from "../components/Trans";
+import { humanizeShortcutKey, rightHandShortcuts } from "../domains/ui";
+import { useTranslation } from "../hooks/useTranslation";
+import { useFocusRestore } from "../utils/hooks";
+import { twx } from "@/utils/twx";
 
 export function KeyboardHelp({
   temporalyShow,
   onClose,
 }: ModalProps<{ temporalyShow?: boolean }, void>) {
-  const t = useTranslation('common');
+  const t = useTranslation("common");
 
   useFocusRestore();
 
   return (
     <ModalBase
-      css={css`
-        h1 {
-          margin: 16px 0 24px 0;
-          font-weight: bold;
-        }
-        ${transparentStyle}
-      `}
-      header={<h1>{t('keyboardHelp/title')}</h1>}
+      className="mt-4 mb-6 bg-transparent"
+      header={<h1>{t("keyboardHelp/title")}</h1>}
       footer={
         temporalyShow ? (
           void 0
         ) : (
           <>
             <Button kind="primary" onClick={onClose}>
-              {t('ok')}
+              {t("ok")}
             </Button>
           </>
         )
@@ -43,9 +37,9 @@ export function KeyboardHelp({
           <Grid>
             <Entry
               keyCode={humanizeShortcutKey(
-                rightHandShortcuts.keyboardShortcutHelp
+                rightHandShortcuts.keyboardShortcutHelp,
               )}
-              desc={t('keyboardHelp/showHelp')}
+              desc={t("keyboardHelp/showHelp")}
             />
           </Grid>
 
@@ -54,11 +48,11 @@ export function KeyboardHelp({
           <Grid>
             <Entry
               keyCode={humanizeShortcutKey(rightHandShortcuts.previousAvatar)}
-              desc={t('keyboardHelp/previousAvatar')}
+              desc={t("keyboardHelp/previousAvatar")}
             />
             <Entry
               keyCode={humanizeShortcutKey(rightHandShortcuts.nextAvatar)}
-              desc={t('keyboardHelp/nextAvatar')}
+              desc={t("keyboardHelp/nextAvatar")}
             />
           </Grid>
 
@@ -67,15 +61,15 @@ export function KeyboardHelp({
           <Grid>
             <Entry
               keyCode={humanizeShortcutKey(
-                rightHandShortcuts.changeCamToEditorial
+                rightHandShortcuts.changeCamToEditorial,
               )}
-              desc={t('keyboardHelp/camEditorial')}
+              desc={t("keyboardHelp/camEditorial")}
             />
             <Entry
               keyCode={humanizeShortcutKey(
-                rightHandShortcuts.changeCamToCapture
+                rightHandShortcuts.changeCamToCapture,
               )}
-              desc={t('keyboardHelp/camCapture')}
+              desc={t("keyboardHelp/camCapture")}
             />
           </Grid>
 
@@ -84,15 +78,15 @@ export function KeyboardHelp({
           <Grid>
             <Entry
               keyCode={humanizeShortcutKey(
-                rightHandShortcuts.toggleBoneControlMode
+                rightHandShortcuts.toggleBoneControlMode,
               )}
               desc={<Trans i18nKey="keyboardHelp/boneControlMode" />}
             />
             <Entry
               keyCode={humanizeShortcutKey(
-                rightHandShortcuts.toggleDisplaySkeleton
+                rightHandShortcuts.toggleDisplaySkeleton,
               )}
-              desc={t('keyboardHelp/changeDisplaySkeleton')}
+              desc={t("keyboardHelp/changeDisplaySkeleton")}
             />
           </Grid>
 
@@ -103,17 +97,17 @@ export function KeyboardHelp({
           <Grid>
             <Entry
               keyCode={humanizeShortcutKey(rightHandShortcuts.selectParentBone)}
-              desc={t('keyboardHelp/selectParentBone')}
+              desc={t("keyboardHelp/selectParentBone")}
             />
             <Entry
               keyCode={humanizeShortcutKey(rightHandShortcuts.selectChildBone)}
-              desc={t('keyboardHelp/selectChildBone')}
+              desc={t("keyboardHelp/selectChildBone")}
             />
             <Entry
               keyCode={humanizeShortcutKey(
-                rightHandShortcuts.selectSiblingBone
+                rightHandShortcuts.selectSiblingBone,
               )}
-              desc={t('keyboardHelp/selectSiblingBone')}
+              desc={t("keyboardHelp/selectSiblingBone")}
             />
 
             <Entry
@@ -121,7 +115,7 @@ export function KeyboardHelp({
               desc={
                 <Trans
                   i18nKey="keyboardHelp/resetCurrentBone"
-                  values={{ axis: 'X' }}
+                  values={{ axis: "X" }}
                 />
               }
             />
@@ -130,7 +124,7 @@ export function KeyboardHelp({
               desc={
                 <Trans
                   i18nKey="keyboardHelp/axisFilter"
-                  values={{ axis: 'X' }}
+                  values={{ axis: "X" }}
                 />
               }
             />
@@ -139,7 +133,7 @@ export function KeyboardHelp({
               desc={
                 <Trans
                   i18nKey="keyboardHelp/axisFilter"
-                  values={{ axis: 'Y' }}
+                  values={{ axis: "Y" }}
                 />
               }
             />
@@ -148,7 +142,7 @@ export function KeyboardHelp({
               desc={
                 <Trans
                   i18nKey="keyboardHelp/axisFilter"
-                  values={{ axis: 'Z' }}
+                  values={{ axis: "Z" }}
                 />
               }
             />
@@ -163,65 +157,47 @@ export function KeyboardHelp({
   );
 }
 
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-`;
-
-const Separator = styled.div`
-  margin: 16px 0;
-  border-top: 1px solid rgba(208, 208, 208, 0.5);
-`;
-
-const Key = styled.code`
-  display: inline-block;
-  padding: 4px;
-  margin-right: 16px;
-  min-width: 20px;
-  text-align: center;
-  background-color: #eee;
-  border: 1px solid #c8c8c8;
-  border-radius: 4px;
-  flex: none;
-`;
-
-const Entry = ({ keyCode, desc }: { keyCode: string; desc: ReactNode }) => {
-  return (
-    <div
-      css={css`
-        display: flex;
-        align-items: flex-start;
-      `}
-    >
-      <Key>{keyCode}</Key>
-      <div
-        css={css`
-          display: flow-root;
-          padding: 2px 0;
-          line-height: 1.4;
-          &::before {
-            content: '';
-            display: block;
-            width: 0;
-            height: 0;
-            margin-top: -2px;
-          }
-          &::after {
-            content: '';
-            display: block;
-            width: 0;
-            height: 0;
-            margin-bottom: -2px;
-          }
-        `}
-      >
-        {desc}
-      </div>
-    </div>
-  );
+const Grid = function Grid({ children }: { children: ReactNode }) {
+  return <div className="grid grid-cols-2 gap-3">{children}</div>;
 };
 
-const transparentStyle = css`
-  background-color: transparent;
-`;
+const Separator = memo(function Separator() {
+  return (
+    <div
+      className="my-4 border-t border-t-[rgba(208,208,208,0.5)]"
+      role="separator"
+    />
+  );
+});
+
+const Key = memo(function Key({ children }: { children: ReactNode }) {
+  return (
+    <code
+      className={twx(
+        "inline-block p-1 mr-4 min-w-5 flex-none text-center",
+        "bg-[#eee] border border-solid border-gray-300 rounded",
+      )}
+    >
+      {children}
+    </code>
+  );
+});
+
+const Entry = memo(
+  ({ keyCode, desc }: { keyCode: string; desc: ReactNode }) => {
+    return (
+      <div className="flex items-start">
+        <Key>{keyCode}</Key>
+        <div
+          className={twx(
+            "flow-root py-0.5 leading-snug",
+            "before:content-[''] before:block before:w-0 before:h-0 before:-mt-0.5",
+            "after:content-[''] after:block after:w-0 after:h-0 after:-mb-0.5",
+          )}
+        >
+          {desc}
+        </div>
+      </div>
+    );
+  },
+);

@@ -1,9 +1,8 @@
-import { ModalProps } from '@fleur/mordred';
-import { useObjectState } from '@hanakla/arma/react-hooks';
-import { css } from 'styled-components';
-import { Button } from '../components/Button';
-import { ModalBase } from '../components/ModalBase';
-import { useTranslation } from '../hooks/useTranslation';
+import { ModalProps } from "@fleur/mordred";
+import { useObjectState } from "@hanakla/arma/react-hooks";
+import { Button } from "../components/Button";
+import { ModalBase } from "../components/ModalBase";
+import { useTranslation } from "../hooks/useTranslation";
 
 type Result = {
   loadPoseSet: boolean;
@@ -11,7 +10,7 @@ type Result = {
 };
 
 export function LoadProjectOption({ onClose }: ModalProps<{}, Result | null>) {
-  const t = useTranslation('common');
+  const t = useTranslation("common");
   const [state, setState] = useObjectState<Result>({
     loadPoseSet: false,
     clearCurrentPoses: false,
@@ -21,21 +20,8 @@ export function LoadProjectOption({ onClose }: ModalProps<{}, Result | null>) {
     <ModalBase
       onClose={onClose}
       content={
-        <div
-          css={`
-            display: flex;
-            flex-flow: column;
-            gap: 8px;
-            line-height: 1.4;
-          `}
-        >
-          <div
-            css={css`
-              margin-bottom: 16px;
-            `}
-          >
-            {t('loadProjectOption/confirm')}
-          </div>
+        <div className="flex flex-col gap-2 leading-snug">
+          <div className="mb-4">{t("loadProjectOption/confirm")}</div>
 
           <div>
             <label>
@@ -46,14 +32,9 @@ export function LoadProjectOption({ onClose }: ModalProps<{}, Result | null>) {
                   setState({ loadPoseSet: currentTarget.checked });
                 }}
               />
-              {t('loadProjectOption/poseSets')}
+              {t("loadProjectOption/poseSets")}
             </label>
-            <div
-              css={css`
-                margin-top: 4px;
-                margin-left: 24px;
-              `}
-            >
+            <div className="mt-1 ml-6">
               <label>
                 <input
                   type="checkbox"
@@ -63,18 +44,11 @@ export function LoadProjectOption({ onClose }: ModalProps<{}, Result | null>) {
                   }}
                   disabled={!state.loadPoseSet}
                 />
-                {t('loadProjectOption/clearPoses')}
+                {t("loadProjectOption/clearPoses")}
               </label>
               {state.loadPoseSet && !state.clearCurrentPoses && (
-                <span
-                  css={css`
-                    display: block;
-                    font-size: 14px;
-                    margin-left: 24px;
-                    color: #666;
-                  `}
-                >
-                  {t('loadProjectOption/clearPoses/note')}
+                <span className="block text-sm ml-6 text-gray-600">
+                  {t("loadProjectOption/clearPoses/note")}
                 </span>
               )}
             </div>
@@ -84,10 +58,10 @@ export function LoadProjectOption({ onClose }: ModalProps<{}, Result | null>) {
       footer={
         <>
           <Button kind="primary" onClick={() => onClose(state)}>
-            {t('continue')}
+            {t("continue")}
           </Button>
           <Button kind="default" onClick={() => onClose(null)}>
-            {t('cancel')}
+            {t("cancel")}
           </Button>
         </>
       }

@@ -1,19 +1,18 @@
-import { ModalBase } from '../components/ModalBase';
-import { css } from 'styled-components';
-import { Button } from '../components/Button';
-import { ModalProps } from '@fleur/mordred';
-import { Tooltip } from '../components/Tooltip';
-import { useState } from 'react';
-import useEvent from 'react-use-event-hook';
+import { ModalBase } from "../components/ModalBase";
+import { Button } from "../components/Button";
+import { ModalProps } from "@fleur/mordred";
+import { Tooltip } from "../components/Tooltip";
+import { useState } from "react";
+import useEvent from "react-use-event-hook";
 
-import AgreementJa from '../agreements.ja.md';
-import AgreementEn from '../agreements.en.md';
-import { useRouter } from 'next/router';
-import { useTranslation } from '../hooks/useTranslation';
+import AgreementJa from "../agreements.ja.md";
+import AgreementEn from "../agreements.en.md";
+import { useRouter } from "next/router";
+import { useTranslation } from "../hooks/useTranslation";
 
 export function ConfirmAgreement({ onClose }: ModalProps<{}, void>) {
   const router = useRouter();
-  const t = useTranslation('common');
+  const t = useTranslation("common");
 
   const [is強要, setIs強要] = useState(false);
 
@@ -22,47 +21,22 @@ export function ConfirmAgreement({ onClose }: ModalProps<{}, void>) {
     setTimeout(() => setIs強要(false), 3000);
   });
 
-  const AgreementDocument = router.locale === 'ja' ? AgreementJa : AgreementEn;
+  const AgreementDocument = router.locale === "ja" ? AgreementJa : AgreementEn;
 
   return (
     <ModalBase
-      css={css`
-        line-height: 1.4;
-
-        h1 {
-          font-weight: bold;
-        }
-
-        p {
-          margin: 24px 0;
-        }
-
-        ul {
-          list-style: disc;
-          padding-left: 20px;
-        }
-
-        ol {
-          list-style: decimal;
-          padding-left: 20px;
-        }
-      `}
-      header={<h1>{t('confirmAgreement/title')}</h1>}
+      className="leading-snug [&_h1]:font-bold [&_p]:my-6 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+      header={<h1>{t("confirmAgreement/title")}</h1>}
       footer={
-        <div
-          css={css`
-            display: flex;
-            gap: 8px;
-          `}
-        >
-          <Tooltip content={t('confirmAgreement/invalid')} open={is強要}>
+        <div className="flex gap-2">
+          <Tooltip content={t("confirmAgreement/invalid")} open={is強要}>
             <Button kind="default" onClick={handleClickDisagree}>
-              {t('confirmAgreement/disagree')}
+              {t("confirmAgreement/disagree")}
             </Button>
           </Tooltip>
 
           <Button kind="primary" onClick={onClose}>
-            {t('confirmAgreement/agree')}
+            {t("confirmAgreement/agree")}
           </Button>
         </div>
       }

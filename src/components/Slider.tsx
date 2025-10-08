@@ -1,10 +1,9 @@
-import { memo, ReactNode } from 'react';
-import { RiRefreshLine } from 'react-icons/ri';
-import styled from 'styled-components';
-import { useBufferedState } from '../utils/hooks';
-import { Button } from './Button';
-import { Input } from './Input';
-import { rgba } from 'polished';
+import { memo, ReactNode } from "react";
+import { RiRefreshLine } from "react-icons/ri";
+import { useBufferedState } from "../utils/hooks";
+import { Button } from "./Button";
+import { Input } from "./Input";
+import { twx } from "@/utils/twx";
 
 export const Slider = memo(function Slider({
   label,
@@ -29,26 +28,18 @@ export const Slider = memo(function Slider({
 
   return (
     <div>
-      <div title={title} className="flex mb-2 text-sm">
+      <div title={title} className="flex justify-center mb-2 text-sm">
         <div
-          css={`
-            &::-webkit-scrollbar {
-              width: 0;
-              height: 0;
-            }
-          `}
-          className="flex whitespace-nowrap overflow-auto font-bold"
+          className={twx(
+            "flex whitespace-nowrap overflow-auto font-bold s",
+            "scrollbar-none",
+          )}
         >
           {label}
         </div>
 
         <Input
-          css={`
-            &::-webkit-inner-spin-button {
-              display: none;
-            }
-          `}
-          className="w-[4em] mx-1 p-0.5 border border-solid border-gray-200"
+          className="w-[4em] mx-1 p-0.5 ml-auto border border-solid border-gray-200 [&::-webkit-inner-spin-button]:hidden"
           type="number"
           $size="min"
           step={step}
@@ -61,7 +52,7 @@ export const Slider = memo(function Slider({
           onKeyDown={(e) => {
             const val = e.currentTarget.valueAsNumber;
             if (Number.isNaN(val)) return;
-            if (e.key === 'Enter') onChange(val);
+            if (e.key === "Enter") onChange(val);
           }}
           onFocus={(e) => {
             e.currentTarget.select();
@@ -72,7 +63,7 @@ export const Slider = memo(function Slider({
         />
 
         <Button
-          className="ml-auto flex-[0] leading-none"
+          className="flex-0 aspect-square leading-none"
           kind="default"
           size="min"
           onClick={() => onChange(defaultValue)}
@@ -81,8 +72,13 @@ export const Slider = memo(function Slider({
         </Button>
       </div>
 
-      <RangeInput
-        className="block w-[calc(100%-8px)] ml-2"
+      <input
+        className={twx(
+          "block w-[calc(100%-8px)] h-[4px] mx-1 leading-none [-webkit-touch-callout:none]",
+          "appearance-none outline-none bg-white shadow-[0_0_4px_rgba(0,0,0,0.2)] rounded-full",
+          "[&::-webkit-slider-thumb]:size-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-white",
+          "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-gray-300",
+        )}
         min={min}
         max={max}
         step={step}
@@ -96,36 +92,3 @@ export const Slider = memo(function Slider({
     </div>
   );
 });
-
-const RangeInput = styled.input`
-  display: block;
-  width: 100%;
-  height: 4px;
-  margin: 4px 0;
-
-  appearance: none;
-  --webkit-touch-callout: none;
-  outline: none;
-  line-height: 1;
-
-  background-color: #fff;
-  box-shadow: 0 0 4px ${rgba('#000', 0.2)};
-  border-radius: 100px;
-
-  /* &::-ms-fill-lower,
-  &::-moz-range-track,
-  &::-webkit-slider-runnable-track {
-    background: #28b8f1 !important;
-  } */
-
-  &::-webkit-slider-thumb {
-    width: 12px;
-    height: 12px;
-    appearance: none;
-    background: #fff;
-    border-radius: 100px;
-
-    /* box-shadow: 0 0 2px #aaa; */
-    border: 1px solid #aaa;
-  }
-`;

@@ -1,8 +1,6 @@
-import { rgba } from 'polished';
-import { forwardRef, MouseEvent, ReactNode, useEffect } from 'react';
-import { css } from 'styled-components';
-import { useFunc } from '../utils/hooks';
-import { twx } from '@/utils/twx';
+import { forwardRef, MouseEvent, ReactNode, useEffect } from "react";
+import { useFunc } from "../utils/hooks";
+import { twx } from "@/utils/twx";
 
 type Props = {
   header?: ReactNode;
@@ -25,68 +23,33 @@ export const ModalBase = forwardRef<HTMLDivElement, Props>(function ModalBase(
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.isComposing) return;
-      if (e.key === 'Escape') onClose(null);
+      if (e.key === "Escape") onClose(null);
     };
 
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
   return (
     <div
       ref={ref}
       className={twx(
-        'fixed top-0 left-0 flex w-full h-full justify-center z-10 bg-black/50 overflow-auto',
+        "fixed top-0 left-0 flex w-full h-full justify-center z-10 bg-black/50 overflow-auto",
         className,
       )}
       onClick={onBackdropClick}
       tabIndex={-1}
     >
-      <div
-        css={`
-          flex: none;
-          width: 50vw;
-          min-width: 300px;
-          margin: auto;
-          border-radius: 8px;
-          background-color: #fff;
-          box-shadow: 0 0 16px ${rgba('#222', 0.2)};
-        `}
-        className="modal-content"
-      >
+      <div className="modal-content flex-none w-[40dvw] min-w-[300px] m-auto rounded-lg bg-white shadow-[0_0_16px_rgba(34,34,34,0.2)]">
         {header && (
-          <div
-            css={`
-              padding: 24px 24px 0;
-              h1 {
-                text-align: center;
-                font-weight: bold;
-                font-size: 16px;
-              }
-            `}
-          >
+          <div className="pt-6 px-6 [&_h1]:text-center [&_h1]:font-bold [&_h1]:text-lg/none">
             {header}
           </div>
         )}
 
-        <div
-          css={`
-            padding: 24px;
-          `}
-        >
-          {content}
-        </div>
+        <div className="p-6">{content}</div>
 
-        {footer && (
-          <div
-            css={`
-              margin-top: 8px;
-              padding: 0 16px 16px;
-            `}
-          >
-            {footer}
-          </div>
-        )}
+        {footer && <div className="mt-2 px-4 pb-4">{footer}</div>}
       </div>
     </div>
   );

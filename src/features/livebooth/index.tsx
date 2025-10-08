@@ -1,35 +1,32 @@
-import { memo, useRef } from 'react';
-import { rgba } from 'polished';
+import { ComponentProps, memo, useRef } from "react";
 import {
   RiArrowLeftSFill,
   RiBodyScanLine,
   RiCameraSwitchFill,
   RiPaintFill,
-} from 'react-icons/ri';
-import { styleWhen } from '@hanakla/arma';
-import { useObjectState } from '@hanakla/arma/react-hooks';
-import styled, { css } from 'styled-components';
-import { useFunc, useBindMousetrap, useStoreState } from '../../utils/hooks';
-import { useEffect } from 'react';
-import { useFleurContext } from '@fleur/react';
-import { editorOps, EditorStore } from '../../domains/editor';
-import { Input } from '../../components/Input';
-import { transitionCss } from '../../styles/mixins';
-import { Sidebar } from '../../components/Sidebar';
-import { useClickAway, useDrop, useMount, useUpdate } from 'react-use';
-import 'react-contexify/dist/ReactContexify.css';
-import { ChromePicker, ColorChangeHandler } from 'react-color';
-import { useModalOpener } from '@fleur/mordred';
-import { LoadPose } from '../../modals/LoadPose';
-import { VirseStage } from '../../stage/VirseStage';
-import { useTranslation } from '../../hooks/useTranslation';
+} from "react-icons/ri";
+import { useObjectState } from "@hanakla/arma/react-hooks";
+import { useFunc, useBindMousetrap, useStoreState } from "../../utils/hooks";
+import { useEffect } from "react";
+import { useFleurContext } from "@fleur/react";
+import { editorOps, EditorStore } from "../../domains/editor";
+import { Input } from "../../components/Input";
+import { Sidebar } from "../../components/Sidebar";
+import { useClickAway, useDrop, useMount, useUpdate } from "react-use";
+import "react-contexify/dist/ReactContexify.css";
+import { ChromePicker, ColorChangeHandler } from "react-color";
+import { useModalOpener } from "@fleur/mordred";
+import { LoadPose } from "../../modals/LoadPose";
+import { VirseStage } from "../../stage/VirseStage";
+import { useTranslation } from "../../hooks/useTranslation";
+import { twx } from "@/utils/twx";
 
 export const LiveBooth = memo(function LiveBooth({
   stage,
 }: {
   stage: VirseStage | null;
 }) {
-  const t = useTranslation('common');
+  const t = useTranslation("common");
   const rerender = useUpdate();
   const { openModal } = useModalOpener();
 
@@ -41,7 +38,7 @@ export const LiveBooth = memo(function LiveBooth({
     fov: 15,
     showColorPane: false,
     color: {
-      hex: '#fff',
+      hex: "#fff",
       rgb: { r: 255, g: 255, b: 255 },
       alpha: 0,
     },
@@ -51,11 +48,11 @@ export const LiveBooth = memo(function LiveBooth({
   const { mode, menuOpened, poses, photoModeState, modelIndex } = useStoreState(
     (get) => ({
       ...get(EditorStore),
-    })
+    }),
   );
 
   const handleClickBackgroundColor = useFunc((e) => {
-    if ((e.target as HTMLElement).closest('[data-ignore-click]')) return;
+    if ((e.target as HTMLElement).closest("[data-ignore-click]")) return;
 
     setState((state) => {
       state.showColorPane = !state.showColorPane;
@@ -90,8 +87,8 @@ export const LiveBooth = memo(function LiveBooth({
 
     if (!avatar) return;
 
-    avatar.kalidokit?.events.off('statusChanged', rerender);
-    avatar.kalidokit?.events.on('statusChanged', rerender);
+    avatar.kalidokit?.events.off("statusChanged", rerender);
+    avatar.kalidokit?.events.on("statusChanged", rerender);
 
     if (avatar.kalidokit?.isCaptureRunnging) {
       avatar.kalidokit.stop();
@@ -119,7 +116,7 @@ export const LiveBooth = memo(function LiveBooth({
   useBindMousetrap(
     [
       {
-        keys: 'tab',
+        keys: "tab",
         preventDefault: true,
         handler: (e) => {
           const { menuOpened } = getStore(EditorStore).state;
@@ -128,7 +125,7 @@ export const LiveBooth = memo(function LiveBooth({
       },
     ],
     {},
-    rootRef
+    rootRef,
   );
 
   /////
@@ -138,10 +135,10 @@ export const LiveBooth = memo(function LiveBooth({
     onFiles: async ([file]) => {
       const url = URL.createObjectURL(file);
 
-      if (file.name.endsWith('.vrm')) {
+      if (file.name.endsWith(".vrm")) {
         executeOperation(editorOps.addVrm, file);
         stage!.loadVRM(url);
-      } else if (file.name.endsWith('.json')) {
+      } else if (file.name.endsWith(".json")) {
         const json = JSON.parse(await file.text());
 
         if (json.poseset) {
@@ -166,10 +163,10 @@ export const LiveBooth = memo(function LiveBooth({
 
   useEffect(() => {
     if (!stage) return;
-    stage.events.on('boneChanged', rerender);
+    stage.events.on("boneChanged", rerender);
 
     return () => {
-      stage.events.off('boneChanged', rerender);
+      stage.events.off("boneChanged", rerender);
     };
   }, [stage]);
 
@@ -178,9 +175,9 @@ export const LiveBooth = memo(function LiveBooth({
       stage?.setSize(window.innerWidth, window.innerHeight);
     };
 
-    window.addEventListener('resize', onResize);
+    window.addEventListener("resize", onResize);
 
-    return () => window.removeEventListener('resize', onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   // on mode changed
@@ -203,61 +200,25 @@ export const LiveBooth = memo(function LiveBooth({
   return (
     <div
       ref={rootRef}
-      css={css`
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        z-index: 1;
-        display: flex;
-        flex-flow: column;
-        pointer-events: none;
-      `}
+      className="absolute inset-0 z-[1] flex flex-col pointer-events-none"
       tabIndex={-1}
     >
-      <div
-        css={css`
-          position: relative;
-          display: flex;
-          flex: 1;
-          align-items: center;
-          justify-content: center;
-          pointer-events: none;
-          ${transitionCss}
-        `}
-      >
+      <div className="relative flex flex-1 items-center justify-center pointer-events-none">
         <Sidebar
-          css={`
-            position: absolute;
-            left: 0;
-            width: 172px;
-            height: 100%;
-            pointer-events: all;
-          `}
           side="left"
+          className="absolute left-0 w-[172px] h-full pointer-events-auto"
           opened={menuOpened}
         >
-          <div
-            css={css`
-              padding-top: 8px;
-            `}
-          >
+          <div className="pt-2">
             <MenuItem onClick={handleClickBackgroundColor}>
-              <RiPaintFill css={menuIconCss} />
-              {t('bgColor')}
+              <RiPaintFill className={menuIconCss} />
+              {t("bgColor")}
 
               <div
                 ref={bgColorPaneRef}
                 data-ignore-click
-                css={css`
-                  position: absolute;
-                  top: 0;
-                  left: 100%;
-                  z-index: 1;
-                  box-shadow: 0 4px 5px ${rgba('#aaaa', 0.1)};
-                `}
-                style={{ display: state.showColorPane ? 'block' : 'none' }}
+                className="absolute top-0 left-full z-[1] shadow-[0_4px_5px_rgba(170,170,170,0.1)]"
+                style={{ display: state.showColorPane ? "block" : "none" }}
               >
                 <ChromePicker
                   disableAlpha={false}
@@ -271,23 +232,23 @@ export const LiveBooth = memo(function LiveBooth({
             <MenuItem
               onClick={(e) => {
                 if (e.target instanceof HTMLInputElement) return;
-                stage.setCamMode();
+                stage?.setCamMode();
               }}
             >
-              <RiCameraSwitchFill css={menuIconCss} />
+              <RiCameraSwitchFill className={menuIconCss} />
               <div>
-                {t('camMode')}
+                {t("camMode")}
                 <br />
                 <span
                   css={`
                     font-size: 12px;
                   `}
                 >
-                  {t(`camMode/${stage?.camMode}`)}
+                  {t(`camMode/${stage?.camMode!}`)}
                 </span>
               </div>
 
-              {stage?.camMode === 'perspective' && (
+              {stage?.camMode === "perspective" && (
                 <div
                   css={`
                     display: flex;
@@ -313,20 +274,16 @@ export const LiveBooth = memo(function LiveBooth({
             </MenuItem>
 
             <MenuItem onClick={handleClickMotionCapture}>
-              <RiBodyScanLine css={menuIconCss} />
+              <RiBodyScanLine className={menuIconCss} />
               <div>
-                {t('motionCapture')}
+                {t("motionCapture")}
                 <br />
-                <span
-                  css={css`
-                    font-size: 12px;
-                  `}
-                >
+                <span className="text-xs">
                   {model?.avatar.kalidokit?.isInitializing
-                    ? t('motionCapture/loading')
+                    ? t("motionCapture/loading")
                     : model?.avatar.kalidokit?.isCaptureRunnging
-                    ? t('motionCapture/enabled')
-                    : t('motionCapture/disabled')}
+                      ? t("motionCapture/enabled")
+                      : t("motionCapture/disabled")}
                 </span>
               </div>
             </MenuItem>
@@ -336,40 +293,18 @@ export const LiveBooth = memo(function LiveBooth({
 
       <>
         <div
-          css={css`
-            position: absolute;
-            left: 0;
-            bottom: 16px;
-            padding: 8px;
-            padding-left: 16px;
-            border-radius: 0 100px 100px 0;
-            cursor: pointer;
-            pointer-events: all;
-            color: #fff;
-            ${transitionCss}
-            opacity: 1;
-
-            ${styleWhen(!menuOpened)`
-              color: rgba(255, 255, 255, 0);
-            `}
-
-            &:hover {
-              opacity: 1 !important;
-
-              background-color: ${rgba('#34c0b9', 0.4)};
-            }
-          `}
+          className={twx(
+            "absolute left-0 bottom-4 p-2 pl-4 rounded-r-full cursor-pointer pointer-events-auto text-white transition opacity-100",
+            !menuOpened && "text-[rgba(255,255,255,0)]",
+            "hover:opacity-100! hover:bg-[rgba(52,192,185,0.4)]",
+          )}
           style={{ opacity: menuOpened ? 1 : 0 }}
           onClick={handleClickSidebarOpener}
         >
           <RiArrowLeftSFill
-            css={css`
-              color: #fff;
-              font-size: 40px;
-              ${transitionCss}
-            `}
+            className="text-white font-[40px] transition-transform"
             style={{
-              transform: menuOpened ? 'rotate(0)' : 'rotate(180deg)',
+              transform: menuOpened ? "rotate(0)" : "rotate(180deg)",
             }}
           />
         </div>
@@ -378,27 +313,20 @@ export const LiveBooth = memo(function LiveBooth({
   );
 });
 
-const menuIconCss = css`
-  font-size: 22px;
-  color: #fff;
-`;
+const menuIconCss = twx("text-white text-[22px]");
 
-const MenuItem = styled.div`
-  display: flex;
-  flex-flow: row wrap;
-  gap: 8px;
-  padding: 8px 16px;
-  align-items: center;
-  font-size: 14px;
-  color: white;
-  cursor: pointer;
-  user-select: none;
-
-  &:hover {
-    background-image: linear-gradient(
-      to right,
-      ${rgba('#fff', 0.5)},
-      ${rgba('#fff', 0)}
-    );
-  }
-`;
+const MenuItem = memo(function MenuItem({
+  className,
+  ...props
+}: ComponentProps<"div">) {
+  return (
+    <div
+      className={twx(
+        "flex flex-wrap gap-2 py-2 px-4 items-center text-sm text-white cursor-pointer select-none",
+        "hover:bg-[linear-gradient(to_right,rgba(255,255,255,0.5),rgba(255,255,255,0))]",
+        className,
+      )}
+      {...props}
+    />
+  );
+});

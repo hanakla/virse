@@ -1,16 +1,15 @@
-import { ModalProps } from '@fleur/mordred';
-import { ReactNode } from 'react';
-import useEvent from 'react-use-event-hook';
-import { css } from 'styled-components';
-import { Button, ButtonKind } from '../components/Button';
-import { ModalBase } from '../components/ModalBase';
-import { useTranslation } from '../hooks/useTranslation';
-import { useFocusRestore } from '../utils/hooks';
+import { ModalProps } from "@fleur/mordred";
+import { ReactNode } from "react";
+import useEvent from "react-use-event-hook";
+import { Button, ButtonKind } from "../components/Button";
+import { ModalBase } from "../components/ModalBase";
+import { useTranslation } from "../hooks/useTranslation";
+import { useFocusRestore } from "../utils/hooks";
 
 export function ConfirmModal({
   message,
   onClose,
-  primaryButtonKind = 'primary',
+  primaryButtonKind = "primary",
   okText,
   cancelText,
 }: ModalProps<
@@ -22,7 +21,7 @@ export function ConfirmModal({
   },
   boolean
 >) {
-  const t = useTranslation('common');
+  const t = useTranslation("common");
 
   useFocusRestore();
 
@@ -36,32 +35,15 @@ export function ConfirmModal({
 
   return (
     <ModalBase
-      css={`
-        .modal-content {
-          max-width: 400px;
-        }
-      `}
-      content={
-        <div
-          css={`
-            line-height: 1.4;
-          `}
-        >
-          {message}
-        </div>
-      }
+      className="[&_.modal-content]:max-w-[400px]"
+      content={<div className="leading-snug">{message}</div>}
       footer={
-        <div
-          css={css`
-            display: flex;
-            gap: 8px;
-          `}
-        >
+        <div className="flex gap-2">
           <Button kind="default" onClick={handleClickCancel} autoFocus>
-            {cancelText ?? t('cancel')}
+            {cancelText ?? t("cancel")}
           </Button>
           <Button kind={primaryButtonKind} onClick={handleClickOk}>
-            {okText ?? t('ok')}
+            {okText ?? t("ok")}
           </Button>
         </div>
       }

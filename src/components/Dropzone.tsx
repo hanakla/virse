@@ -1,10 +1,8 @@
-import { twx } from '@/utils/twx';
-import { selectFile } from '@hanakla/arma';
-import { rgba } from 'polished';
-import { ReactNode } from 'react';
-import { useDropArea } from 'react-use';
-import useEvent from 'react-use-event-hook';
-import { css } from 'styled-components';
+import { twx } from "@/utils/twx";
+import { selectFile } from "@hanakla/arma";
+import { ReactNode } from "react";
+import { useDropArea } from "react-use";
+import useEvent from "react-use-event-hook";
 
 export default function Dropzone({
   children,
@@ -35,7 +33,7 @@ export default function Dropzone({
     <div
       {...bind}
       className={twx(
-        'flex flex-wrap items-center justify-center w-full p-8 bg-white/80 rounded-lg shadow-inner cursor-pointer select-none',
+        "flex flex-wrap items-center justify-center w-full p-8 bg-white/80 rounded-lg shadow-inner cursor-pointer select-none",
         className,
       )}
       onClick={handleClick}

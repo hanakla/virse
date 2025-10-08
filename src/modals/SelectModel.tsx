@@ -1,19 +1,18 @@
-import { ModalProps } from '@fleur/mordred';
-import escapeStringRegexp from 'escape-string-regexp';
-import { ChangeEvent, SyntheticEvent, useState } from 'react';
-import useEvent from 'react-use-event-hook';
-import { css } from 'styled-components';
-import { Button } from '../components/Button';
-import Dropzone from '../components/Dropzone';
-import { Input } from '../components/Input';
-import { ModalBase } from '../components/ModalBase';
-import { useTranslation } from '../hooks/useTranslation';
-import { useFunc } from '../utils/hooks';
+import { ModalProps } from "@fleur/mordred";
+import escapeStringRegexp from "escape-string-regexp";
+import { ChangeEvent, SyntheticEvent, useState } from "react";
+import useEvent from "react-use-event-hook";
+import { Button } from "../components/Button";
+import Dropzone from "../components/Dropzone";
+import { Input } from "../components/Input";
+import { ModalBase } from "../components/ModalBase";
+import { useTranslation } from "../hooks/useTranslation";
+import { useFunc } from "../utils/hooks";
 
 export function SelectModel({
   onClose,
 }: ModalProps<{}, { file: File } | null>) {
-  const t = useTranslation('common');
+  const t = useTranslation("common");
 
   const [file, setFile] = useState<File | null>(null);
 
@@ -35,12 +34,7 @@ export function SelectModel({
         onClose={onClose}
         content={
           <div>
-            <Dropzone
-              css={css`
-                padding: 64px 32px;
-              `}
-              onFiles={handleFileDrop}
-            >
+            <Dropzone className="py-16 px-8" onFiles={handleFileDrop}>
               {!file ? <>Drop VRM file</> : <>{file.name}</>}
             </Dropzone>
           </div>
@@ -52,10 +46,10 @@ export function SelectModel({
               onClick={() => onClose(file ? { file } : null)}
               disabled={!file}
             >
-              {t('ok')}
+              {t("ok")}
             </Button>
             <Button kind="default" onClick={() => onClose(null)}>
-              {t('cancel')}
+              {t("cancel")}
             </Button>
           </>
         }
