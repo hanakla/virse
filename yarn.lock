@@ -1211,139 +1211,139 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-core@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/three-vrm-core@npm:3.4.2"
+"@pixiv/three-vrm-core@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/three-vrm-core@npm:3.4.5"
   dependencies:
-    "@pixiv/types-vrm-0.0": "npm:3.4.2"
-    "@pixiv/types-vrmc-vrm-1.0": "npm:3.4.2"
+    "@pixiv/types-vrm-0.0": "npm:3.4.5"
+    "@pixiv/types-vrmc-vrm-1.0": "npm:3.4.5"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/9add9cf55f4e92d013ca26ab3682a52ecd562afe6d1b09b7e4cde5c8e7ea62ffdf507582bf8f44fd094107269286df78ecf23759eb0e42f56bea6a9d9416df8c
+  checksum: 10/458874d74cf642d70914bc073985ab8acd20574341f7d7e950fc3e9f7be1d49039df8ba60519a0388c76a5c14272f2588bfd29e2bac321f592fcbbc6af82a92e
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-materials-hdr-emissive-multiplier@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/three-vrm-materials-hdr-emissive-multiplier@npm:3.4.2"
+"@pixiv/three-vrm-materials-hdr-emissive-multiplier@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/three-vrm-materials-hdr-emissive-multiplier@npm:3.4.5"
   dependencies:
-    "@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0": "npm:3.4.2"
+    "@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0": "npm:3.4.5"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/758deadc157c50c4fba5b1c003505ff6c7177ad1365ce261e072db5daa2891c073d099eacbce2f3c7ff4257460baa52a5180a068bc7aeb48770cfd57be440386
+  checksum: 10/4ac8d213761bb660d4bd6b5cc9e788bb0c02644404b35ce8c60062d4ad276e7e30326c08d781a08a27729c6d943abb334c703e9535c509419b7133345032d488
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-materials-mtoon@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/three-vrm-materials-mtoon@npm:3.4.2"
+"@pixiv/three-vrm-materials-mtoon@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/three-vrm-materials-mtoon@npm:3.4.5"
   dependencies:
-    "@pixiv/types-vrm-0.0": "npm:3.4.2"
-    "@pixiv/types-vrmc-materials-mtoon-1.0": "npm:3.4.2"
+    "@pixiv/types-vrm-0.0": "npm:3.4.5"
+    "@pixiv/types-vrmc-materials-mtoon-1.0": "npm:3.4.5"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/850c781c124308f94dcb703f382c0815a4ee508a28bf7a1f063b59e32cc8c07f43a5bb5ca128205a66513a9d2c7d3607b192fbcd5f169f4d9408eb2f4c77455b
+  checksum: 10/d8fb5f5bdf6192b3bf444b0836a053c06c48711e293c9608cb30d01db38a33eb6ac75cb2371042fa1221c50fbc440c022e319adf32f29985178885ee1ceb55c0
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-materials-v0compat@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/three-vrm-materials-v0compat@npm:3.4.2"
+"@pixiv/three-vrm-materials-v0compat@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/three-vrm-materials-v0compat@npm:3.4.5"
   dependencies:
-    "@pixiv/types-vrm-0.0": "npm:3.4.2"
-    "@pixiv/types-vrmc-materials-mtoon-1.0": "npm:3.4.2"
+    "@pixiv/types-vrm-0.0": "npm:3.4.5"
+    "@pixiv/types-vrmc-materials-mtoon-1.0": "npm:3.4.5"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/95971038503ac7553744d7d39ec2f35536c69366afd4a3fb23e0b851bf01dd0c310c5be0464fe84e6503c46d35e0c216a1f4b946c8adbe6139da09582a372a94
+  checksum: 10/12afdee18a4cee03587defac1b0d286f45367593b21d89b3df19ee6dc6435af189d5bbe94d1a0bbb3f9b1a5e0eaa490e9cd7fb09e0d1306ec54e5ebfa94fb0d9
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-node-constraint@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/three-vrm-node-constraint@npm:3.4.2"
+"@pixiv/three-vrm-node-constraint@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/three-vrm-node-constraint@npm:3.4.5"
   dependencies:
-    "@pixiv/types-vrmc-node-constraint-1.0": "npm:3.4.2"
+    "@pixiv/types-vrmc-node-constraint-1.0": "npm:3.4.5"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/de083cd2d5ed91fe26047c96a2a7d7bac1507150e90192af2a6578552bdf38f3feef28734e217ffe1cfff81c67f8824d3afbe8b01cdc45fc72e61b2b1d7b3ab8
+  checksum: 10/3040d9247aa7a1bb1cd77b895badb47d4b7d809f5b2583691336bf58b826cf4d3c6c30fbfad77748e259465412a75d1780d85aab3c88be2b6540fe5b3a29d53c
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm-springbone@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/three-vrm-springbone@npm:3.4.2"
+"@pixiv/three-vrm-springbone@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/three-vrm-springbone@npm:3.4.5"
   dependencies:
-    "@pixiv/types-vrm-0.0": "npm:3.4.2"
-    "@pixiv/types-vrmc-springbone-1.0": "npm:3.4.2"
-    "@pixiv/types-vrmc-springbone-extended-collider-1.0": "npm:3.4.2"
+    "@pixiv/types-vrm-0.0": "npm:3.4.5"
+    "@pixiv/types-vrmc-springbone-1.0": "npm:3.4.5"
+    "@pixiv/types-vrmc-springbone-extended-collider-1.0": "npm:3.4.5"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/49c4c9fb54433d68e23734d06a2a086326c42f29fc6414f92917ff5d41058f09fa51f34ff96f2955e4e5feaa3f1728c846f10d0e3f2a3c569cf3e87c1d03b013
+  checksum: 10/893845d6f555667c3964aa4194d6a762154e6129106825c4b3f20c7c47c37e0aa670f1866680704854cfb6f28fd75b0081340c8fb642674450215efd4e328269
   languageName: node
   linkType: hard
 
-"@pixiv/three-vrm@npm:^3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/three-vrm@npm:3.4.2"
+"@pixiv/three-vrm@npm:^3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/three-vrm@npm:3.4.5"
   dependencies:
-    "@pixiv/three-vrm-core": "npm:3.4.2"
-    "@pixiv/three-vrm-materials-hdr-emissive-multiplier": "npm:3.4.2"
-    "@pixiv/three-vrm-materials-mtoon": "npm:3.4.2"
-    "@pixiv/three-vrm-materials-v0compat": "npm:3.4.2"
-    "@pixiv/three-vrm-node-constraint": "npm:3.4.2"
-    "@pixiv/three-vrm-springbone": "npm:3.4.2"
+    "@pixiv/three-vrm-core": "npm:3.4.5"
+    "@pixiv/three-vrm-materials-hdr-emissive-multiplier": "npm:3.4.5"
+    "@pixiv/three-vrm-materials-mtoon": "npm:3.4.5"
+    "@pixiv/three-vrm-materials-v0compat": "npm:3.4.5"
+    "@pixiv/three-vrm-node-constraint": "npm:3.4.5"
+    "@pixiv/three-vrm-springbone": "npm:3.4.5"
   peerDependencies:
     three: ">=0.137"
-  checksum: 10/0624fa97b5139ca2793c717e348d633f289a8cbc53783e11f57ee19ae140a24bcd6f669bbc6500ef05a8ca3b51c1adc24288fd3c1bf9d1adc8b3a7968b8252c9
+  checksum: 10/153c3e67c5d22f03713355316b1cd04e39082612e512ecb410f692790d1ed33207db1ba2a475f343982a0be0b70cf22e8f34cc93ad36dd15edaada0f8bb3043e
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrm-0.0@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/types-vrm-0.0@npm:3.4.2"
-  checksum: 10/f6bdc19c1695aadd7e4f0d26c102abebdf11c9a1c85d3d3fd05571a94dd17c8534e0539503325204ec0b41bf0db783c990e59617ba5d3ae99a47e2a9a940788a
+"@pixiv/types-vrm-0.0@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/types-vrm-0.0@npm:3.4.5"
+  checksum: 10/f64e7bc97be9039ef4f08935996c0b50458efac105192216bb36a849fe4074ac27d14192a3731b1e2f77a27fa3419c5bca427473bb6ae4f2d3429d2d2ccae1b2
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0@npm:3.4.2"
-  checksum: 10/dd3945e48620fe9c9ebf5a9145094e952a44c4e1cf4c553379dbebc5701cc3a441f973a3937390ac8ec0f6a0d257adca5d9f22c0ecbf984ee2001b70c7c70e40
+"@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/types-vrmc-materials-hdr-emissive-multiplier-1.0@npm:3.4.5"
+  checksum: 10/e8448422c2a39c75f07337a75c5d72ee06ccf6b7b5553a4875259e1307152c75d133d7f45269aacae2a30b286809c53893fee3dbe05aba01463b235141b76d49
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-materials-mtoon-1.0@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/types-vrmc-materials-mtoon-1.0@npm:3.4.2"
-  checksum: 10/3363642a236e4bcdbe634fe16f3f910ee66fe2b8bf92b459650c52684f0a532b9c84ce59a9e71c8f2bd4d904079473ccecd10551962fb4565fb690edcc57b384
+"@pixiv/types-vrmc-materials-mtoon-1.0@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/types-vrmc-materials-mtoon-1.0@npm:3.4.5"
+  checksum: 10/be8cf09284233d277daba4011c4ff5283c7903f00e1777c1e8e91c2e576250d5f7ffb33323fb5d5fd1cff476641d39891f446adda349bfce42090778b649d3c0
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-node-constraint-1.0@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/types-vrmc-node-constraint-1.0@npm:3.4.2"
-  checksum: 10/5ecb8c637562c49363c3ddc189a5d58e58b0a912cbd30c8e42186a5dc3d5d51f4b9f0814251fa242f40431c5e824d96661bb055a6d9947c80c073b8e0db1ea70
+"@pixiv/types-vrmc-node-constraint-1.0@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/types-vrmc-node-constraint-1.0@npm:3.4.5"
+  checksum: 10/bebff011241c083656d1a0cf49697dfcfcdbb95bed6227933821fc0763b8f8729cdb807edf81e57bf441e51db71138601d50d28873954e251a83ceec66c2d5e0
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-springbone-1.0@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/types-vrmc-springbone-1.0@npm:3.4.2"
-  checksum: 10/13f112aead2fcdaceb71073d46c1750f7e6c4b6ed58eefe61233c56b3f20f9c5d293b491f75d8d7f8fa0d91bdb17e23983d1e852365161341d68f8aff83c8aca
+"@pixiv/types-vrmc-springbone-1.0@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/types-vrmc-springbone-1.0@npm:3.4.5"
+  checksum: 10/c2085fb080b8a45c7944a7a5baca60c9b4657eee253a1fab2a0598232ea346e85282e0eebbc8806b00786bc18d66e9746daf0388d045c633a1ec86899e0c25fa
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-springbone-extended-collider-1.0@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/types-vrmc-springbone-extended-collider-1.0@npm:3.4.2"
-  checksum: 10/06ccb333fb5caa2a17b765f45dfd8d1a5f65e8c74c00420edde4dc5a0a5ae0edf50ef7c5d4f8ec47ecdbbe05186ffe68e70066939679159d0ab7ac34722f6cd1
+"@pixiv/types-vrmc-springbone-extended-collider-1.0@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/types-vrmc-springbone-extended-collider-1.0@npm:3.4.5"
+  checksum: 10/7626b0d743bcff247f81e1386edb6c851f257f795c871b15905d0612981ada927f2b88e1dd16bebfb1d26adde5c4e19ae4866c73370e85173333b3edd588be0c
   languageName: node
   linkType: hard
 
-"@pixiv/types-vrmc-vrm-1.0@npm:3.4.2":
-  version: 3.4.2
-  resolution: "@pixiv/types-vrmc-vrm-1.0@npm:3.4.2"
-  checksum: 10/3a879b1e1ada8ad0673ccfa88603983ebc8d450353e61ff6036cd72ba49188adbde617ce53307ab621385c02441de46078664631c46f590ce4ce4f8ec97b2460
+"@pixiv/types-vrmc-vrm-1.0@npm:3.4.5":
+  version: 3.4.5
+  resolution: "@pixiv/types-vrmc-vrm-1.0@npm:3.4.5"
+  checksum: 10/c8d53b31d4eb0abd7a6e0232907b40001503d6f3ccec61c0f7fc8fc6fc0f16b24ce334ce2b16bd7f9fe1319454c619ca70b7813b34e13f0de05833921a529a04
   languageName: node
   linkType: hard
 
@@ -8425,7 +8425,7 @@ __metadata:
     "@mediapipe/holistic": "npm:0.5.1675471629"
     "@napi-rs/canvas": "npm:^0.1.51"
     "@next/mdx": "npm:15.3.2"
-    "@pixiv/three-vrm": "npm:^3.4.2"
+    "@pixiv/three-vrm": "npm:^3.4.5"
     "@radix-ui/react-tooltip": "npm:^1.2.7"
     "@react-hook/mouse-position": "npm:^4.1.3"
     "@tailwindcss/postcss": "npm:4.1.8"
