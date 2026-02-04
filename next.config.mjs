@@ -1,4 +1,3 @@
-import nextTranslate from 'next-translate-plugin';
 import createMDX from '@next/mdx';
 
 const withMDX = createMDX({
@@ -7,6 +6,10 @@ const withMDX = createMDX({
 
 /** @type {import('next').NextConfig} */
 const config = {
+  i18n: {
+    locales: ['ja', 'en'],
+    defaultLocale: 'ja',
+  },
   experimental: {},
   transpilePackages: ['kalidokit', '@mediapipe/holistic'],
   compiler: {
@@ -25,4 +28,4 @@ const config = {
   },
 };
 
-export default nextTranslate(withMDX(config));
+export default withMDX(config);

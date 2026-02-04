@@ -347,3 +347,11 @@ const NavItem = memo(function NavItem({
     />
   );
 });
+
+export async function getStaticProps({ locale }: { locale: string }) {
+  return {
+    props: {
+      messages: (await import(`../../locales/${locale}.json`)).default,
+    },
+  };
+}

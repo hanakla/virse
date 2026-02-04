@@ -1,16 +1,13 @@
-import useT from 'next-translate/useTranslation';
-import type * as commonKeys from '../../locales/ja/common.json';
+import { useTranslations } from 'next-intl';
+import type * as commonKeys from '../../locales/ja.json';
 
 type Keys = keyof typeof commonKeys;
 
-export function useTranslation(ns?: string) {
-  const { t } = useT(ns);
+export function useTranslation(_ns?: string) {
+  const t = useTranslations();
 
-  return t as (
+  return (
     key: Keys,
-    query?: Record<string, any> | null,
-    options?: {
-      fallback?: string | string[];
-    }
-  ) => string;
+    values?: Record<string, any>
+  ) => t(key, values);
 }

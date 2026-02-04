@@ -1,11 +1,18 @@
 import "../styles/globals.css";
-import type { AppProps } from "next/app";
-import { appWithFleur } from "../lib/fleur";
 import { MordredOut } from "@fleur/mordred";
+import type { AppProps } from "next/app";
+import { NextIntlClientProvider } from "next-intl";
+import { useRouter } from "next/router";
+import { appWithFleur } from "../lib/fleur";
 
 function MyApp({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+
   return (
-    <>
+    <NextIntlClientProvider
+      locale={router.locale}
+      messages={pageProps.messages}
+    >
       <Component {...pageProps} />
       <MordredOut>{(children) => <>{children.children}</>}</MordredOut>
       <svg className="hidden">
@@ -27,7 +34,7 @@ function MyApp({ Component, pageProps }: AppProps) {
           ></feDisplacementMap>
         </filter>
       </svg>
-    </>
+    </NextIntlClientProvider>
   );
 }
 

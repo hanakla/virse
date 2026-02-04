@@ -1,18 +1,20 @@
-import { TransProps } from 'next-translate';
-import NextTrans from 'next-translate/Trans';
-import type * as commonKeys from '../../locales/ja/common.json';
+import { useTranslations } from 'next-intl';
+import { type ReactNode } from 'react';
+import type * as commonKeys from '../../locales/ja.json';
 
-type Props = Omit<TransProps, 'i18nKey'> & { i18nKey: keyof typeof commonKeys };
+type Props = {
+  i18nKey: keyof typeof commonKeys;
+  values?: Record<string, any>;
+  components?: Record<string, (chunks: ReactNode) => ReactNode>;
+};
 
-export function Trans(props: Props) {
-  return (
-    <NextTrans
-      ns="common"
-      {...props}
-      components={{
-        br: <br />,
-        ...props.components,
-      }}
-    />
-  );
+export function Trans({ i18nKey, values, components }: Props) {
+  const t = useTranslations();
+
+  const defaultComponents = {
+    br: () => <br />,
+    ...components,
+  };
+
+  return <>{t.rich(i18nKey, { ...values, ...defaultComponents })}</>;
 }
